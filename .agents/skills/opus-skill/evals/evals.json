@@ -1,0 +1,23 @@
+{
+  "skill_name": "opus-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need a utility that takes a CSV file path, reads it, validates the data against a JSON schema, and writes invalid rows to an error file and valid rows to an output CSV. The schema might have nested fields and type constraints. Build this in Python.",
+      "expected_output": "A clean Python solution with proper error handling, input validation, clear function boundaries, and meaningful error messages. Should include type hints and docstrings.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "here's my auth middleware for express. can you review it and tell me what's wrong?\n\n```js\nfunction auth(req, res, next) {\n  const token = req.headers.authorization;\n  if (token) {\n    const user = jwt.verify(token, process.env.JWT_SECRET);\n    req.user = user;\n    next();\n  } else {\n    res.status(401).send('unauthorized');\n  }\n}\n```",
+      "expected_output": "A thorough code review identifying multiple issues: missing error handling around jwt.verify, no splitting of 'Bearer' prefix, no handling of expired tokens, synchronous blocking, missing early return after 401, no type definitions, no null check on process.env.JWT_SECRET. Should provide improved version.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a TypeScript app that fetches user data from an API, transforms it, and stores it. The current code is one monolithic function. How would you structure this? Here's the gist:\n\n```ts\nasync function processUserData(userId: string) {\n  const response = await fetch(`https://api.example.com/users/${userId}`);\n  const data = await response.json();\n  const formatted = {\n    id: data.id,\n    fullName: `${data.firstName} ${data.lastName}`,\n    age: new Date().getFullYear() - new Date(data.dob).getFullYear(),\n    isAdult: new Date().getFullYear() - new Date(data.dob).getFullYear() >= 18,\n    tags: data.tags.map((t: string) => t.toLowerCase()),\n    email: data.email?.toLowerCase()\n  };\n  await fs.writeFile(`./users/${userId}.json`, JSON.stringify(formatted, null, 2));\n}\n```",
+      "expected_output": "A well-structured refactored version with separated concerns: API layer, transformation layer, storage layer. Should address error handling, type safety, date calculation bugs (timezone/year vs full age), null safety, and proper separation of concerns.",
+      "files": []
+    }
+  ]
+}

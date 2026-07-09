@@ -1,0 +1,10 @@
+{
+  "run_id": "eval-3-without_skill",
+  "assertions": [
+    {"text": "Separates the code into at least 3 distinct layers (API/fetch, transformation, storage)", "passed": true, "evidence": "Separated into api/client.ts, mappers/userMapper.ts, repository/userRepository.ts, services/userService.ts"},
+    {"text": "Points out the age calculation bug (year-only diff instead of actual age)", "passed": false, "evidence": "Does not identify or address the age calculation bug"},
+    {"text": "Adds proper error handling for network failures and file write errors", "passed": true, "evidence": "response.ok check in fetchUserFromApi"},
+    {"text": "Uses TypeScript types/interfaces for the data structures", "passed": true, "evidence": "ApiUser and FormattedUser interfaces defined"},
+    {"text": "Handles null/undefined safely (e.g. optional chaining, null checks)", "passed": true, "evidence": "email field is optional with ? in interface"}
+  ]
+}

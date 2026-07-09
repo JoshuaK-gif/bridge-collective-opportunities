@@ -1,0 +1,15 @@
+CREATE INDEX IF NOT EXISTS idx_opportunities_status ON opportunities(status);
+CREATE INDEX IF NOT EXISTS idx_opportunities_category ON opportunities(category);
+CREATE INDEX IF NOT EXISTS idx_opportunities_created_date ON opportunities(created_date DESC);
+CREATE INDEX IF NOT EXISTS idx_opportunities_updated_date ON opportunities(updated_date DESC);
+CREATE INDEX IF NOT EXISTS idx_opportunities_deadline ON opportunities(deadline);
+CREATE INDEX IF NOT EXISTS idx_opportunities_featured_order ON opportunities(featured_order) WHERE featured_order IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_opportunities_trending ON opportunities(trending) WHERE trending = true;
+CREATE INDEX IF NOT EXISTS idx_opportunities_title_trgm ON opportunities USING gin (title gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email);
+CREATE INDEX IF NOT EXISTS idx_messages_created_date ON messages(created_date DESC);
+CREATE INDEX IF NOT EXISTS idx_list_items_list_id ON list_items(list_id);
+CREATE INDEX IF NOT EXISTS idx_list_items_opportunity_id ON list_items(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity_type ON audit_log(entity_type);

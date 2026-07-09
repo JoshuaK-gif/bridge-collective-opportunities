@@ -1,0 +1,12 @@
+{
+  "eval_id": 3,
+  "eval_name": "typescript-refactoring",
+  "prompt": "I have a TypeScript app that fetches user data from an API, transforms it, and stores it. The current code is one monolithic function. How would you structure this? Here's the gist:\n\n```ts\nasync function processUserData(userId: string) {\n  const response = await fetch(`https://api.example.com/users/${userId}`);\n  const data = await response.json();\n  const formatted = {\n    id: data.id,\n    fullName: `${data.firstName} ${data.lastName}`,\n    age: new Date().getFullYear() - new Date(data.dob).getFullYear(),\n    isAdult: new Date().getFullYear() - new Date(data.dob).getFullYear() >= 18,\n    tags: data.tags.map((t: string) => t.toLowerCase()),\n    email: data.email?.toLowerCase()\n  };\n  await fs.writeFile(`./users/${userId}.json`, JSON.stringify(formatted, null, 2));\n}\n```",
+  "assertions": [
+    {"text": "Separates the code into at least 3 distinct layers (API/fetch, transformation, storage)", "passed": null, "evidence": ""},
+    {"text": "Points out the age calculation bug (year-only diff instead of actual age)", "passed": null, "evidence": ""},
+    {"text": "Adds proper error handling for network failures and file write errors", "passed": null, "evidence": ""},
+    {"text": "Uses TypeScript types/interfaces for the data structures", "passed": null, "evidence": ""},
+    {"text": "Handles null/undefined safely (e.g. optional chaining, null checks)", "passed": null, "evidence": ""}
+  ]
+}

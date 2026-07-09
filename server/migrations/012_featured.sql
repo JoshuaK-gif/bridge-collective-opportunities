@@ -1,0 +1,2 @@
+ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS featured_order INT DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_opportunities_featured ON opportunities (featured_order NULLS LAST) WHERE featured_order IS NOT NULL;

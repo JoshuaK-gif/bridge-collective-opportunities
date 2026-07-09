@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS news (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT DEFAULT '',
+  image_url TEXT DEFAULT '',
+  link TEXT DEFAULT '',
+  published_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE news ENABLE ROW LEVEL SECURITY;

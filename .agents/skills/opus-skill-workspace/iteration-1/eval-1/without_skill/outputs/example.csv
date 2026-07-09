@@ -1,0 +1,6 @@
+name,email,age,role,active,address,zipcode,tags
+Alice,alice@example.com,30,admin,true,"{""city"":""New York"",""zip"":""10001""}",10001,"[""dev"",""ops""]"
+Bob,bob@test,notanumber,user,false,"{""city"":""NYC"",""zip"":""abc""}",,"[""qa""]"
+Charlie,charlie@example.com,-5,viewer,maybe,,,notajson
+Diana,diana@example.com,25,superadmin,1,"{""city"":""Boston"",""zip"":""02134""}",02134,"[""design""]"
+Eve,eve@example.com,0,,yes,,,

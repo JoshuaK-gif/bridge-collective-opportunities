@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the person"
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150,
+      "description": "Age in years"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Valid email address"
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "zip": {
+          "type": "string",
+          "pattern": "^\\d{5}(-\\d{4})?$",
+          "description": "US ZIP or ZIP+4 code"
+        }
+      },
+      "required": ["street", "city"]
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether the user account is active"
+    }
+  },
+  "required": ["name", "email"]
+}

@@ -1,0 +1,5 @@
+INSERT INTO site_settings (key, value) VALUES
+  ('scraper_config', '{"source_url":"https://opportunitiesforyouth.org/feed/","enabled":false,"interval_minutes":60,"auto_post":false,"auto_social":false,"generate_images":true,"category_map":{"Scholarships":"Scholarship","Grants":"Grant","Jobs":"Job","Internships":"Internship","Fellowship":"Fellowship","Training":"Training","Volunteer":"Volunteer","Awards":"Grant","Conferences":"Training","Short Courses":"Training"}}'),
+  ('social_accounts', '{"twitter":{"enabled":false,"api_key":"","api_secret":"","access_token":"","access_secret":""},"linkedin":{"enabled":false,"access_token":"","person_id":""},"facebook":{"enabled":false,"page_id":"","access_token":""},"instagram":{"enabled":false,"access_token":"","instagram_id":"","default_image_url":""},"whatsapp":{"enabled":false,"access_token":"","phone_number_id":"","target_phone":"","group_id":""}}'),
+  ('openai_config', '{"api_key":"","model":"gpt-4o-mini","enabled":false}')
+ON CONFLICT (key) DO NOTHING;

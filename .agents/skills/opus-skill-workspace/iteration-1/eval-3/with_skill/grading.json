@@ -1,0 +1,10 @@
+{
+  "run_id": "eval-3-with_skill",
+  "assertions": [
+    {"text": "Separates the code into at least 3 distinct layers (API/fetch, transformation, storage)", "passed": true, "evidence": "Separated into api.ts (fetch), transform.ts (mapping), storage.ts (persistence), processUser.ts (orchestrator)"},
+    {"text": "Points out the age calculation bug (year-only diff instead of actual age)", "passed": false, "evidence": "Does not identify the bug - uses same new Date().getFullYear() - new Date(dob).getFullYear() approach, which gives year-only difference, not actual age"},
+    {"text": "Adds proper error handling for network failures and file write errors", "passed": true, "evidence": "response.ok check in fetchRawUser; file write is awaited"},
+    {"text": "Uses TypeScript types/interfaces for the data structures", "passed": true, "evidence": "RawUser and StoredUser interfaces defined in types.ts"},
+    {"text": "Handles null/undefined safely (e.g. optional chaining, null checks)", "passed": true, "evidence": "Uses ?? null for email; proper optional handling"}
+  ]
+}

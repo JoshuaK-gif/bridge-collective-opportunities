@@ -1,0 +1,10 @@
+{
+  "run_id": "eval-2-without_skill",
+  "assertions": [
+    {"text": "Identifies missing Bearer prefix handling", "passed": true, "evidence": "Section 3 explicitly covers Bearer prefix stripping issue"},
+    {"text": "Identifies missing try/catch around jwt.verify", "passed": true, "evidence": "Section 2: 'No error handling around jwt.verify'"},
+    {"text": "Identifies missing early return after res.status(401).send()", "passed": true, "evidence": "Section 4: 'Missing return on error branch'"},
+    {"text": "Identifies missing check for process.env.JWT_SECRET being undefined", "passed": true, "evidence": "Section 5: 'No check for missing JWT_SECRET'"},
+    {"text": "Provides an improved version of the code", "passed": true, "evidence": "Corrected Version section with complete fixed code"}
+  ]
+}

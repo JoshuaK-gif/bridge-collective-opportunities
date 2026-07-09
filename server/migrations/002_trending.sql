@@ -1,0 +1,1 @@
+ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS trending BOOLEAN DEFAULT false;

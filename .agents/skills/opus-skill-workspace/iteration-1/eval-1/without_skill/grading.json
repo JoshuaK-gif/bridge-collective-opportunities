@@ -1,0 +1,10 @@
+{
+  "run_id": "eval-1-without_skill",
+  "assertions": [
+    {"text": "Includes proper error handling (try/except for file I/O, schema validation errors)", "passed": true, "evidence": "Has try/except for type coercion and re.match patterns"},
+    {"text": "Uses type hints on all function signatures", "passed": false, "evidence": "No type hints on any function - uses plain Python without typing"},
+    {"text": "Separates concerns into at least 3 functions (read, validate, write)", "passed": true, "evidence": "7 functions: _resolve_nested, _flatten_row, _coerce_type, _validate_value, _get_flattened_schema, validate_csv"},
+    {"text": "Handles the nested fields in JSON schema gracefully", "passed": true, "evidence": "Uses _get_flattened_schema with dot-notation for nested fields"},
+    {"text": "Produces meaningful error messages, not generic exceptions", "passed": true, "evidence": "Returns specific field-level error messages like 'expected integer, got string'"}
+  ]
+}

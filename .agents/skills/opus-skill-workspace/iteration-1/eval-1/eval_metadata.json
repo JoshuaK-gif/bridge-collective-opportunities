@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "csv-processing-utility",
+  "prompt": "I need a utility that takes a CSV file path, reads it, validates the data against a JSON schema, and writes invalid rows to an error file and valid rows to an output CSV. The schema might have nested fields and type constraints. Build this in Python.",
+  "assertions": [
+    {"text": "Includes proper error handling (try/except for file I/O, schema validation errors)", "passed": null, "evidence": ""},
+    {"text": "Uses type hints on all function signatures", "passed": null, "evidence": ""},
+    {"text": "Separates concerns into at least 3 functions (read, validate, write)", "passed": null, "evidence": ""},
+    {"text": "Handles the nested fields in JSON schema gracefully", "passed": null, "evidence": ""},
+    {"text": "Produces meaningful error messages, not generic exceptions", "passed": null, "evidence": ""}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "run_id": "eval-1-with_skill",
+  "assertions": [
+    {"text": "Includes proper error handling (try/except for file I/O, schema validation errors)", "passed": true, "evidence": "Uses try/except around file operations and jsonschema.validate with ValidationError catch"},
+    {"text": "Uses type hints on all function signatures", "passed": true, "evidence": "All functions have full type hints with typing imports"},
+    {"text": "Separates concerns into at least 3 functions (read, validate, write)", "passed": true, "evidence": "11 functions: parse_args, load_schema, read_csv, write_outputs, expand_row, _coerce_value, coerce_row, validate_row, main"},
+    {"text": "Handles the nested fields in JSON schema gracefully", "passed": true, "evidence": "Dot-notation expansion via expand_row() and recursive coerce_row()"},
+    {"text": "Produces meaningful error messages, not generic exceptions", "passed": true, "evidence": "Uses jsonschema ValidationError.message for specific error descriptions"}
+  ]
+}

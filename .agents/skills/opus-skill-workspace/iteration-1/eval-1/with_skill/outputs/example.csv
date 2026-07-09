@@ -1,0 +1,6 @@
+name,age,email,address.street,address.city,address.zip,active
+Alice,30,alice@example.com,123 Main St,Springfield,12345,true
+Bob,25,bob@example.com,456 Oak Ave,Portland,54321-6789,false
+Charlie,invalid,charlie@example.com,789 Pine Ln,Seattle,99999,true
+Diana,28,not-an-email,321 Elm St,Chicago,60601,true
+Eve,35,eve@example.com,555 Cedar Dr,,invalid,false

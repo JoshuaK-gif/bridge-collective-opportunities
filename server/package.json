@@ -1,0 +1,38 @@
+{
+  "name": "bridge-jobs-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "test": "node --test tests/*.test.js",
+    "backup": "node scripts/backup.js",
+    "migrate": "node -e \"import('./lib/migrate.js').then(m => m.runMigrations()).then(() => process.exit())\""
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.3",
+    "@sentry/node": "^10.62.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.0",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.5.2",
+    "fast-xml-parser": "^5.9.3",
+    "google-auth-library": "^10.9.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.5.0",
+    "nodemailer": "^9.0.1",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.22.0",
+    "pino": "^10.3.1",
+    "socket.io": "^4.8.0",
+    "stripe": "^22.3.0",
+    "uuid": "^11.0.0",
+    "zod": "^4.4.3"
+  }
+}

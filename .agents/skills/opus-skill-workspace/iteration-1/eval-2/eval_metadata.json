@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "code-review-analysis",
+  "prompt": "here's my auth middleware for express. can you review it and tell me what's wrong?\n\n```js\nfunction auth(req, res, next) {\n  const token = req.headers.authorization;\n  if (token) {\n    const user = jwt.verify(token, process.env.JWT_SECRET);\n    req.user = user;\n    next();\n  } else {\n    res.status(401).send('unauthorized');\n  }\n}\n```",
+  "assertions": [
+    {"text": "Identifies missing Bearer prefix handling", "passed": null, "evidence": ""},
+    {"text": "Identifies missing try/catch around jwt.verify", "passed": null, "evidence": ""},
+    {"text": "Identifies missing early return after res.status(401).send()", "passed": null, "evidence": ""},
+    {"text": "Identifies missing check for process.env.JWT_SECRET being undefined", "passed": null, "evidence": ""},
+    {"text": "Provides an improved version of the code", "passed": null, "evidence": ""}
+  ]
+}
