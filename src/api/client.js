@@ -124,6 +124,8 @@ export const api = {
       if (opts.trending) params.set('trending', 'true');
       if (opts.featured) params.set('featured', 'true');
       if (opts.all) params.set('all', 'true');
+      if (opts.expiringSoon) params.set('expiring_soon', 'true');
+      if (opts.expiringWithin) params.set('expiring_within', String(opts.expiringWithin));
       const qs = params.toString();
       return request(`/opportunities${qs ? `?${qs}` : ''}`);
     },
@@ -133,6 +135,23 @@ export const api = {
     delete: (id) => request(`/opportunities/${id}`, { method: 'DELETE' }),
     deleteBulk: (ids) => request('/opportunities/bulk/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
     bulkUpdate: (ids, data) => request('/opportunities/bulk/update', { method: 'POST', body: JSON.stringify({ ids, data }) }),
+  },
+  reminders: {
+    create: (data) => request('/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  },
+  resumes: {
+    save: (data, token) => request('/resumes', { method: 'POST', body: JSON.stringify({ data, token }) }),
+    load: (token) => request(`/resumes/${token}`),
+    delete: (token) => request(`/resumes/${token}`, { method: 'DELETE' }),
+  },
+  ai: {
+    cvFeedback: (cv) => request('/ai/cv-feedback', { method: 'POST', body: JSON.stringify({ cv }) }),
+    generateSummary: (cv) => request('/ai/generate-summary', { method: 'POST', body: JSON.stringify({ cv }) }),
+    suggestSkills: (title, existingSkills = []) => request('/ai/suggest-skills', { method: 'POST', body: JSON.stringify({ title, existingSkills }) }),
+    rewrite: (text, field = 'text', tone = 'professional') => request('/ai/rewrite', { method: 'POST', body: JSON.stringify({ text, field, tone }) }),
+    applicationAssist: (opportunity) => request('/ai/application-assist', { method: 'POST', body: JSON.stringify(opportunity) }),
+    grantWrite: (data) => request('/ai/grant-write', { method: 'POST', body: JSON.stringify(data) }),
+    grantPolish: (text, section, tone) => request('/ai/grant-polish', { method: 'POST', body: JSON.stringify({ text, section, tone }) }),
   },
   news: {
     list: (opts = {}) => {

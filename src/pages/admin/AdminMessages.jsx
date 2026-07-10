@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mail, Trash2, CheckCheck, ChevronDown, ChevronUp, Search, Reply, ExternalLink, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Mail, Trash2, CheckCheck, ChevronDown, ChevronUp, Search, Reply, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 20;

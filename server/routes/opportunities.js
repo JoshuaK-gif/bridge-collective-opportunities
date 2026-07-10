@@ -12,7 +12,7 @@ const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const { category, search, trending, featured, all } = req.query;
+    const { category, search, trending, featured, all, expiring_soon, expiring_within } = req.query;
     let query = 'SELECT * FROM opportunities';
     const conditions = [];
     const params = [];
@@ -36,11 +36,19 @@ router.get('/', async (req, res, next) => {
     if (featured === 'true') {
       conditions.push('featured_order IS NOT NULL');
     }
+    if (expiring_soon === 'true') {
+      const days = parseInt(expiring_within) || 7;
+      conditions.push(`deadline != '' AND deadline IS NOT NULL`);
+      conditions.push(`TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE`);
+      conditions.push(`TO_DATE(deadline, 'YYYY-MM-DD') <= CURRENT_DATE + INTERVAL '${days} days'`);
+    }
     if (conditions.length) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
     if (featured === 'true') {
       query += ' ORDER BY featured_order ASC';
+    } else if (expiring_soon === 'true') {
+      query += " ORDER BY TO_DATE(deadline, 'YYYY-MM-DD') ASC";
     } else {
       query += ' ORDER BY created_date DESC';
     }

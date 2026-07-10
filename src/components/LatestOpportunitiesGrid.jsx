@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom';
+import BookmarkButton from './BookmarkButton';
+import DeadlineBadge from './DeadlineBadge';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 export default function LatestOpportunitiesGrid({ items = [] }) {
+  const { isBookmarked, toggleBookmark } = useBookmarks();
+
   if (items.length === 0) return null;
 
   const sorted = [...items].sort((a, b) => new Date(b.updated_date || b.created_date || 0) - new Date(a.updated_date || a.created_date || 0));
@@ -27,6 +32,14 @@ export default function LatestOpportunitiesGrid({ items = [] }) {
               <div className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/90 text-white">
                 {item.category}
               </div>
+              <div className="absolute top-2 right-2">
+                <BookmarkButton isBookmarked={isBookmarked(item.id)} onToggle={() => toggleBookmark(item.id)} />
+              </div>
+              {item.deadline && (
+                <div className="absolute bottom-2 left-2">
+                  <DeadlineBadge deadline={item.deadline} />
+                </div>
+              )}
             </div>
             <div className="p-3">
               <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">

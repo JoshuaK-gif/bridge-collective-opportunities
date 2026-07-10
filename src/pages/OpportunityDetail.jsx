@@ -5,10 +5,15 @@ import { api } from '@/api/client';
 import { oppImageSrc, CATEGORY_STYLES } from '@/lib/images';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ExternalLink, Calendar, Share2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, ExternalLink, Calendar, Share2, CheckCircle2, Bell, Mail, Sparkles, Lightbulb, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import RelatedOpportunities from '@/components/RelatedOpportunities';
+import DeadlineBadge from '@/components/DeadlineBadge';
+import BookmarkButton from '@/components/BookmarkButton';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { useApplicationTracker } from '@/hooks/useApplicationTracker';
 
 // Utility: strip HTML tags from a string (client-side only)
 function stripHtml(html) {
@@ -20,11 +25,20 @@ function stripHtml(html) {
 export default function OpportunityDetail() {
   const { id } = useParams();
   const [opp, setOpp] = useState(null);
+  const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { getStatus, setStatus, STATUSES } = useApplicationTracker();
 
   useEffect(() => {
     api.opportunities.get(id).then(setOpp);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
+
+  const appStatus = getStatus(id);
+  const [reminderEmail, setReminderEmail] = useState('');
+  const [reminderSent, setReminderSent] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
+  const [aiTips, setAiTips] = useState(null);
+  const [loadingTips, setLoadingTips] = useState(false);
 
   if (!opp) {
     return (
@@ -91,16 +105,16 @@ export default function OpportunityDetail() {
         publishedTime={opp.created_at || opp.published_at}
         keywords={`${opp.category?.toLowerCase() || 'opportunity'}, ${opp.title}, Uganda opportunities, youth careers`}
       />
-      <div className="min-h-screen bg-gradient-to-b from-primary/[0.03] to-background">
+      <div className="min-h-screen bg-white">
         <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-700 hover:text-gray-900 transition-colors mb-6 group">
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to opportunities
             </Link>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-            <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
               <div className="relative aspect-[5/3] md:aspect-[5/2] bg-muted overflow-hidden">
                 {opp.image_url ? (
                   <img src={oppImageSrc(opp, 'detail')} alt={opp.title} className="w-full h-full object-cover" />
@@ -109,20 +123,197 @@ export default function OpportunityDetail() {
                     <span className="text-6xl opacity-30">{(CATEGORY_STYLES[opp.category] || CATEGORY_STYLES.Scholarship).icon}</span>
                   </div>
                 )}
+                <div className="absolute top-3 right-3 z-10">
+                  <BookmarkButton
+                    isBookmarked={isBookmarked(id)}
+                    onToggle={() => toggleBookmark(id)}
+                    size="md"
+                    className="shadow-md"
+                  />
+                </div>
               </div>
               <div className="p-6 md:p-8 space-y-6">
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge className="text-sm px-3 py-1">{opp.category}</Badge>
                   {opp.deadline && (
-                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-700">
                       <Calendar className="w-4 h-4" /> Deadline: <strong>{opp.deadline}</strong>
                     </span>
                   )}
+                  {opp.deadline && <DeadlineBadge deadline={opp.deadline} />}
                 </div>
 
-                <h1 className="text-2xl md:text-3xl font-bold font-heading leading-tight">{opp.title}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold font-heading leading-tight text-gray-900">{opp.title}</h1>
 
-                <div className="prose prose-gray dark:prose-invert max-w-none leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: opp.description }} />
+                <div className="prose prose-gray dark:prose-invert max-w-none leading-relaxed text-gray-800" dangerouslySetInnerHTML={{ __html: opp.description }} />
+
+                {/* Deadline Reminder */}
+                {opp.deadline && (
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <h3 className="text-sm font-bold flex items-center gap-2 mb-2 text-gray-900">
+                      <Bell className="w-4 h-4 text-amber-600" /> Get Deadline Reminder
+                    </h3>
+                    {reminderSent ? (
+                      <p className="text-xs text-green-600 font-medium">
+                        <Mail className="w-3.5 h-3.5 inline mr-1" />
+                        Reminder set! We'll email you 48 hours before the deadline.
+                      </p>
+                    ) : (
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!reminderEmail) return;
+                            setSendingReminder(true);
+                            try {
+                              await api.reminders.create({
+                                email: reminderEmail,
+                                opportunityId: id,
+                                opportunityTitle: opp.title,
+                                deadline: opp.deadline,
+                              });
+                              setReminderSent(true);
+                              toast.success('Reminder set!');
+                            } catch {
+                              toast.error('Failed to set reminder');
+                            } finally {
+                              setSendingReminder(false);
+                            }
+                          }}
+                          className="flex gap-2"
+                        >
+                          <Input
+                            type="email"
+                            placeholder="your@email.com"
+                            value={reminderEmail}
+                            onChange={(e) => setReminderEmail(e.target.value)}
+                            required
+                            className="flex-1 h-9 text-sm bg-white border-amber-300"
+                          />
+                          <Button type="submit" size="sm" disabled={sendingReminder} className="h-9 shrink-0 bg-amber-600 hover:bg-amber-700 text-white">
+                            <Bell className="w-3.5 h-3.5" />
+                          </Button>
+                        </form>
+                    )}
+                  </div>
+                )}
+
+                {/* Application Tracker */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="w-4 h-4 text-primary" /> Track Your Application
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {STATUSES.map((status) => {
+                      const isActive = appStatus?.status === status;
+                      const statusColors = {
+                        Applied: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
+                        Shortlisted: 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200',
+                        Accepted: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
+                        Rejected: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200',
+                      };
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => setStatus(id, isActive ? null : status)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                            isActive
+                              ? `${statusColors[status]} ring-2 ring-offset-1 ring-${status === 'Applied' ? 'blue' : status === 'Shortlisted' ? 'yellow' : status === 'Accepted' ? 'green' : 'red'}-400`
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {status} {isActive && '✓'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {appStatus && (
+                    <p className="text-xs text-gray-600 mt-2">
+                      Marked as <strong>{appStatus.status}</strong> on {new Date(appStatus.updatedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* AI Application Assistant */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold flex items-center gap-2 text-purple-700">
+                      <Sparkles className="w-4 h-4" /> AI Application Assistant
+                    </h3>
+                    {!aiTips && (
+                      <button
+                        onClick={async () => {
+                          setLoadingTips(true);
+                          try {
+                            const result = await api.ai.applicationAssist({
+                              title: opp.title,
+                              category: opp.category,
+                              description: opp.description,
+                              deadline: opp.deadline,
+                              organization: opp.organization,
+                            });
+                            setAiTips(result);
+                            if (!result.tips?.length) toast.error('AI unavailable');
+                          } catch (err) {
+                            toast.error(err?.message || 'Failed to get tips');
+                          } finally {
+                            setLoadingTips(false);
+                          }
+                        }}
+                        disabled={loadingTips}
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                      >
+                        <Sparkles className={`w-3.5 h-3.5 ${loadingTips ? 'animate-spin' : ''}`} />
+                        {loadingTips ? 'Analyzing...' : 'Get Tips'}
+                      </button>
+                    )}
+                    {aiTips && (
+                      <button
+                        onClick={() => setAiTips(null)}
+                        className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {loadingTips && (
+                    <div className="flex items-center gap-2 text-xs text-purple-600">
+                      <div className="w-4 h-4 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin" />
+                      Analyzing opportunity...
+                    </div>
+                  )}
+
+                  {aiTips && aiTips.tips?.length > 0 && (
+                    <div className="space-y-3">
+                      <ul className="space-y-2">
+                        {aiTips.tips.map((tip, i) => (
+                          <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
+                            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                              <Lightbulb className="w-3 h-3" />
+                            </span>
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                      {aiTips.keyAdvice && (
+                        <div className="bg-white/60 rounded-lg p-3 border border-purple-100">
+                          <p className="text-xs font-semibold text-purple-700 flex items-center gap-1 mb-1">
+                            <Target className="w-3 h-3" /> Key Advice
+                          </p>
+                          <p className="text-xs text-gray-600">{aiTips.keyAdvice}</p>
+                        </div>
+                      )}
+                      {aiTips.suggestedApproach && (
+                        <div className="bg-white/60 rounded-lg p-3 border border-purple-100">
+                          <p className="text-xs font-semibold text-purple-700 flex items-center gap-1 mb-1">
+                            <Target className="w-3 h-3" /> Suggested Approach
+                          </p>
+                          <p className="text-xs text-gray-600">{aiTips.suggestedApproach}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <a href={opp.link} target="_blank" rel="noopener noreferrer" className="flex-1">
@@ -133,6 +324,7 @@ export default function OpportunityDetail() {
                   <Button
                     variant="outline"
                     size="lg"
+                    className="flex-1 text-gray-900"
                     onClick={async () => {
                       const shareData = {
                         title: opp.title,
@@ -150,7 +342,6 @@ export default function OpportunityDetail() {
                         toast.success('Link copied to clipboard!');
                       }
                     }}
-                    className="gap-2"
                   >
                     <Share2 className="w-4 h-4" /> Share
                   </Button>

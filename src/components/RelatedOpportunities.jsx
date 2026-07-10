@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from 'lucide-react';
 
 export default function RelatedOpportunities({ currentId, category }) {
@@ -38,11 +37,11 @@ export default function RelatedOpportunities({ currentId, category }) {
                 )}
               </div>
               <div className="p-2.5">
-                <p className="text-xs font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                <p className="text-xs font-semibold leading-snug text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">
                   {item.title}
                 </p>
                 {item.deadline && (
-                  <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                  <p className="text-[10px] text-gray-600 mt-1 flex items-center gap-1">
                     <Calendar className="w-2.5 h-2.5" /> {item.deadline}
                   </p>
                 )}

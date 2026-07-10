@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, Home, RefreshCw, Sliders, BookOpen, Menu, X, FileText, Newspaper } from 'lucide-react';
+import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, RefreshCw, Sliders, BookOpen, Menu, X, FileText, Newspaper } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();

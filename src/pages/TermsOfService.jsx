@@ -9,7 +9,7 @@ export default function TermsOfService() {
         description="Bridge Collective Opportunities Terms of Service — terms governing the use of our platform for finding scholarships, jobs, grants and opportunities."
         noindex
       />
-    <div className="min-h-screen bg-[#eef0fa]">
+    <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
         <div className="bg-white rounded-xl shadow-sm p-6 sm:p-10 space-y-6">
           <Link to="/" className="text-sm text-primary hover:underline">&larr; Back to Home</Link>

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, ExternalLink, Search, List, BookOpen, Pencil, Check, X, Eye, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Search, List, BookOpen, Pencil, Check, X, Eye, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminLists() {

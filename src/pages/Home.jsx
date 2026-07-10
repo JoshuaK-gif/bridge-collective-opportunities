@@ -1,21 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/api/client';
-import { oppImageSrc } from '@/lib/images';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Bell, Calendar } from 'lucide-react';
+import { Timer } from 'lucide-react';
 import SEO from '@/components/SEO';
 import HeroCarousel from '@/components/HeroCarousel';
 import CategoryColumn from '@/components/CategoryColumn';
-import LatestOpportunitiesGrid from '@/components/LatestOpportunitiesGrid';
-import WidgetRow from '@/components/WidgetRow';
-import SubscribeButton from '@/components/SubscribeButton';
 import { HeroSkeleton, FeaturedListsSkeleton } from '@/components/skeletons/HomePageSkeleton';
 import { AnimatedPage } from '@/components/shared/AnimatedPage';
 import NewsSection from '@/components/NewsSection';
+import SuccessStories from '@/components/SuccessStories';
+import BookmarkButton from '@/components/BookmarkButton';
+import DeadlineBadge from '@/components/DeadlineBadge';
+import { useBookmarks } from '@/hooks/useBookmarks';
 const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
@@ -38,6 +35,9 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [curatedLists, setCuratedLists] = useState([]);
+  const [expiringSoon, setExpiringSoon] = useState([]);
+  const [showExpiring, setShowExpiring] = useState(false);
+  const { isBookmarked, toggleBookmark } = useBookmarks();
   const activeCategory = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
   useEffect(() => {
@@ -49,12 +49,14 @@ export default function Home() {
       api.lists.list().then(async (lists) => {
         const fullLists = await Promise.all(lists.map(list => api.lists.get(list.id)));
         return fullLists.filter(l => l.items && l.items.length > 0);
-      })
-    ]).then(([fr, ar, cr, lr]) => {
+      }),
+      api.opportunities.list({ expiringSoon: true, expiringWithin: 7 })
+    ]).then(([fr, ar, cr, lr, er]) => {
       if (fr.status === 'fulfilled') setFeatured(fr.value);
       if (ar.status === 'fulfilled') setAllOpportunities(ar.value);
       if (cr.status === 'fulfilled') setCategories(cr.value);
       if (lr.status === 'fulfilled') setCuratedLists(lr.value);
+      if (er.status === 'fulfilled') setExpiringSoon(er.value);
       setLoading(false);
     });
   }, []);
@@ -93,7 +95,7 @@ export default function Home() {
                     {curatedLists.slice(0, 3).map(list => (
                       <div key={list.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-transparent">
-                          <h3 className="font-bold text-base">{list.name}</h3>
+                          <h3 className="font-bold text-base text-gray-900">{list.name}</h3>
                           {list.description && <p className="text-xs text-gray-500 mt-0.5">{list.description}</p>}
                         </div>
                         <div className="divide-y divide-gray-100">
@@ -105,7 +107,7 @@ export default function Home() {
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-xs font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">{item.title}</p>
+                                <p className="text-xs font-semibold leading-snug text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">{item.title}</p>
                                 <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">{item.category}</span>
                               </div>
                             </Link>
@@ -117,6 +119,55 @@ export default function Home() {
                 </div>
               </section>
             )}
+            {/* Expiring Soon Section */}
+            {expiringSoon.length > 0 && (
+              <section className={`bg-white border-b border-gray-100 ${showExpiring ? '' : ''}`}>
+                <div className="max-w-7xl mx-auto px-4 py-6">
+                  <button
+                    onClick={() => setShowExpiring(!showExpiring)}
+                    className="flex items-center gap-3 mb-5 w-full text-left"
+                  >
+                    <Timer className="w-5 h-5 text-orange-500" />
+                    <h2 className="text-lg font-bold uppercase tracking-wider text-gray-800">
+                      Expiring Soon
+                      <span className="ml-2 text-sm font-normal text-orange-500 lowercase">
+                        ({expiringSoon.length} opportunities closing within 7 days)
+                      </span>
+                    </h2>
+                    <div className="flex-1 h-0.5 bg-primary/20" />
+                    <svg className={`w-5 h-5 text-gray-400 transition-transform ${showExpiring ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  {showExpiring && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {expiringSoon.map((item) => (
+                        <Link
+                          key={item.id}
+                          to={`/opportunities/${item.id}`}
+                          className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all relative"
+                        >
+                          <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
+                            <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute top-2 left-2">
+                              <DeadlineBadge deadline={item.deadline} />
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <BookmarkButton isBookmarked={isBookmarked(item.id)} onToggle={() => toggleBookmark(item.id)} />
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary mb-1">{item.category}</span>
+                            <h3 className="text-sm font-semibold leading-snug text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">{item.title}</h3>
+                            <p className="text-xs text-gray-400 mt-1">{item.deadline}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            <SuccessStories />
             <NewsSection />
             <div className="max-w-7xl mx-auto px-4 py-6">
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">

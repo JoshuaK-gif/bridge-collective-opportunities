@@ -4,7 +4,6 @@ import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, Check, X, Briefcase, GraduationCap, BookOpen, Users, Handshake, Award, DollarSign, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 

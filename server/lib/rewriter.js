@@ -3,7 +3,7 @@ import logger from './logger.js';
 import cloudinary from './cloudinary.js';
 
 async function getOpenAiConfig() {
-  const result = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
+  const result = await pool.query("SELECT value FROM site_settings WHERE key = 'scraper_ai_config'");
   if (!result.rows.length) return null;
   return result.rows[0].value;
 }
@@ -12,9 +12,12 @@ export async function rewriteOpportunity(post) {
   const config = await getOpenAiConfig();
   const title = post.title || post.source_title || '';
   const description = post.summary || post.description || '';
-  if (!config || !config.enabled || !config.api_key) {
+  if (!config || !config.enabled || (!config.api_key && config.provider !== 'opencodezen')) {
     return { title, description };
   }
+
+  const baseUrl = config.provider === 'opencodezen' ? 'https://opencode.ai/zen/v1' : 'https://api.openai.com/v1';
+  const model = config.provider === 'opencodezen' ? 'deepseek-v4-flash-free' : (config.model || 'gpt-4o-mini');
 
   const prompt = `You are a content curator rephrasing opportunity listings for a youth opportunities website. 
 Rewrite the following opportunity listing. Change the wording completely but preserve ALL factual information including deadlines, amounts, eligibility, and requirements. Keep the same meaning and tone. Output ONLY valid JSON with 'title' and 'description' fields.
@@ -22,15 +25,18 @@ Rewrite the following opportunity listing. Change the wording completely but pre
 Original title: "${title}"
 Original description: "${description}"`;
 
+  const headers = { 'Content-Type': 'application/json' };
+  if (config.api_key) headers['Authorization'] = `Bearer ${config.api_key}`;
+
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.api_key}`,
       },
       body: JSON.stringify({
-        model: config.model || 'gpt-4o-mini',
+        model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 500,
@@ -41,7 +47,7 @@ Original description: "${description}"`;
 
     if (!response.ok) {
       const err = await response.text();
-      logger.error({ error: err }, 'OpenAI API error');
+      logger.error({ error: err }, 'AI rewrite API error');
       return { title: post.source_title, description: post.summary };
     }
 
@@ -59,7 +65,7 @@ Original description: "${description}"`;
 
 export async function generateImage(title, category) {
   const config = await getOpenAiConfig();
-  if (!config || !config.enabled || !config.api_key) {
+  if (!config || !config.enabled || (!config.api_key && config.provider !== 'opencodezen')) {
     return null;
   }
 

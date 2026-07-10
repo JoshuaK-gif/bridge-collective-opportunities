@@ -1,5 +1,15 @@
-import { extractText } from './pdf.js';
-import logger from './logger.js';
+import { Router } from 'express';
+import multer from 'multer';
+import logger from '../lib/logger.js';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files are allowed'));
+  },
+});
 
 const KNOWN_SKILLS = [
   'javascript', 'typescript', 'python', 'java', 'c#', 'c++', 'ruby', 'php', 'go', 'rust', 'swift',
@@ -14,30 +24,24 @@ const KNOWN_SKILLS = [
   'accounting', 'bookkeeping', 'quickbooks', 'xero', 'financial analysis',
   'marketing', 'seo', 'sem', 'content marketing', 'social media', 'email marketing',
 ];
-
 const EDUCATION_KEYWORDS = ['bachelor', 'master', 'phd', 'doctorate', 'bsc', 'msc', 'ba', 'ma', 'beng', 'meng', 'diploma', 'certificate', 'high school', 'associate'];
-const EXPERIENCE_PATTERN = /(\d+)\+?\s*(?:years?|yrs?)\s*(?:of\s+)?(?:experience|exp)/gi;
 
 function extractEmail(text) {
-  const match = text.match(/[\w.-]+@[\w.-]+\.\w+/);
-  return match ? match[0] : '';
+  const m = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+  return m ? m[0] : '';
 }
-
 function extractPhone(text) {
-  const match = text.match(/\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/);
-  return match ? match[0] : '';
+  const m = text.match(/\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/);
+  return m ? m[0] : '';
 }
-
 function extractName(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   return lines[0] || '';
 }
-
 function extractSkills(text) {
   const lower = text.toLowerCase();
   return KNOWN_SKILLS.filter(s => lower.includes(s));
 }
-
 function extractEducation(text) {
   const lines = text.split('\n');
   const education = [];
@@ -47,28 +51,19 @@ function extractEducation(text) {
     if (EDUCATION_KEYWORDS.some(k => lower.includes(k))) {
       if (current) education.push(current.trim());
       current = line;
-    } else if (current) {
-      current += ' ' + line;
-    }
+    } else if (current) current += ' ' + line;
   }
   if (current) education.push(current.trim());
   return education;
 }
-
 function extractExperienceYears(text) {
-  const matches = [...text.matchAll(EXPERIENCE_PATTERN)];
-  for (const m of matches) {
-    const years = parseInt(m[1]);
-    if (!isNaN(years) && years > 0 && years < 50) return years;
-  }
-  const totalKeywords = text.toLowerCase().match(/total\s+(\d+)\+?\s*years?/i);
-  if (totalKeywords) {
-    const years = parseInt(totalKeywords[1]);
+  const m = [...text.matchAll(/(\d+)\+?\s*(?:years?|yrs?)\s*(?:of\s+)?(?:experience|exp)/gi)];
+  for (const match of m) {
+    const years = parseInt(match[1]);
     if (!isNaN(years) && years > 0 && years < 50) return years;
   }
   return 0;
 }
-
 function extractEducationLevel(text) {
   const lower = text.toLowerCase();
   if (lower.includes('phd') || lower.includes('doctorate')) return 'phd';
@@ -79,12 +74,21 @@ function extractEducationLevel(text) {
   return 'unknown';
 }
 
-export async function parseResume(fileUrl) {
-  try {
-    const text = await extractText(fileUrl);
-    if (!text) throw new Error('No text could be extracted');
+const router = Router();
 
-    return {
+router.post('/parse', upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+    const pdfParse = (await import('pdf-parse')).default;
+    const data = await pdfParse(req.file.buffer);
+    const text = data.text;
+
+    if (!text || text.trim().length < 20) {
+      return res.status(422).json({ error: 'Could not extract enough text from this PDF' });
+    }
+
+    const result = {
       name: extractName(text),
       email: extractEmail(text),
       phone: extractPhone(text),
@@ -94,8 +98,13 @@ export async function parseResume(fileUrl) {
       experience_years: extractExperienceYears(text),
       headline: text.split('\n').slice(0, 3).join(' ').substring(0, 200),
     };
+
+    logger.info({ name: result.name, skills: result.skills?.length }, 'CV parsed successfully');
+    res.json(result);
   } catch (err) {
-    logger.error({ err, fileUrl }, 'Resume parsing failed');
-    throw err;
+    logger.error({ err: err.message }, 'CV parse failed');
+    res.status(422).json({ error: err.message || 'Failed to parse CV. Ensure it\'s a valid PDF.' });
   }
-}
+});
+
+export default router;

@@ -224,7 +224,7 @@ export default function SearchResults({
     (query ? `/search/${encodeURIComponent(query)}/page` : '');
 
   return (
-    <div className="min-h-screen bg-[#eef0fa] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto lg:flex lg:gap-10">
         {/* Main results column (~70%) */}
         <div className="flex-1 min-w-0 lg:max-w-[calc(70%-1.25rem)]">
@@ -251,7 +251,7 @@ export default function SearchResults({
                 <select
                   value={filterCat}
                   onChange={(e) => setFilterCat(e.target.value)}
-                  className="h-9 text-sm rounded-lg border border-gray-200 px-3 bg-white"
+                  className="h-9 text-sm rounded-lg border border-gray-200 px-3 bg-white text-gray-900"
                 >
                   <option value="">All Categories</option>
                   {FILTER_CATEGORIES.filter(Boolean).map((c) => (
@@ -264,14 +264,14 @@ export default function SearchResults({
                     type="date"
                     value={filterDeadline}
                     onChange={(e) => setFilterDeadline(e.target.value)}
-                    className="h-9 text-sm rounded-lg border border-gray-200 pl-9 pr-3 w-full bg-white"
+                    className="h-9 text-sm rounded-lg border border-gray-200 pl-9 pr-3 w-full bg-white text-gray-900"
                     placeholder="Deadline before..."
                   />
                 </div>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="h-9 text-sm rounded-lg border border-gray-200 px-3 bg-white"
+                  className="h-9 text-sm rounded-lg border border-gray-200 px-3 bg-white text-gray-900"
                 >
                   <option value="newest">Newest First</option>
                   <option value="deadline">Deadline (Soonest)</option>

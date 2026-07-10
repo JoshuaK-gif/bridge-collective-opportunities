@@ -89,7 +89,21 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-body overflow-x-hidden;
+    @apply bg-background text-foreground font-body;
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -97,7 +111,26 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
+/* Prevent horizontal scroll on all viewport sizes */
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+body {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Custom scrollbar (except scrollbar-none elements) */
 ::-webkit-scrollbar {
   width: 6px;
 }

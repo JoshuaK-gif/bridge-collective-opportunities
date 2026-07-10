@@ -19,6 +19,12 @@ import ContactForm from '@/pages/ContactForm';
 import OpportunityDetail from '@/pages/OpportunityDetail';
 import CategoryListings from '@/pages/CategoryListings';
 import SearchResults from '@/pages/SearchResults';
+import SavedOpportunities from '@/pages/SavedOpportunities';
+import MyApplications from '@/pages/MyApplications';
+import CVBuilder from '@/pages/CVBuilder';
+import CVReview from '@/pages/CVReview';
+import CVTips from '@/pages/CVTips';
+import AIAssistant from '@/pages/AIAssistant';
 import ServerError from '@/pages/ServerError';
 import PublicLayout from './components/layout/PublicLayout';
 import AdminRoute from '@/components/AdminRoute';
@@ -56,6 +62,12 @@ function AppContent() {
               <Route path="/search" element={<SearchResults />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/saved" element={<SavedOpportunities />} />
+              <Route path="/my-applications" element={<MyApplications />} />
+              <Route path="/cv-builder" element={<CVBuilder />} />
+              <Route path="/cv-review" element={<CVReview />} />
+              <Route path="/cv-tips" element={<CVTips />} />
+              <Route path="/ai-assistant" element={<AIAssistant />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/500" element={<ServerError />} />
@@ -89,7 +101,7 @@ function App() {
   return (
     <HelmetProvider>
     <QueryClientProvider client={queryClient}>
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppContent />
     </Router>
     </QueryClientProvider>

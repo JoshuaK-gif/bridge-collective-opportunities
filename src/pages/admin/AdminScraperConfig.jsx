@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Save, Eye, EyeOff, Key, Globe, Brain, Share2, MessageCircle, Twitter, Linkedin, Facebook, Instagram } from 'lucide-react';
+import { Save, Eye, EyeOff, Globe, Brain, Share2, MessageCircle, Twitter, Linkedin, Facebook, Instagram } from 'lucide-react';
 
 export default function AdminScraperConfig() {
   const [openai, setOpenai] = useState({ api_key: '', model: 'gpt-4o-mini', enabled: false });
@@ -20,7 +20,7 @@ export default function AdminScraperConfig() {
 
   useEffect(() => {
     Promise.all([
-      api.settings.get('openai_config'),
+      api.settings.get('scraper_ai_config'),
       api.settings.get('scraper_config'),
       api.settings.get('social_accounts'),
     ]).then(([o, s, sc]) => {
@@ -159,8 +159,8 @@ export default function AdminScraperConfig() {
                   <CardTitle className="text-lg">OpenAI Configuration</CardTitle>
                   <CardDescription>Used for content rewriting and AI image generation (DALL-E 3)</CardDescription>
                 </div>
-                <Button size="sm" onClick={() => save('openai_config', openai)} disabled={saving === 'openai_config'}>
-                  <Save className="w-3.5 h-3.5 mr-1" /> {saving === 'openai_config' ? 'Saving...' : 'Save'}
+                <Button size="sm" onClick={() => save('scraper_ai_config', openai)} disabled={saving === 'scraper_ai_config'}>
+                  <Save className="w-3.5 h-3.5 mr-1" /> {saving === 'scraper_ai_config' ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </CardHeader>

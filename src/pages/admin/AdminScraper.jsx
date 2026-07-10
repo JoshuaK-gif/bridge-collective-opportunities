@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Globe, Twitter, Linkedin, Facebook, Instagram, MessageCircle, ExternalLink, Clock, CheckCircle2, XCircle, Settings } from 'lucide-react';
+import { RefreshCw, Globe, Twitter, Linkedin, Facebook, Instagram, MessageCircle, CheckCircle2, XCircle, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PLATFORM_ICONS = { twitter: Twitter, linkedin: Linkedin, facebook: Facebook, instagram: Instagram, whatsapp: MessageCircle };

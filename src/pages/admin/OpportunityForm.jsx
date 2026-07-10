@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, Upload, X, ImageIcon, Crop } from 'lucide-react';
+import { ArrowLeft, Upload, X, Crop } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const QUILL_MODULES = {

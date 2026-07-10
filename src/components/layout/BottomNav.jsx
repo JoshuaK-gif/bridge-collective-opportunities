@@ -1,11 +1,12 @@
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { Home, Search, Grid3X3, Mail, ArrowUp } from 'lucide-react';
+import { Home, Search, Heart, CheckCircle2, FileText } from 'lucide-react';
 
 const tabs = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Search', icon: Search, path: '/?search=' },
-  { label: 'Categories', icon: Grid3X3, path: '/?category=Scholarship' },
-  { label: 'Contact', icon: Mail, path: '/contact' },
+  { label: 'Saved', icon: Heart, path: '/saved' },
+  { label: 'My Apps', icon: CheckCircle2, path: '/my-applications' },
+  { label: 'CV', icon: FileText, path: '/cv-builder' },
 ];
 
 export default function BottomNav({ onSearchTap }) {
@@ -14,7 +15,6 @@ export default function BottomNav({ onSearchTap }) {
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/' && !searchParams.get('category') && !searchParams.get('search');
-    if (path.includes('category=')) return !!searchParams.get('category');
     if (path.includes('search=')) return !!searchParams.get('search');
     return location.pathname === path;
   };
@@ -38,7 +38,7 @@ export default function BottomNav({ onSearchTap }) {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <tab.icon className="w-5 h-5" />
+            <tab.icon className={`w-5 h-5 ${tab.label === 'Saved' || tab.label === 'My Apps' ? 'text-red-500' : ''}`} />
             <span className="text-[10px] font-medium">{tab.label}</span>
           </Link>
         ))}

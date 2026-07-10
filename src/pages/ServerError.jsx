@@ -5,7 +5,7 @@ export default function ServerError() {
   return (
     <>
       <SEO title="Server Error" description="Something went wrong on our end. Please try again later." noindex />
-    <div className="min-h-screen flex items-center justify-center bg-[#eef0fa]">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="max-w-md w-full mx-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center space-y-6">
           <div className="space-y-2">

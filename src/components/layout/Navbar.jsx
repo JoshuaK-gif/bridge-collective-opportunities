@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetClose,
 } from '@/components/ui/sheet';
 import {
@@ -29,6 +30,13 @@ import {
   Mail,
   X,
   Bell,
+  CheckCircle2,
+  Heart,
+  FileText,
+  Lightbulb,
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/api/client';
@@ -36,26 +44,137 @@ import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 
 const navCategories = [
-  { label: 'Scholarships', icon: BookOpen, path: '/?category=Scholarship' },
-  { label: 'Grants', icon: DollarSign, path: '/?category=Grant' },
-  { label: 'Jobs', icon: Briefcase, path: '/?category=Job' },
-  { label: 'Internships', icon: GraduationCap, path: '/?category=Internship' },
-  { label: 'Fellowships', icon: Award, path: '/?category=Fellowship' },
-  { label: 'Training', icon: Users, path: '/?category=Training' },
-  { label: 'Volunteering', icon: Handshake, path: '/?category=Volunteer' },
+  { label: 'Scholarships', icon: BookOpen, path: '/category/scholarships' },
+  { label: 'Grants', icon: DollarSign, path: '/category/grants' },
+  { label: 'Jobs', icon: Briefcase, path: '/category/jobs' },
+  { label: 'Internships', icon: GraduationCap, path: '/category/internships' },
+  { label: 'Fellowships', icon: Award, path: '/category/fellowships' },
+  { label: 'Training', icon: Users, path: '/category/training' },
+  { label: 'Volunteering', icon: Handshake, path: '/category/volunteer' },
 ];
 
 const pageLinks = [
+  { label: 'BCO Assistant', icon: Sparkles, path: '/ai-assistant' },
   { label: 'About Us', icon: Info, path: '/about' },
   { label: 'Services', icon: Settings, path: '/services' },
   { label: 'Contact', icon: Mail, path: '/contact' },
 ];
 
-const mobileCategories = [
-  { label: 'All Opportunities', icon: Home, path: '/' },
-  ...navCategories,
-  ...pageLinks,
+const userLinks = [
+  { label: 'Saved', icon: Heart, path: '/saved' },
+  { label: 'My Apps', icon: CheckCircle2, path: '/my-applications' },
 ];
+
+const cvLinks = [
+  { label: 'CV Builder', icon: FileText, path: '/cv-builder' },
+  { label: 'CV Review', icon: Search, path: '/cv-review' },
+  { label: 'CV Tips', icon: Lightbulb, path: '/cv-tips' },
+];
+
+// --- Desktop Dropdown ---
+function DropdownMenu({ label, icon: Icon, items, location, searchParams }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const isItemActive = (itemPath) => {
+    if (itemPath.startsWith('/category/')) {
+      return location.pathname === itemPath;
+    }
+    return location.pathname === itemPath;
+  };
+
+  const isAnyActive = items.some((i) => isItemActive(i.path));
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        onMouseEnter={() => setOpen(true)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          isAnyActive
+            ? 'text-primary bg-primary/5'
+            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+        }`}
+      >
+        <Icon className="w-3.5 h-3.5" /> {label}
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div
+          onMouseLeave={() => setOpen(false)}
+          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+          {items.map(({ label: itemLabel, icon: ItemIcon, path }) => (
+            <Link
+              key={itemLabel}
+              to={path}
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                isItemActive(path)
+                  ? 'text-primary bg-primary/5'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <ItemIcon className="w-4 h-4" /> {itemLabel}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Mobile Accordion Group ---
+function MobileAccordion({ label, icon: Icon, items, location, searchParams }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const isItemActive = (itemPath) => {
+    if (itemPath.startsWith('/category/')) {
+      return location.pathname === itemPath;
+    }
+    return location.pathname === itemPath;
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+      >
+        <span className="flex items-center gap-3">
+          <Icon className="w-5 h-5 text-gray-500" /> {label}
+        </span>
+        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+      </button>
+      {expanded && (
+        <div className="ml-3 pl-6 border-l-2 border-gray-100 space-y-0.5 mb-1">
+          {items.map(({ label: itemLabel, icon: ItemIcon, path }) => (
+            <SheetClose asChild key={itemLabel}>
+              <Link
+                to={path}
+                onClick={() => setExpanded(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isItemActive(path)
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ItemIcon className="w-4 h-4" /> {itemLabel}
+              </Link>
+            </SheetClose>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -76,10 +195,6 @@ export default function Navbar() {
   }, []);
 
   const isActive = (path) => {
-    if (path.startsWith('/?category=')) {
-      const cat = path.split('=')[1];
-      return location.pathname === '/' && searchParams.get('category') === cat;
-    }
     if (path === '/') {
       return location.pathname === '/' && !searchParams.get('category');
     }
@@ -127,22 +242,82 @@ export default function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-0" hideClose>
+                <SheetDescription className="sr-only">
+                  Navigation menu for Bridge Collective Opportunities
+                </SheetDescription>
                 <SheetHeader className="p-4 border-b flex flex-row items-center justify-between">
-                  <SheetTitle className="text-left text-lg"><img src="/BCO.png" alt="BCO" className="h-10 md:h-12 w-auto" /></SheetTitle>
+                  <SheetTitle className="text-left text-lg">
+                    <img src="/BCO.png" alt="BCO" className="h-10 md:h-12 w-auto" />
+                  </SheetTitle>
                   <SheetClose className="rounded-sm opacity-70 hover:opacity-100 transition-opacity">
                     <X className="h-4 w-4" />
                     <span className="sr-only">Close</span>
                   </SheetClose>
                 </SheetHeader>
-                <div className="p-3 space-y-0.5">
-                  {mobileCategories.map(({ label, icon: Icon, path }) => (
+
+                {/* Mobile nav - grouped with accordion dropdowns */}
+                <div className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-13rem)]">
+                  {/* Home - no dropdown */}
+                  <SheetClose asChild>
+                    <Link
+                      to="/"
+                      className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                        isActive('/')
+                          ? 'text-primary bg-primary/10'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Home className="w-5 h-5" /> Home
+                    </Link>
+                  </SheetClose>
+
+                  {/* Opportunities - accordion dropdown */}
+                  <MobileAccordion
+                    label="Opportunities"
+                    icon={Briefcase}
+                    items={navCategories}
+                    location={location}
+                    searchParams={searchParams}
+                  />
+
+                  {/* Resume / CV - accordion dropdown */}
+                  <MobileAccordion
+                    label="Resume / CV"
+                    icon={FileText}
+                    items={cvLinks}
+                    location={location}
+                    searchParams={searchParams}
+                  />
+
+                  <hr className="my-1 border-gray-100" />
+
+                  {/* Other pages */}
+                  {pageLinks.map(({ label, icon: Icon, path }) => (
                     <SheetClose asChild key={label}>
                       <Link
                         to={path}
                         className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                           isActive(path)
                             ? 'text-primary bg-primary/10'
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" /> {label}
+                      </Link>
+                    </SheetClose>
+                  ))}
+
+                  <hr className="my-1 border-gray-100" />
+
+                  {/* User links */}
+                  {userLinks.map(({ label, icon: Icon, path }) => (
+                    <SheetClose asChild key={label}>
+                      <Link
+                        to={path}
+                        className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                          location.pathname === path
+                            ? 'text-red-500 bg-red-50'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                         }`}
                       >
                         <Icon className="w-5 h-5" /> {label}
@@ -150,6 +325,8 @@ export default function Navbar() {
                     </SheetClose>
                   ))}
                 </div>
+
+                {/* Search */}
                 <div className="border-t p-4">
                   <form onSubmit={handleSearch} className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -161,6 +338,8 @@ export default function Navbar() {
                     />
                   </form>
                 </div>
+
+                {/* Admin */}
                 {isAuthenticated && user?.role === 'admin' && (
                   <div className="border-t p-4 space-y-2">
                     <SheetClose asChild>
@@ -255,7 +434,7 @@ export default function Navbar() {
       </div>
 
       {/* Mobile category pills */}
-      <div className="md:hidden border-b border-gray-100 bg-gray-50/50 overflow-x-auto scrollbar-none">
+      <div className="md:hidden border-b border-gray-100 bg-gray-50/50 overflow-x-auto scrollbar-none" style={{ width: '100%', overscrollBehaviorX: 'contain' }}>
         <div className="flex gap-1.5 px-3 py-2.5 min-w-0">
           {[{ label: 'All', icon: Home, path: '/' }, ...navCategories].map(({ label, icon: Icon, path }) => (
             <Link
@@ -319,9 +498,10 @@ export default function Navbar() {
         </form>
       </div>
 
-      {/* Category nav */}
+      {/* Desktop nav with dropdowns */}
       <nav className="hidden md:block border-b border-gray-100 bg-white">
         <div className="max-w-7xl mx-auto px-4 h-11 flex items-center gap-1">
+          {/* Home - no dropdown */}
           <Link
             to="/"
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -332,7 +512,29 @@ export default function Navbar() {
           >
             <Home className="w-3.5 h-3.5" /> Home
           </Link>
-          {navCategories.map(({ label, icon: Icon, path }) => (
+
+          {/* Opportunities - dropdown with categories */}
+          <DropdownMenu
+            label="Opportunities"
+            icon={Briefcase}
+            items={navCategories}
+            location={location}
+            searchParams={searchParams}
+          />
+
+          {/* Resume / CV - dropdown */}
+          <DropdownMenu
+            label="Resume / CV"
+            icon={FileText}
+            items={cvLinks}
+            location={location}
+            searchParams={searchParams}
+          />
+
+          <span className="w-px h-5 bg-gray-200 mx-1" />
+
+          {/* Other pages */}
+          {pageLinks.map(({ label, icon: Icon, path }) => (
             <Link
               key={label}
               to={path}
@@ -345,14 +547,17 @@ export default function Navbar() {
               <Icon className="w-3.5 h-3.5" /> {label}
             </Link>
           ))}
+
           <span className="w-px h-5 bg-gray-200 mx-1" />
-          {pageLinks.map(({ label, icon: Icon, path }) => (
+
+          {/* User links */}
+          {userLinks.map(({ label, icon: Icon, path }) => (
             <Link
               key={label}
               to={path}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                isActive(path)
-                  ? 'text-primary bg-primary/5'
+                location.pathname === path
+                  ? 'text-red-500 bg-red-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >

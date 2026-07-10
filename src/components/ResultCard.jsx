@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
 import { oppImageSrc } from '@/lib/images';
+import BookmarkButton from './BookmarkButton';
+import DeadlineBadge from './DeadlineBadge';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 function stripHtml(html) {
   if (!html) return '';
@@ -25,6 +28,7 @@ function truncateExcerpt(text, wordCount = 30) {
 }
 
 export default function ResultCard({ item }) {
+  const { isBookmarked, toggleBookmark } = useBookmarks();
   const imgSrc = oppImageSrc(item, 'detail') || item.image_url;
   const excerpt = item.excerpt || truncateExcerpt(stripHtml(item.description), 30);
   const dateStr = formatDate(item.created_date || item.published_date);
@@ -37,16 +41,28 @@ export default function ResultCard({ item }) {
     <article>
       {/* 1. Featured image */}
       {imgSrc ? (
-        <Link to={detailLink} className="block">
+        <Link to={detailLink} className="block relative">
           <img
             src={imgSrc}
             alt={item.title}
             className="w-full aspect-[16/9.6] object-cover rounded-md bg-gray-100"
             loading="lazy"
           />
+          {item.deadline && (
+            <div className="absolute top-2 left-2">
+              <DeadlineBadge deadline={item.deadline} />
+            </div>
+          )}
+          <div className="absolute top-2 right-2">
+            <BookmarkButton isBookmarked={isBookmarked(item.id)} onToggle={() => toggleBookmark(item.id)} />
+          </div>
         </Link>
       ) : (
-        <div className="w-full aspect-[16/9.6] rounded-md bg-gray-100" />
+        <div className="w-full aspect-[16/9.6] rounded-md bg-gray-100 relative">
+          <div className="absolute top-2 right-2">
+            <BookmarkButton isBookmarked={isBookmarked(item.id)} onToggle={() => toggleBookmark(item.id)} />
+          </div>
+        </div>
       )}
 
       {/* 2. Title */}

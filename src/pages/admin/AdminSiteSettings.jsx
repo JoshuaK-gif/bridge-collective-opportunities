@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, GripVertical, Mail, Send, CheckCircle2, XCircle } from 'lucide-react';
+import { Save, Plus, Trash2, GripVertical, Mail, Send, CheckCircle2, XCircle, Sparkles, Globe } from 'lucide-react';
 
 const defaultStats = { monthly_visitors: '100K+', social_followers: '50K+', newsletter_subs: '20K+', opportunities_listed: '500+' };
 
@@ -29,15 +28,34 @@ export default function AdminSiteSettings() {
   const [testEmail, setTestEmail] = useState('');
   const [lastNewsletter, setLastNewsletter] = useState(null);
   const [testResult, setTestResult] = useState(null);
+  const [aiConfig, setAiConfig] = useState({ api_key: '', provider: 'openrouter', model: 'google/gemini-2.0-flash-001', enabled: false });
+  const [savingAi, setSavingAi] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
 
   useEffect(() => {
     api.settings.getAll().then(all => {
       if (all.stats) setStats(all.stats);
       if (Array.isArray(all.packages)) setPackages(all.packages);
       if (all.smtp_config && all.smtp_config.host) setSmtp(all.smtp_config);
+      if (all.openai_config) setAiConfig(all.openai_config);
     }).catch(() => {});
     api.request('/newsletter/status').then(d => setLastNewsletter(d)).catch(() => {});
+    api.request('/ai/status').then(d => setAiStatus(d)).catch(() => {});
   }, []);
+
+  const handleAiSave = async () => {
+    setSavingAi(true);
+    try {
+      await api.settings.update('openai_config', aiConfig);
+      await api.request('/ai/clear-cache', { method: 'POST' }).catch(() => {});
+      toast.success('AI config saved (cache cleared)');
+      api.request('/ai/status').then(d => setAiStatus(d)).catch(() => {});
+    } catch {
+      toast.error('Failed to save AI config');
+    } finally {
+      setSavingAi(false);
+    }
+  };
 
   const handleStatsSave = async () => {
     setSavingStats(true);
@@ -268,6 +286,107 @@ export default function AdminSiteSettings() {
                 Last sent: {new Date(lastNewsletter.sent_at).toLocaleString()} ({lastNewsletter.count} subscribers)
               </span>
             )}
+          </div>
+        </div>
+      </section>
+      {/* AI Configuration */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold font-heading flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-500" /> AI Configuration
+          </h2>
+          {aiStatus && (
+            <span className={`text-xs flex items-center gap-1 ${aiStatus.configured ? 'text-green-600' : 'text-gray-400'}`}>
+              {aiStatus.configured ? <><CheckCircle2 className="w-3 h-3" /> Connected ({aiStatus.provider})</> : <><XCircle className="w-3 h-3" /> Not configured</>}
+            </span>
+          )}
+        </div>
+        <div className="rounded-xl border bg-card p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Provider</label>
+              <select
+                value={aiConfig.provider}
+                onChange={e => {
+                  const p = e.target.value;
+                  const defaults = { gemini: 'gemini-2.0-flash', opencodezen: 'deepseek-v4-flash-free', openrouter: 'google/gemini-2.0-flash-001', openai: 'gpt-4o-mini' };
+                  setAiConfig(f => ({ ...f, provider: p, model: defaults[p] || f.model }));
+                }}
+                className="w-full h-10 text-sm rounded-lg border border-gray-200 px-3 bg-white"
+              >
+                <option value="gemini">Google Gemini (Free tier)</option>
+                <option value="opencodezen">OpenCode Zen (Free)</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Model</label>
+              <div className="flex gap-2">
+                <select
+                  value={aiConfig.model}
+                  onChange={e => setAiConfig(f => ({ ...f, model: e.target.value }))}
+                  className="flex-1 h-10 text-sm rounded-lg border border-gray-200 px-3 bg-white"
+                >
+                  <optgroup label="Google Gemini (Free tier)">
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (fastest)</option>
+                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite (cheapest)</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  </optgroup>
+                  <optgroup label="OpenCode Zen (Free)">
+                    <option value="deepseek-v4-flash-free">DeepSeek V4 Flash Free ($0)</option>
+                  </optgroup>
+                  <optgroup label="OpenRouter (Free Tier)">
+                    <option value="deepseek/deepseek-v4-flash:free">DeepSeek V4 Flash (free)</option>
+                  </optgroup>
+                  <optgroup label="OpenRouter (Paid)">
+                    <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (cheapest)</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
+                    <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
+                  </optgroup>
+                  <optgroup label="OpenAI">
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">API Key</label>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  type="password"
+                  value={aiConfig.api_key}
+                  onChange={e => setAiConfig(f => ({ ...f, api_key: e.target.value }))}
+                  placeholder={aiConfig.provider === 'opencodezen' ? 'Optional - leave blank for free tier' : aiConfig.provider === 'gemini' ? 'AI... (free from Google AI Studio)' : aiConfig.provider === 'openrouter' ? 'sk-or-v1-...' : 'sk-...'}
+                  className="pl-9 font-mono text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={aiConfig.enabled} onChange={e => setAiConfig(f => ({ ...f, enabled: e.target.checked }))} />
+              Enable AI features
+            </label>
+            <Button size="sm" onClick={handleAiSave} disabled={savingAi}>
+              <Save className="w-4 h-4 mr-1" /> {savingAi ? 'Saving...' : 'Save AI Config'}
+            </Button>
+            {aiStatus && aiStatus.configured && (
+              <span className="text-xs text-muted-foreground">Cache: {aiStatus.cache_size} entries</span>
+            )}
+          </div>
+          <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
+            <p><strong>Gemini (recommended):</strong> Get a <strong>free API key</strong> from{' '}
+            <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>
+            {' '}— 60 requests/min free, no credit card needed. Select Gemini as provider and paste your key.</p>
+            <p><strong>Totally free:</strong> Select <strong>OpenCode Zen</strong> — no API key needed, $0 / 100% free, but has rate limits.</p>
+            <p><strong>Need more?</strong> Use <strong>OpenRouter</strong> —{' '}
+            <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai/keys</a>
+            , add $1 credit to start.</p>
           </div>
         </div>
       </section>

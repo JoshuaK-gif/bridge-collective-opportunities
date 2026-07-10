@@ -24,6 +24,10 @@ import sitemapRoutes from './routes/sitemap.js';
 import feedRoutes from './routes/feed.js';
 import relatedRoutes from './routes/related.js';
 import newsRoutes from './routes/news.js';
+import reminderRoutes from './routes/reminders.js';
+import resumeRoutes from './routes/resume.js';
+import resumesRoutes from './routes/resumes.js';
+import aiRoutes from './routes/ai.js';
 
 let Sentry = null;
 if (process.env.SENTRY_DSN) {
@@ -93,6 +97,10 @@ export function createApp() {
   app.use('/api/rss.xml', feedRoutes);
   app.use('/api/related', relatedRoutes);
   app.use('/api/news', newsRoutes);
+  app.use('/api/reminders', reminderRoutes);
+  app.use('/api/resume', resumeRoutes);
+  app.use('/api/resumes', resumesRoutes);
+  app.use('/api/ai', aiRoutes);
 
   app.get('/api/health', async (req, res) => {
     const checks = { status: 'ok' };
