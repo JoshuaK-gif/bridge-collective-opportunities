@@ -113,21 +113,16 @@ html {
 
 /* Prevent horizontal scroll on all viewport sizes */
 html {
-  overflow-x: hidden;
   width: 100%;
 }
 body {
   margin: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
 }
 #root {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
 }
 
 /* Custom scrollbar (except scrollbar-none elements) */
