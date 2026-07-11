@@ -102,6 +102,28 @@ async function startServer() {
 validateEnv();
 await runMigrations();
 await seed();
+// Ensure users table exists and has an admin user (migrations may have silently failed)
+try {
+  const tableCheck = await pool.query("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')");
+  if (!tableCheck.rows[0]?.exists) {
+    logger.info('Users table missing — creating it now');
+    await pool.query(`CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+      failed_attempts INTEGER DEFAULT 0,
+      locked_until TIMESTAMPTZ,
+      created_date TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`);
+    // Re-run seed after creating table
+    const { seed } = await import('./data.js');
+    await seed();
+  }
+} catch (e) {
+  logger.warn({ err: e.message }, 'Could not verify users table');
+}
 // Fix AI config if it references a model that no longer exists on the provider
 try {
   const cfgResult = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
