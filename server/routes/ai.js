@@ -21,6 +21,13 @@ const aiLimiter = rateLimit({
 //   OpenCode Zen: { "api_key": "...", "provider": "opencodezen", "model": "opencode/deepseek-v4-flash-free", "enabled": true }
 //   Gemini:       { "api_key": "AI...", "provider": "gemini", "model": "gemini-2.0-flash", "enabled": true }
 
+const DEFAULT_MODELS = {
+  openai: 'gpt-4o-mini',
+  openrouter: 'openai/gpt-4o-mini',
+  opencodezen: 'opencode/deepseek-v4-flash-free',
+  gemini: 'gemini-2.0-flash',
+};
+
 const API_BASES = {
   openai: 'https://api.openai.com/v1',
   openrouter: 'https://openrouter.ai/api/v1',
@@ -56,7 +63,9 @@ async function callAI(prompt, config, { maxTokens = 800, responseFormat } = {}) 
     return callGemini(prompt, config, maxTokens, responseFormat);
   }
 
-  const body = {      model: config.model || (provider === 'openrouter' ? 'openai/gpt-4o-mini' : provider === 'opencodezen' ? 'deepseek-v4-flash-free' : 'gpt-4o-mini'),
+  // Force a valid model per provider (config.model may reference a model that no longer exists)
+  const model = DEFAULT_MODELS[provider] || 'gpt-4o-mini';
+  const body = {      model,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },

@@ -102,5 +102,24 @@ async function startServer() {
 validateEnv();
 await runMigrations();
 await seed();
+// Fix AI config if it references a model that no longer exists on the provider
+try {
+  const cfgResult = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
+  if (cfgResult.rows.length) {
+    const val = cfgResult.rows[0].value;
+    const cfg = typeof val === 'string' ? JSON.parse(val) : val;
+    const safeModels = { openrouter: 'openai/gpt-4o-mini', openai: 'gpt-4o-mini', opencodezen: 'opencode/deepseek-v4-flash-free', gemini: 'gemini-2.0-flash' };
+    if (cfg?.provider && safeModels[cfg.provider] && cfg.model !== safeModels[cfg.provider]) {
+      cfg.model = safeModels[cfg.provider];
+      await pool.query(
+        "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
+        [JSON.stringify(cfg)]
+      );
+      logger.info({ provider: cfg.provider, model: cfg.model }, 'AI config model auto-corrected');
+    }
+  }
+} catch (e) {
+  logger.warn({ err: e.message }, 'Could not auto-correct AI config');
+}
 logger.info('Database ready');
 await startServer();
