@@ -309,7 +309,7 @@ export default function AdminSiteSettings() {
                 value={aiConfig.provider}
                 onChange={e => {
                   const p = e.target.value;
-                  const defaults = { gemini: 'gemini-2.0-flash', opencodezen: 'deepseek-v4-flash-free', openrouter: 'google/gemini-2.0-flash-001', openai: 'gpt-4o-mini' };
+                  const defaults = { gemini: 'gemini-2.0-flash', opencodezen: 'deepseek-v4-flash-free', openrouter: 'openai/gpt-4o-mini', openai: 'gpt-4o-mini' };
                   setAiConfig(f => ({ ...f, provider: p, model: defaults[p] || f.model }));
                 }}
                 className="w-full h-10 text-sm rounded-lg border border-gray-200 px-3 bg-white"
@@ -338,6 +338,8 @@ export default function AdminSiteSettings() {
                   </optgroup>
                   <optgroup label="OpenRouter (Free Tier)">
                     <option value="deepseek/deepseek-v4-flash:free">DeepSeek V4 Flash (free)</option>
+                    <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (free)</option>
+                    <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B (free)</option>
                   </optgroup>
                   <optgroup label="OpenRouter (Paid)">
                     <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>

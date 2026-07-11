@@ -63,8 +63,7 @@ async function callAI(prompt, config, { maxTokens = 800, responseFormat } = {}) 
     return callGemini(prompt, config, maxTokens, responseFormat);
   }
 
-  // Force a valid model per provider (config.model may reference a model that no longer exists)
-  const model = DEFAULT_MODELS[provider] || 'gpt-4o-mini';
+  const model = config.model || DEFAULT_MODELS[provider] || 'gpt-4o-mini';
   const body = {      model,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
