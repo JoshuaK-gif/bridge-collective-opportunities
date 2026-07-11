@@ -191,7 +191,8 @@ async function callGemini(prompt, config, maxTokens, responseFormat) {
 async function getAiConfig() {
   const result = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
   if (!result.rows.length) return null;
-  return result.rows[0].value;
+  const val = result.rows[0].value;
+  return typeof val === 'string' ? JSON.parse(val) : val;
 }
 
 router.get('/status', async (req, res) => {
