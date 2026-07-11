@@ -143,5 +143,18 @@ try {
 } catch (e) {
   logger.warn({ err: e.message }, 'Could not auto-correct AI config');
 }
+// If GEMINI_API_KEY is set in .env, auto-switch AI config to Gemini
+if (process.env.GEMINI_API_KEY) {
+  try {
+    const geminiCfg = { api_key: process.env.GEMINI_API_KEY, provider: 'gemini', model: 'gemini-2.0-flash', enabled: true };
+    await pool.query(
+      "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
+      [JSON.stringify(geminiCfg)]
+    );
+    logger.info('AI config switched to Gemini (GEMINI_API_KEY detected)');
+  } catch (e) {
+    logger.warn({ err: e.message }, 'Could not switch AI config to Gemini');
+  }
+}
 logger.info('Database ready');
 await startServer();
