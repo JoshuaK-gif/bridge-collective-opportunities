@@ -1,0 +1,26 @@
+# OCI Free Tier Deployment
+# All resources selected below are Always Free Tier eligible
+
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaa..."
+user_ocid        = "ocid1.user.oc1..aaaaaa..."
+fingerprint      = "12:34:56:78:90:ab:cd:ef:12:34:56:78:90:ab:cd:ef"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+compartment_ocid = "ocid1.compartment.oc1..aaaaaa..."
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# Application secrets (change these!)
+jwt_secret  = "generate-a-strong-random-string-here"
+db_password = "generate-another-strong-random-string-here"
+
+# --- Free Tier Notes ---
+# Shape: VM.Standard.A1.Flex (Ampere ARM) — free up to 4 OCPUs / 24 GB total
+# Boot volume: 50 GB — free (200 GB total across all instances)
+# No load balancer needed — Caddy runs on the instance
+# 10 TB/month outbound data transfer — free
+
+# instance_shape    = "VM.Standard.A1.Flex"
+# instance_ocpus    = 1    # max 4 across all A1 instances in the tenancy
+# instance_memory_gb = 6   # max 24 across all A1 instances
+# domain_name       = "bridgejobs.ug"
+# admin_cidr        = "203.0.113.0/32"  # restrict SSH to your IP only

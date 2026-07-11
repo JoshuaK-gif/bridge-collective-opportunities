@@ -1,0 +1,55 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - git
+  - ufw
+
+runcmd:
+  # Install Docker
+  - curl -fsSL https://get.docker.com | sh
+  # Install Docker Compose plugin
+  - apt-get install -y docker-compose-plugin
+  # Add ubuntu user to docker group
+  - usermod -aG docker ubuntu
+
+  # Clone application repo
+  - cd /home/ubuntu
+  - git clone https://github.com/your-org/bridge-collective-opportunities.git /home/ubuntu/app
+  - chown -R ubuntu:ubuntu /home/ubuntu/app
+
+  # Create .env file
+  - |
+    cat > /home/ubuntu/app/server/.env << EOF
+    JWT_SECRET=${jwt_secret}
+    DB_PASSWORD=${db_password}
+    CORS_ORIGIN=${cors_origin}
+    FRONTEND_URL=${frontend_url}
+    DOMAIN=${domain}
+    NODE_ENV=production
+    LOG_LEVEL=info
+    USE_PGLITE=false
+    EOF
+
+  # Configure UFW
+  - ufw --force enable
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 3000/tcp
+
+  # Start application with Docker Compose
+  - cd /home/ubuntu/app/server
+  - docker compose up -d
+
+  # Setup automatic updates
+  - echo "0 3 * * * root apt update && apt upgrade -y && apt autoremove -y" > /etc/cron.d/auto-upgrade
+
+final_message:
+  - "Bridge Jobs server is ready after $$UPTIME seconds"
