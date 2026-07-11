@@ -8,7 +8,6 @@ const router = Router();
 const aiLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   max: 50,
-  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || 'unknown',
   message: { error: 'Daily rate limit exceeded (50 requests/day). Try again tomorrow.' },
   standardHeaders: true,
   legacyHeaders: false,

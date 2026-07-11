@@ -6,7 +6,7 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const { rows: opportunities } = await pool.query(
-      "SELECT id, title, updated_at, created_at, category FROM opportunities WHERE is_active = true ORDER BY updated_at DESC"
+      "SELECT id, title, updated_date, created_date, category FROM opportunities WHERE status = 'active' ORDER BY updated_date DESC"
     );
 
     const siteUrl = process.env.SITE_URL || 'https://bridgejobs.ug';
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
     }
 
     for (const opp of opportunities) {
-      const lastmod = opp.updated_at || opp.created_at;
+      const lastmod = opp.updated_date || opp.created_date;
       xml += `  <url>\n`;
       xml += `    <loc>${siteUrl}/opportunities/${opp.id}</loc>\n`;
       xml += `    <lastmod>${new Date(lastmod).toISOString()}</lastmod>\n`;

@@ -3,11 +3,11 @@ import pool from '../lib/db.js';
 
 const router = Router();
 
-router.get('/rss.xml', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const siteUrl = process.env.SITE_URL || 'https://bridgejobs.ug';
     const { rows: opportunities } = await pool.query(
-      "SELECT id, title, description, link, category, deadline, created_date, updated_date, image_url FROM opportunities WHERE is_active = true ORDER BY created_date DESC LIMIT 50"
+      "SELECT id, title, description, link, category, deadline, created_date, updated_date, image_url FROM opportunities WHERE status = 'active' ORDER BY created_date DESC LIMIT 50"
     );
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
