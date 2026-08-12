@@ -22,6 +22,38 @@ function stripHtml(html) {
   return div.textContent || div.innerText || '';
 }
 
+function sanitizeHtml(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const allowed = ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'img', 'hr', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'sub', 'sup', 'u', 's', 'mark'];
+  const attrs = ['href', 'src', 'alt', 'title', 'class', 'style', 'target', 'rel'];
+  function clean(node) {
+    if (node.nodeType === 1) {
+      if (!allowed.includes(node.tagName.toLowerCase())) {
+        const fragment = document.createDocumentFragment();
+        while (node.firstChild) fragment.appendChild(node.firstChild);
+        node.parentNode.replaceChild(fragment, node);
+        return;
+      }
+      const attrsToRemove = [];
+      for (let i = 0; i < node.attributes.length; i++) {
+        const attr = node.attributes[i];
+        if (!attrs.includes(attr.name)) { attrsToRemove.push(attr.name); continue; }
+        if (attr.name === 'href' || attr.name === 'src') {
+          const val = attr.value.toLowerCase();
+          if (val.startsWith('javascript:') || val.startsWith('data:') || val.startsWith('vbscript:')) {
+            attrsToRemove.push(attr.name);
+          }
+        }
+      }
+      attrsToRemove.forEach(a => node.removeAttribute(a));
+      Array.from(node.childNodes).forEach(clean);
+    }
+  }
+  Array.from(div.childNodes).forEach(clean);
+  return div.innerHTML;
+}
+
 export default function OpportunityDetail() {
   const { id } = useParams();
   const [opp, setOpp] = useState(null);
@@ -55,7 +87,7 @@ export default function OpportunityDetail() {
   const imageUrl = opp.image_url
     ? opp.image_url.startsWith('http')
       ? opp.image_url
-      : `https://bridgejobs.ug${opp.image_url}`
+      : `https://bridgecollectiveopport.org${opp.image_url}`
     : undefined;
 
   // Generate Google Jobs / Schema.org JSON-LD structured data
@@ -70,12 +102,12 @@ export default function OpportunityDetail() {
       'name': 'Bridge Collective Opportunities',
       'value': `bridge-${opp.id}`
     },
-    'url': `https://bridgejobs.ug/opportunities/${opp.id}`,
-    'image': imageUrl || 'https://bridgejobs.ug/BCO.png',
+    'url': `https://bridgecollectiveopport.org/opportunities/${opp.id}`,
+    'image': imageUrl || 'https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png',
     'provider': {
       '@type': 'Organization',
       'name': opp.organization || 'Bridge Collective Opportunities',
-      'sameAs': opp.link || 'https://bridgejobs.ug'
+      'sameAs': opp.link || 'https://bridgecollectiveopport.org'
     }
   };
 
@@ -88,9 +120,9 @@ export default function OpportunityDetail() {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     'itemListElement': [
-      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bridgejobs.ug/' },
-      { '@type': 'ListItem', 'position': 2, 'name': `${opp.category} Opportunities`, 'item': `https://bridgejobs.ug/category/${opp.category?.toLowerCase()}` },
-      { '@type': 'ListItem', 'position': 3, 'name': opp.title, 'item': `https://bridgejobs.ug/opportunities/${opp.id}` }
+      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bridgecollectiveopport.org/' },
+      { '@type': 'ListItem', 'position': 2, 'name': `${opp.category} Opportunities`, 'item': `https://bridgecollectiveopport.org/category/${opp.category?.toLowerCase()}` },
+      { '@type': 'ListItem', 'position': 3, 'name': opp.title, 'item': `https://bridgecollectiveopport.org/opportunities/${opp.id}` }
     ]
   };
 
@@ -108,9 +140,11 @@ export default function OpportunityDetail() {
       <div className="min-h-screen bg-white">
         <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-700 hover:text-gray-900 transition-colors mb-6 group">
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to opportunities
-            </Link>
+            <Button variant="default" size="sm" asChild className="mb-6">
+              <Link to="/" className="gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to opportunities
+              </Link>
+            </Button>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
@@ -145,7 +179,7 @@ export default function OpportunityDetail() {
 
                 <h1 className="text-2xl md:text-3xl font-bold font-heading leading-tight text-gray-900">{opp.title}</h1>
 
-                <div className="prose prose-gray dark:prose-invert max-w-none leading-relaxed text-gray-800" dangerouslySetInnerHTML={{ __html: opp.description }} />
+                <div className="prose prose-gray dark:prose-invert max-w-none leading-relaxed text-gray-800" dangerouslySetInnerHTML={{ __html: sanitizeHtml(opp.description) }} />
 
                 {/* Deadline Reminder */}
                 {opp.deadline && (
@@ -260,7 +294,7 @@ export default function OpportunityDetail() {
                           }
                         }}
                         disabled={loadingTips}
-                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                        className="px-3 py-1.5 btn-fill text-white text-xs font-medium flex items-center gap-1.5"
                       >
                         <Sparkles className={`w-3.5 h-3.5 ${loadingTips ? 'animate-spin' : ''}`} />
                         {loadingTips ? 'Analyzing...' : 'Get Tips'}
@@ -325,23 +359,26 @@ export default function OpportunityDetail() {
                     variant="outline"
                     size="lg"
                     className="flex-1 text-gray-900"
-                    onClick={async () => {
-                      const shareData = {
-                        title: opp.title,
-                        text: `Check out this opportunity: ${opp.title}`,
-                        url: window.location.href,
-                      };
-                      if (navigator.share) {
-                        try {
-                          await navigator.share(shareData);
-                        } catch {
-                          // user cancelled
-                        }
-                      } else {
-                        await navigator.clipboard.writeText(window.location.href);
-                        toast.success('Link copied to clipboard!');
+                  onClick={async () => {
+                    const url = window.location.href;
+                    const text = `Check out this opportunity: ${opp.title}\n\n${url}`;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({ title: opp.title, text, url });
+                        toast.success('Shared!');
+                      } catch { /* cancelled */ }
+                    } else {
+                      try {
+                        await navigator.clipboard.writeText(text);
+                      } catch {
+                        const ta = document.createElement('textarea');
+                        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                        document.body.appendChild(ta); ta.select();
+                        document.execCommand('copy'); document.body.removeChild(ta);
                       }
-                    }}
+                      toast.success('Link copied to clipboard!');
+                    }
+                  }}
                   >
                     <Share2 className="w-4 h-4" /> Share
                   </Button>

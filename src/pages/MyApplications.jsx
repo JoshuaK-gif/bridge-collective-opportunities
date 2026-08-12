@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { api } from '@/api/client';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ArrowLeft, Calendar, Briefcase } from 'lucide-react';
@@ -51,9 +52,11 @@ export default function MyApplications() {
       <div className="min-h-screen bg-white">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to home
-            </Link>
+            <Button variant="default" size="sm" asChild className="mb-6">
+              <Link to="/" className="gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to home
+              </Link>
+            </Button>
 
             <div className="flex items-center gap-3 mb-6">
               <Briefcase className="w-6 h-6 text-primary" />
@@ -75,9 +78,9 @@ export default function MyApplications() {
                 <CheckCircle2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h2 className="text-lg font-bold text-gray-700 mb-2">No applications tracked yet</h2>
                 <p className="text-sm text-gray-500 mb-4">Apply to opportunities and track your progress here.</p>
-                <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-                  Browse opportunities
-                </Link>
+                <Button variant="default" size="sm" asChild>
+                  <Link to="/" className="gap-2">Browse opportunities</Link>
+                </Button>
               </div>
             ) : (
               <div className="space-y-8">

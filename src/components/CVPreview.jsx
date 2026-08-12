@@ -270,8 +270,10 @@ const TEMPLATES = {
 };
 
 function SidebarLayout({ data, theme, compact }) {
-  const s = compact ? 'text-xs' : 'text-sm';
-  const textSize = compact ? 'text-[10px]' : 'text-xs';
+  const basePx = parseInt(data.fontSize) || 14;
+  const bodySize = Math.max(basePx, 9);
+  const smallSize = Math.max(basePx - 2, 9);
+  const nameSizePx = Math.min(basePx + 8, 36);
 
   const sectionOrder = data.sectionOrder || ['summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects', 'references'];
   const customKeys = (data.customSections || []).map(s => `custom:${s.id}`);
@@ -280,12 +282,21 @@ function SidebarLayout({ data, theme, compact }) {
   // Sidebar sections (rendered in sidebar)
   const sidebarSections = ['skills', 'languages'];
   // Body sections (everything else except fixed sidebar items)
-  const bodySections = allSections.filter(k => !sidebarSections.includes(k));
+  const hiddenSections = data.hiddenSections || [];
+  // Filter out hidden sections
+  const visibleSidebarSections = sidebarSections.filter(k => !hiddenSections.includes(k));
+  const bodySections = allSections.filter(k => !sidebarSections.includes(k)).filter(k => !hiddenSections.includes(k));
 
   const hasSocial = data.socialLinks && (data.socialLinks.linkedin || data.socialLinks.github || data.socialLinks.portfolio || data.socialLinks.twitter);
 
   return (
-    <div id="cv-preview" className={`flex ${theme.rounded} ${theme.shadow} overflow-hidden bg-white ${s}`}>
+    <div id="cv-preview" className={`flex ${theme.rounded} ${theme.shadow} overflow-hidden bg-white`}
+      style={{
+        fontFamily: FONT_CSS_MAP[data.fontFamily] || FONT_CSS_MAP.sans,
+        fontSize: `${bodySize}px`,
+        backgroundColor: theme.customBodyBg || undefined,
+        color: theme.customBodyColor || undefined,
+      }}>
       {/* Sidebar */}
       <div className={`${theme.sidebarWidth || 'w-1/3'} ${theme.sidebarBg} ${theme.sidebarText} p-4 ${compact ? 'p-3' : ''} ${theme.sidebarRounded || ''}`}>
         {/* Photo */}
@@ -298,35 +309,39 @@ function SidebarLayout({ data, theme, compact }) {
         )}
         {/* Name & Title */}
         <div className={`mb-4 ${data.photo ? 'text-center' : ''}`}>
-          <h2 className={`font-bold ${compact ? 'text-base' : 'text-xl'} ${theme.headerFont || ''}`}>
+          <h2 className={`font-bold ${theme.headerFont || ''}`} style={{ fontSize: `${nameSizePx}px` }}>
             {data.firstName} {data.lastName}
           </h2>
-          {data.title && <p className={`${compact ? 'text-[10px]' : 'text-xs'} opacity-80 mt-0.5`}>{data.title}</p>}
+          {data.title && <p className="opacity-80 mt-0.5" style={{ fontSize: `${smallSize}px` }}>{data.title}</p>}
         </div>
 
         {/* Contact */}
         <div className="mb-4 space-y-1">
-          <h3 className={`font-semibold text-[10px] uppercase tracking-wider opacity-70 mb-1.5`}>Contact</h3>
-          {data.email && <p className={`${textSize} opacity-80`}>{data.email}</p>}
-          {data.phone && <p className={`${textSize} opacity-80`}>{data.phone}</p>}
-          {data.location && <p className={`${textSize} opacity-80`}>{data.location}</p>}
+          <h3 className="font-semibold uppercase tracking-wider opacity-70 mb-1.5" style={{ fontSize: `${smallSize}px` }}>Contact</h3>
+          {data.email && <p style={{ fontSize: `${smallSize}px` }} className="opacity-80">{data.email}</p>}
+          {data.phone && <p style={{ fontSize: `${smallSize}px` }} className="opacity-80">{data.phone}</p>}
+          {data.location && <p style={{ fontSize: `${smallSize}px` }} className="opacity-80">{data.location}</p>}
           {hasSocial && (
             <div className="mt-2 space-y-0.5">
-              {data.socialLinks.linkedin && <p className={`${textSize} opacity-70`}>in/{data.socialLinks.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}</p>}
-              {data.socialLinks.github && <p className={`${textSize} opacity-70`}>gh/{data.socialLinks.github.replace(/^https?:\/\/(www\.)?github\.com\//, '').replace(/\/$/, '')}</p>}
-              {data.socialLinks.portfolio && <p className={`${textSize} opacity-70`}>{data.socialLinks.portfolio.replace(/^https?:\/\//, '')}</p>}
+              {data.socialLinks.linkedin && <p style={{ fontSize: `${smallSize}px` }} className="opacity-70">in/{data.socialLinks.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}</p>}
+              {data.socialLinks.github && <p style={{ fontSize: `${smallSize}px` }} className="opacity-70">gh/{data.socialLinks.github.replace(/^https?:\/\/(www\.)?github\.com\//, '').replace(/\/$/, '')}</p>}
+              {data.socialLinks.portfolio && <p style={{ fontSize: `${smallSize}px` }} className="opacity-70">{data.socialLinks.portfolio.replace(/^https?:\/\//, '')}</p>}
             </div>
           )}
         </div>
 
         {/* Skills & Languages in sidebar */}
-        {sidebarSections.map(sectionKey => (
+        {visibleSidebarSections.map(sectionKey => (
           <SectionRenderer key={sectionKey} data={data} theme={theme} compact={compact} sectionKey={sectionKey} />
         ))}
       </div>
 
       {/* Main Content */}
-      <div className={`${theme.mainWidth || 'w-2/3'} p-4 ${compact ? 'p-3' : ''} ${theme.mainRounded || ''}`}>
+      <div className={`${theme.mainWidth || 'w-2/3'} p-4 ${compact ? 'p-3' : ''} ${theme.mainRounded || ''}`}
+        style={{
+          backgroundColor: theme.customBodyBg || undefined,
+          color: theme.customBodyColor || undefined,
+        }}>
         {bodySections.map(sectionKey => (
           <div key={sectionKey} className="mb-3">
             <SectionRenderer data={data} theme={theme} compact={compact} sectionKey={sectionKey} />
@@ -338,8 +353,16 @@ function SidebarLayout({ data, theme, compact }) {
 }
 
 function SectionRenderer({ data, theme, compact, sectionKey }) {
-  const textSize = compact ? 'text-[10px]' : 'text-xs';
-  const headingClass = `font-bold ${theme.sectionFont || ''} ${theme.accent} ${theme.sectionBorder} pb-1 mb-1.5 ${compact ? 'text-[10px]' : 'text-xs'}`;
+  const basePx = parseInt(data.fontSize) || 14;
+  const smallSize = Math.max(basePx - 2, 9);
+  const headingSize = Math.max(basePx - 1, 10);
+  // Strip text-size classes from sectionFont so user's fontSize controls heading size
+  const cleanedSectionFont = (theme.sectionFont || '').replace(/text-\[?[a-z0-9.]+\]?\s*/g, '');
+  const headingClass = `font-bold ${cleanedSectionFont} ${theme.accent || ''} ${theme.sectionBorder} pb-1 mb-1.5`;
+  const headingStyle = {
+    fontSize: `${headingSize}px`,
+    ...(theme.customHeadingColor ? { color: theme.customHeadingColor } : {}),
+  };
   const decorative = theme.sectionDecorative && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-1.5 align-middle" />;
 
   switch (sectionKey) {
@@ -347,8 +370,8 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.summary) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Professional Summary</h3>
-          <p className={`text-gray-700 leading-relaxed ${textSize} ${theme.minimalBorders ? 'text-gray-500' : ''}`}>{data.summary}</p>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Professional Summary</h3>
+          <p className={`text-gray-700 leading-relaxed ${theme.minimalBorders ? 'text-gray-500' : ''}`} style={{ fontSize: `${smallSize}px` }}>{data.summary}</p>
         </div>
       );
 
@@ -356,18 +379,18 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.experience?.filter(e => e.company).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Experience</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Experience</h3>
           <div className={`${theme.compactMode ? 'space-y-1.5' : 'space-y-2.5'}`}>
             {data.experience.filter(e => e.company).map((exp, i) => (
               <div key={exp.id || i} className={theme.accentBg ? `${theme.accentBg} ${theme.rounded} p-2` : ''}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className={`font-semibold text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>{exp.position}</p>
-                    <p className={`text-gray-600 ${textSize}`}>{exp.company}</p>
+                    <p className="font-semibold text-gray-900" style={{ fontSize: `${basePx}px` }}>{exp.position}</p>
+                    <p className="text-gray-600" style={{ fontSize: `${smallSize}px` }}>{exp.company}</p>
                   </div>
-                  <p className={`text-gray-400 ${textSize} shrink-0`}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</p>
+                  <p className="text-gray-400 shrink-0" style={{ fontSize: `${smallSize}px` }}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</p>
                 </div>
-                {exp.description && <p className={`text-gray-600 mt-1 leading-relaxed ${textSize}`}>{exp.description}</p>}
+                {exp.description && <p className="text-gray-600 mt-1 leading-relaxed" style={{ fontSize: `${smallSize}px` }}>{exp.description}</p>}
               </div>
             ))}
           </div>
@@ -378,12 +401,12 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.education?.filter(e => e.school).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Education</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Education</h3>
           <div className={`${theme.compactMode ? 'space-y-1' : 'space-y-2'}`}>
             {data.education.filter(e => e.school).map((edu, i) => (
               <div key={edu.id || i}>
-                <p className={`font-semibold text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>{edu.degree} in {edu.field}</p>
-                <p className={`text-gray-600 ${textSize}`}>{edu.school} — {edu.startYear} – {edu.endYear}</p>
+                <p className="font-semibold text-gray-900" style={{ fontSize: `${basePx}px` }}>{edu.degree} in {edu.field}</p>
+                <p className="text-gray-600" style={{ fontSize: `${smallSize}px` }}>{edu.school} — {edu.startYear} – {edu.endYear}</p>
               </div>
             ))}
           </div>
@@ -394,12 +417,12 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.skills?.filter(s => s.name).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Skills</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Skills</h3>
           <div className="flex flex-wrap gap-1.5">
             {data.skills.filter(s => s.name).map((skill, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <span className={`${theme.badge || 'bg-gray-100 text-gray-700'} ${compact ? 'text-[10px] px-2 py-0.5' : 'text-xs px-3 py-1'} rounded-full`}>{skill.name}</span>
-                <span className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-400 italic`}>{skill.level}</span>
+                <span className={`${theme.badge || 'bg-gray-100 text-gray-700'} rounded-full`} style={{ fontSize: `${smallSize}px`, padding: `${smallSize > 12 ? '4px 12px' : '2px 8px'}` }}>{skill.name}</span>
+                <span className="text-gray-400 italic" style={{ fontSize: `${Math.max(smallSize - 1, 8)}px` }}>{skill.level}</span>
               </div>
             ))}
           </div>
@@ -410,12 +433,12 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.languages?.filter(l => l.name).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Languages</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Languages</h3>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {data.languages.filter(l => l.name).map((lang, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <span className={`font-medium text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>{lang.name}</span>
-                <span className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-400 italic`}>{lang.level}</span>
+                <span className="font-medium text-gray-900" style={{ fontSize: `${basePx}px` }}>{lang.name}</span>
+                <span className="text-gray-400 italic" style={{ fontSize: `${Math.max(smallSize - 1, 8)}px` }}>{lang.level}</span>
               </div>
             ))}
           </div>
@@ -426,15 +449,15 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.certifications?.filter(c => c.name).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Certifications</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Certifications</h3>
           <div className={`${theme.compactMode ? 'space-y-1' : 'space-y-2'}`}>
             {data.certifications.filter(c => c.name).map((cert, i) => (
               <div key={cert.id || i}>
-                <p className={`font-semibold text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>
+                <p className="font-semibold text-gray-900" style={{ fontSize: `${basePx}px` }}>
                   {cert.name}{cert.issuer ? ` — ${cert.issuer}` : ''}
                   {cert.date ? <span className="text-gray-400 font-normal"> ({cert.date})</span> : ''}
                 </p>
-                {cert.description && <p className={`text-gray-600 mt-0.5 leading-relaxed ${textSize}`}>{cert.description}</p>}
+                {cert.description && <p className="text-gray-600 mt-0.5 leading-relaxed" style={{ fontSize: `${smallSize}px` }}>{cert.description}</p>}
               </div>
             ))}
           </div>
@@ -445,16 +468,16 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.projects?.filter(p => p.name).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}Projects</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}Projects</h3>
           <div className={`${theme.compactMode ? 'space-y-1' : 'space-y-2'}`}>
             {data.projects.filter(p => p.name).map((proj, i) => (
               <div key={proj.id || i}>
                 <div className="flex justify-between items-start">
-                  <p className={`font-semibold text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>{proj.name}</p>
-                  {proj.technologies && <span className={`text-gray-400 ${textSize} shrink-0 ml-2`}>{proj.technologies}</span>}
+                  <p className="font-semibold text-gray-900" style={{ fontSize: `${basePx}px` }}>{proj.name}</p>
+                  {proj.technologies && <span className="text-gray-400 shrink-0 ml-2" style={{ fontSize: `${smallSize}px` }}>{proj.technologies}</span>}
                 </div>
-                {proj.description && <p className={`text-gray-600 mt-0.5 leading-relaxed ${textSize}`}>{proj.description}</p>}
-                {proj.link && <p className={`text-gray-400 mt-0.5 ${compact ? 'text-[9px]' : 'text-[10px]'}`}>{proj.link}</p>}
+                {proj.description && <p className="text-gray-600 mt-0.5 leading-relaxed" style={{ fontSize: `${smallSize}px` }}>{proj.description}</p>}
+                {proj.link && <p className="text-gray-400 mt-0.5" style={{ fontSize: `${Math.max(smallSize - 1, 8)}px` }}>{proj.link}</p>}
               </div>
             ))}
           </div>
@@ -465,12 +488,12 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
       if (!data.references?.filter(r => r.name).length) return null;
       return (
         <div>
-          <h3 className={headingClass}>{decorative}References</h3>
+          <h3 className={headingClass} style={headingStyle}>{decorative}References</h3>
           <div className="space-y-2">
             {data.references.filter(r => r.name).map((ref, i) => (
               <div key={ref.id || i} className="text-gray-700">
-                <p className={`font-semibold ${compact ? 'text-xs' : 'text-sm'}`}>{ref.name}</p>
-                <p className={textSize}>
+                <p className="font-semibold" style={{ fontSize: `${basePx}px` }}>{ref.name}</p>
+                <p style={{ fontSize: `${smallSize}px` }}>
                   {[ref.title, ref.company].filter(Boolean).join(', ')}
                   {[ref.email, ref.phone].filter(Boolean).length > 0 && (
                     <span className="text-gray-400"> — {[ref.email, ref.phone].filter(Boolean).join(' | ')}</span>
@@ -489,8 +512,8 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
         if (!sec || !sec.title?.trim() || !sec.content?.trim()) return null;
         return (
           <div>
-            <h3 className={headingClass}>{decorative}{sec.title}</h3>
-            <div className={`text-gray-700 leading-relaxed ${textSize} whitespace-pre-wrap`}>{sec.content}</div>
+            <h3 className={headingClass} style={headingStyle}>{decorative}{sec.title}</h3>
+            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${smallSize}px` }}>{sec.content}</div>
           </div>
         );
       }
@@ -498,23 +521,73 @@ function SectionRenderer({ data, theme, compact, sectionKey }) {
   }
 }
 
+const FONT_CSS_MAP = {
+  sans: 'Inter, system-ui, -apple-system, sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
+  system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  inter: '"Inter", system-ui, -apple-system, sans-serif',
+  arial: 'Arial, Helvetica, sans-serif',
+  calibri: 'Calibri, "Segoe UI", Arial, sans-serif',
+  georgia: 'Georgia, "Times New Roman", serif',
+  times: '"Times New Roman", Georgia, serif',
+  garamond: 'Garamond, "EB Garamond", Georgia, serif',
+  roboto: '"Roboto", system-ui, -apple-system, sans-serif',
+  opensans: '"Open Sans", system-ui, -apple-system, sans-serif',
+  poppins: '"Poppins", system-ui, -apple-system, sans-serif',
+  montserrat: '"Montserrat", system-ui, -apple-system, sans-serif',
+  lato: '"Lato", system-ui, -apple-system, sans-serif',
+  raleway: '"Raleway", system-ui, -apple-system, sans-serif',
+  nunito: '"Nunito", system-ui, -apple-system, sans-serif',
+  quicksand: '"Quicksand", system-ui, -apple-system, sans-serif',
+  merriweather: '"Merriweather", Georgia, serif',
+  playfair: '"Playfair Display", Georgia, serif',
+};
+
+const HEADING_COLOR_MAP = {
+  default: null,
+  blue: '#2563eb',
+  green: '#059669',
+  red: '#ef4444',
+  purple: '#9333ea',
+  orange: '#f97316',
+  teal: '#0d9488',
+  pink: '#ec4899',
+  amber: '#f59e0b',
+  gray: '#374151',
+};
+
 function FullLayout({ data, theme, compact }) {
-  const s = compact ? 'text-xs' : 'text-sm';
-  const textSize = compact ? 'text-[10px]' : 'text-xs';
-  const nameSize = theme.nameSize || (compact ? 'text-lg' : 'text-2xl');
+  const basePx = parseInt(data.fontSize) || 14;
+  const bodySize = Math.max(basePx, 9);
+  const smallSize = Math.max(basePx - 2, 9);
+  const nameSizePx = Math.min(basePx + 8, 36);
+  const nameSizeClass = theme.nameSize || '';
   const headerPad = theme.headerCompact ? (compact ? 'px-4 py-2' : 'px-5 py-3') : (compact ? 'px-5 py-4' : 'px-6 py-5');
 
   // Build section order: default sections + custom sections
   const sectionOrder = data.sectionOrder || ['summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects', 'references'];
   const customKeys = (data.customSections || []).map(s => `custom:${s.id}`);
-  const allSections = [...sectionOrder, ...customKeys];
+  const hiddenSections = data.hiddenSections || [];
+  const allSections = [...sectionOrder, ...customKeys].filter(k => !hiddenSections.includes(k));
 
   const hasSocial = data.socialLinks && (data.socialLinks.linkedin || data.socialLinks.github || data.socialLinks.portfolio || data.socialLinks.twitter);
 
   return (
-    <div id="cv-preview" className={`bg-white ${theme.shadow || 'shadow-lg'} ${theme.rounded || 'rounded-lg'} overflow-hidden ${s} ${theme.font || ''}`}>
+    <div id="cv-preview" className={`bg-white ${theme.shadow || 'shadow-lg'} ${theme.rounded || 'rounded-lg'} overflow-hidden ${theme.font || ''}`}
+      style={{
+        fontFamily: FONT_CSS_MAP[data.fontFamily] || FONT_CSS_MAP.sans,
+        fontSize: `${bodySize}px`,
+        backgroundColor: theme.customBodyBg || undefined,
+        color: theme.customBodyColor || undefined,
+      }}>
       {/* Header */}
-      <div className={`${theme.headerBg} ${theme.headerText} ${headerPad} ${theme.headerStyle || ''}`}>
+      <div className={`${theme.headerBg} ${theme.headerText} ${headerPad} ${theme.headerStyle || ''}`}
+        style={{
+          backgroundColor: theme.customHeaderBg || undefined,
+          backgroundImage: theme.customHeaderBg ? 'none' : undefined,
+          color: theme.customHeaderColor || undefined,
+        }}>
         <div className={`flex ${theme.headerStyle === 'text-center' ? 'flex-col items-center' : (data.photo ? 'items-center gap-4' : '')}`}>
           {data.photo && (
             <div className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-white/30 shrink-0 ${theme.headerStyle === 'text-center' ? 'mb-2' : ''}`}>
@@ -522,19 +595,19 @@ function FullLayout({ data, theme, compact }) {
             </div>
           )}
           <div>
-            <h2 className={`${theme.headerFont || 'font-bold'} ${nameSize}`}>
+            <h2 className={`${theme.headerFont || 'font-bold'} ${nameSizeClass}`} style={{ fontSize: `${nameSizePx}px` }}>
               {data.firstName} {data.lastName}
             </h2>
             {data.title && (
-              <p className={`${compact ? 'text-xs' : 'text-sm'} ${theme.titleStyle || 'opacity-90'} mt-0.5`}>{data.title}</p>
+              <p className={`${theme.titleStyle || 'opacity-90'} mt-0.5`} style={{ fontSize: `${compact ? Math.max(basePx - 2, 9) : bodySize}px` }}>{data.title}</p>
             )}
-            <div className={`flex flex-wrap gap-x-4 gap-y-0.5 mt-2 ${compact ? 'text-[10px]' : 'text-xs'} opacity-80 ${theme.contactStyle || ''}`}>
+            <div className={`flex flex-wrap gap-x-4 gap-y-0.5 mt-2 opacity-80 ${theme.contactStyle || ''}`} style={{ fontSize: `${smallSize}px` }}>
               {data.email && <span>{data.email}</span>}
               {data.phone && <span>{data.phone}</span>}
               {data.location && <span>{data.location}</span>}
             </div>
             {hasSocial && (
-              <div className={`flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 ${compact ? 'text-[9px]' : 'text-[10px]'} opacity-70`}>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 opacity-70" style={{ fontSize: `${Math.max(smallSize - 1, 8)}px` }}>
                 {data.socialLinks.linkedin && <span>linkedin.com/in/{data.socialLinks.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}</span>}
                 {data.socialLinks.github && <span>github.com/{data.socialLinks.github.replace(/^https?:\/\/(www\.)?github\.com\//, '').replace(/\/$/, '')}</span>}
                 {data.socialLinks.portfolio && <span>{data.socialLinks.portfolio.replace(/^https?:\/\//, '')}</span>}
@@ -553,8 +626,50 @@ function FullLayout({ data, theme, compact }) {
   );
 }
 
+function mergeTheme(theme, data) {
+  const merged = { ...theme };
+  
+  // Heading color
+  const hc = data.headingColor;
+  if (hc && hc !== 'default') {
+    if (hc.startsWith('#')) {
+      merged.accent = '';
+      merged.customHeadingColor = hc;
+    } else {
+      const color = HEADING_COLOR_MAP[hc];
+      if (color) merged.accent = `text-${hc}-600`;
+    }
+  }
+
+  // Header background
+  if (data.headerBg && data.headerBg.startsWith('#')) {
+    merged.headerBg = '';
+    merged.customHeaderBg = data.headerBg;
+  }
+
+  // Header text color
+  if (data.headerFontColor && data.headerFontColor.startsWith('#')) {
+    merged.headerText = '';
+    merged.customHeaderColor = data.headerFontColor;
+  }
+
+  // Body background (for full layout) — also clear accentBg so sections don't override it
+  if (data.bodyBg && data.bodyBg.startsWith('#')) {
+    merged.customBodyBg = data.bodyBg;
+    merged.accentBg = '';
+  }
+
+  // Body text color
+  if (data.bodyTextColor && data.bodyTextColor.startsWith('#')) {
+    merged.customBodyColor = data.bodyTextColor;
+  }
+
+  return merged;
+}
+
 export default function CVPreview({ data, compact = false }) {
-  const theme = TEMPLATES[data.template] || TEMPLATES.modern;
+  const baseTheme = TEMPLATES[data.template] || TEMPLATES.modern;
+  const theme = mergeTheme(baseTheme, data);
 
   if (theme.layout === 'sidebar') {
     return <SidebarLayout data={data} theme={theme} compact={compact} />;

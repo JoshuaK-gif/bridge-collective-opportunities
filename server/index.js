@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
 import cron from 'node-cron';
 import logger from './lib/logger.js';
 import { validateEnv } from './lib/env.js';
@@ -23,8 +25,39 @@ async function startServer() {
   });
   logger.info('Auto-publish cron scheduled (every 2 min)');
 
-  // Daily newsletter at 8:00 AM
-  cron.schedule('0 8 * * *', async () => {
+  // Auto-delete past-deadline opportunities — runs daily at midnight
+  cron.schedule('0 0 * * *', async () => {
+    logger.info('Cron: running auto-delete expired');
+    try {
+      const result = await pool.query(
+        "DELETE FROM opportunities WHERE status = 'active' AND deadline ~ '^\\d{4}-\\d{2}-\\d{2}$' AND TO_DATE(deadline, 'YYYY-MM-DD') < CURRENT_DATE"
+      );
+      if (result.rowCount > 0) {
+        logger.info({ deleted: result.rowCount }, 'Expired opportunities auto-deleted');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Cron auto-delete failed');
+    }
+  });
+  logger.info('Auto-delete expired cron scheduled (daily at midnight)');
+
+  // Scheduled publishing — runs every minute to activate opportunities with publish_at <= now
+  cron.schedule('* * * * *', async () => {
+    try {
+      const result = await pool.query(
+        "UPDATE opportunities SET status = 'active', updated_date = now() WHERE status = 'draft' AND publish_at IS NOT NULL AND publish_at <= now()"
+      );
+      if (result.rowCount > 0) {
+        logger.info({ published: result.rowCount }, 'Scheduled opportunities activated');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Cron scheduled publishing failed');
+    }
+  });
+  logger.info('Scheduled publishing cron (every minute)');
+
+  // Daily newsletter at 8:00 PM
+  cron.schedule('0 20 * * *', async () => {
     logger.info('Cron: running daily newsletter');
     try {
       await sendNewsletter();
@@ -32,7 +65,7 @@ async function startServer() {
       logger.error({ err }, 'Cron newsletter failed');
     }
   });
-  logger.info('Daily newsletter cron scheduled (8:00 AM)');
+  logger.info('Daily newsletter cron scheduled (8:00 PM)');
 
   // Deadline reminder emails every hour
   cron.schedule('0 * * * *', async () => {
@@ -51,22 +84,22 @@ async function startServer() {
             let processed = 0;
             for (let i = 0; i < updated.length; i++) {
               const r = updated[i];
-              if (r.sent) continue;
-              const deadlineDate = new Date(r.deadline);
+              const deadlineDate = new Date(r.deadline + 'T00:00:00');
               const diffMs = deadlineDate.getTime() - now.getTime();
               const diffDays = diffMs / (1000 * 60 * 60 * 24);
+              if (diffDays < -7) { updated.splice(i, 1); i--; continue; }
+              if (r.sent) continue;
               if (diffDays <= 2 && diffDays >= 0) {
                 const result = await sendEmail({
                   to: r.email,
                   subject: `Reminder: "${r.opportunityTitle}" deadline is approaching!`,
-                  html: `<div style="font-family:sans-serif;padding:24px;max-width:480px;margin:0 auto;"><h2>Deadline Reminder</h2><p>The opportunity "<strong>${r.opportunityTitle}</strong>" closes <strong>${r.deadline}</strong>!</p><a href="https://bridgejobs.ug/opportunities/${r.opportunityId}" style="display:inline-block;background:#667eea;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">View Opportunity</a></div>`,
+                  html: `<div style="font-family:sans-serif;padding:24px;max-width:480px;margin:0 auto;"><h2>Deadline Reminder</h2><p>The opportunity "<strong>${r.opportunityTitle}</strong>" closes <strong>${r.deadline}</strong>!</p><a href="https://bridgecollectiveopport.org/opportunities/${r.opportunityId}" style="display:inline-block;background:#667eea;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">View Opportunity</a></div>`,
                 });
                 if (result.success) {
                   updated[i] = { ...r, sent: true, sentAt: now.toISOString() };
                   processed++;
                 }
               }
-              if (diffDays < -7) { updated.splice(i, 1); i--; }
             }
             await pool.query("UPDATE site_settings SET value = $1 WHERE key = 'reminders'", [JSON.stringify(updated)]);
             logger.info({ processed }, 'Reminder emails processed');
@@ -130,7 +163,7 @@ try {
   if (cfgResult.rows.length) {
     const val = cfgResult.rows[0].value;
     const cfg = typeof val === 'string' ? JSON.parse(val) : val;
-    const safeModels = { openrouter: 'openai/gpt-4o-mini', openai: 'gpt-4o-mini', opencodezen: 'opencode/deepseek-v4-flash-free', gemini: 'gemini-2.0-flash' };
+    const safeModels = { openrouter: 'openai/gpt-4o-mini', openai: 'gpt-4o-mini', opencodezen: 'deepseek-v4-flash-free', gemini: 'gemini-2.0-flash' };
     if (cfg?.provider && safeModels[cfg.provider] && cfg.model !== safeModels[cfg.provider]) {
       cfg.model = safeModels[cfg.provider];
       await pool.query(
@@ -143,18 +176,34 @@ try {
 } catch (e) {
   logger.warn({ err: e.message }, 'Could not auto-correct AI config');
 }
-// If GEMINI_API_KEY is set in .env, auto-switch AI config to Gemini
-if (process.env.GEMINI_API_KEY) {
-  try {
-    const geminiCfg = { api_key: process.env.GEMINI_API_KEY, provider: 'gemini', model: 'gemini-2.0-flash', enabled: true };
+// Ensure scraper_ai_config defaults to OpenCode Zen free if not set
+try {
+  const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'scraper_ai_config'");
+  if (!existing.rows.length) {
+    const defaultZen = { provider: 'opencodezen', model: 'deepseek-v4-flash-free', api_key: '', enabled: true };
+    await pool.query(
+      "INSERT INTO site_settings (key, value, updated_at) VALUES ('scraper_ai_config', $1, now()) ON CONFLICT (key) DO NOTHING",
+      [JSON.stringify(defaultZen)]
+    );
+    logger.info('Scraper AI config seeded with OpenCode Zen free');
+  }
+} catch (e) {
+  logger.warn({ err: e.message }, 'Could not seed scraper AI config');
+}
+
+// Ensure AI config defaults to OpenCode Zen free (deepseek-v4-flash-free)
+try {
+  const existingCfg = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
+  if (!existingCfg.rows.length) {
+    const zenCfg = { api_key: '', provider: 'opencodezen', model: 'deepseek-v4-flash-free', enabled: true };
     await pool.query(
       "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
-      [JSON.stringify(geminiCfg)]
+      [JSON.stringify(zenCfg)]
     );
-    logger.info('AI config switched to Gemini (GEMINI_API_KEY detected)');
-  } catch (e) {
-    logger.warn({ err: e.message }, 'Could not switch AI config to Gemini');
+    logger.info('AI config seeded with OpenCode Zen free');
   }
+} catch (e) {
+  logger.warn({ err: e.message }, 'Could not seed AI config');
 }
 logger.info('Database ready');
 await startServer();

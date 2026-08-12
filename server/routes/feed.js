@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   try {
-    const siteUrl = process.env.SITE_URL || 'https://bridgejobs.ug';
+    const siteUrl = process.env.SITE_URL || 'https://bridgecollectiveopport.org';
     const { rows: opportunities } = await pool.query(
       "SELECT id, title, description, link, category, deadline, created_date, updated_date, image_url FROM opportunities WHERE status = 'active' ORDER BY created_date DESC LIMIT 50"
     );

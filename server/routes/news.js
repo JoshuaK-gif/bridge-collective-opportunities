@@ -8,7 +8,7 @@ const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
     const result = await pool.query('SELECT * FROM news ORDER BY published_date DESC LIMIT $1', [limit]);
     res.json(result.rows);
   } catch (err) {

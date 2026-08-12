@@ -100,13 +100,14 @@ router.post('/', authenticate, validate(listSchema), async (req, res, next) => {
 });
 
 // PUT /api/lists/:id — update a list (admin only)
-router.put('/:id', authenticate, async (req, res, next) => {
+router.put('/:id', authenticate, validate(listSchema), async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
     const { name, description, sort_order } = req.body;
+    const safeSortOrder = sort_order !== undefined ? parseInt(sort_order, 10) : undefined;
     const result = await pool.query(
       'UPDATE lists SET name = COALESCE($1, name), description = COALESCE($2, description), sort_order = COALESCE($3, sort_order), updated_date = now() WHERE id = $4 RETURNING *',
-      [name, description, sort_order, req.params.id]
+      [name, description, isNaN(safeSortOrder) ? undefined : safeSortOrder, req.params.id]
     );
     if (!result.rows.length) throw new AppError(404, 'List not found');
     logAudit({ userId: req.user.id, action: 'update', entityType: 'list', entityId: req.params.id, ipAddress: req.ip });
@@ -185,9 +186,11 @@ router.put('/:listId/items/:itemId/reorder', authenticate, async (req, res, next
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
     const { sort_order } = req.body;
     if (sort_order === undefined) throw new AppError(400, 'sort_order is required');
+    const safeOrder = parseInt(sort_order, 10);
+    if (isNaN(safeOrder)) throw new AppError(400, 'sort_order must be a number');
     await pool.query(
       'UPDATE list_items SET sort_order = $1 WHERE id = $2 AND list_id = $3',
-      [sort_order, req.params.itemId, req.params.listId]
+      [safeOrder, req.params.itemId, req.params.listId]
     );
     res.json({ success: true });
   } catch (err) {

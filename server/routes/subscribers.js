@@ -4,15 +4,26 @@ import logger from '../lib/logger.js';
 import { authenticate } from '../auth.js';
 import { AppError } from '../lib/errors.js';
 import { validate, subscriberSchema } from '../lib/validate.js';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+const subscribeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || 'unknown',
+  message: { error: 'Too many subscribe attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+});
 
 async function geoLookup(ip) {
   if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
     return { city: '', country: '' };
   }
   try {
-    const resp = await fetch(`http://ip-api.com/json/${ip}?fields=city,country`, { signal: AbortSignal.timeout(3000) });
+    const resp = await fetch(`https://ip-api.com/json/${ip}?fields=city,country`, { signal: AbortSignal.timeout(3000) });
     if (resp.ok) {
       const data = await resp.json();
       return { city: data.city || '', country: data.country || '' };
@@ -21,7 +32,7 @@ async function geoLookup(ip) {
   return { city: '', country: '' };
 }
 
-router.post('/', validate(subscriberSchema), async (req, res, next) => {
+router.post('/', subscribeLimiter, validate(subscriberSchema), async (req, res, next) => {
   try {
     const { email, source_page, referrer } = req.body;
 
@@ -57,7 +68,7 @@ router.post('/', validate(subscriberSchema), async (req, res, next) => {
 router.get('/', authenticate, async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-    const result = await pool.query('SELECT * FROM subscribers ORDER BY created_date DESC');
+    const result = await pool.query('SELECT * FROM subscribers ORDER BY created_date DESC LIMIT 1000');
     res.json(result.rows);
   } catch (err) {
     next(err);

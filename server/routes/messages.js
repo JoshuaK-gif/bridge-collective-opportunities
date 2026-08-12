@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import pool from '../lib/db.js';
 import logger from '../lib/logger.js';
 import { authenticate } from '../auth.js';
@@ -8,7 +9,25 @@ import { validate, messageSchema } from '../lib/validate.js';
 
 const router = Router();
 
-router.post('/', validate(messageSchema), async (req, res, next) => {
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || 'unknown',
+  message: { error: 'Too many messages. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+});
+
+function sanitizeEmailHeader(value) {
+  return (value || '').replace(/[\r\n]/g, ' ').trim();
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+router.post('/', contactLimiter, validate(messageSchema), async (req, res, next) => {
   try {
     const { name, email, subject, message } = req.body;
     const result = await pool.query(
@@ -18,24 +37,26 @@ router.post('/', validate(messageSchema), async (req, res, next) => {
     logger.info({ messageId: result.rows[0].id }, 'Message received');
 
     // Notify admin via email (fire-and-forget)
-    const adminEmail = await pool.query("SELECT email FROM users WHERE role = 'admin' LIMIT 1");
-    if (adminEmail.rows.length) {
-      sendEmail({
-        to: adminEmail.rows[0].email,
-        subject: `[Bridge Jobs] ${subject}`,
-        html: `
-          <h2>New Contact Form Submission</h2>
-          <table style="border-collapse:collapse;width:100%;max-width:500px;">
-            <tr><td style="padding:8px;font-weight:600;color:#555;border-bottom:1px solid #eee;">Name</td><td style="padding:8px;border-bottom:1px solid #eee;">${name}</td></tr>
-            <tr><td style="padding:8px;font-weight:600;color:#555;border-bottom:1px solid #eee;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;"><a href="mailto:${email}">${email}</a></td></tr>
-            <tr><td style="padding:8px;font-weight:600;color:#555;border-bottom:1px solid #eee;">Subject</td><td style="padding:8px;border-bottom:1px solid #eee;">${subject}</td></tr>
-          </table>
-          <h3 style="margin-top:16px;">Message</h3>
-          <p style="background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre-wrap;">${message}</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:16px 0;" />
-          <p style="font-size:12px;color:#999;">View in admin: <a href="https://bridgejobs.ug/admin-bridgejobs/messages">bridgejobs.ug/admin-bridgejobs/messages</a></p>
-        `,
-      }).catch(err => logger.warn({ err: err.message }, 'Failed to notify admin of message'));
+    const adminResult = await pool.query("SELECT email FROM users WHERE role = 'admin' ORDER BY created_date ASC");
+    if (adminResult.rows.length) {
+      for (const admin of adminResult.rows) {
+        sendEmail({
+          to: admin.email,
+          subject: `[Bridge Jobs] ${sanitizeEmailHeader(subject)}`,
+          html: `
+            <h2>New Contact Form Submission</h2>
+            <table style="border-collapse:collapse;width:100%;max-width:500px;">
+              <tr><td style="padding:8px;font-weight:600;color:#555;border-bottom:1px solid #eee;">Name</td><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(name)}</td></tr>
+              <tr><td style="padding:8px;font-weight:600;color:#555;border-bottom:1px solid #eee;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;"><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td></tr>
+              <tr><td style="padding:8px;font-weight:600;color:#555;border-bottom:1px solid #eee;">Subject</td><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(subject)}</td></tr>
+            </table>
+            <h3 style="margin-top:16px;">Message</h3>
+            <p style="background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre-wrap;">${escapeHtml(message)}</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:16px 0;" />
+            <p style="font-size:12px;color:#999;">View in admin: <a href="https://bridgejobs.ug/admin-bridgejobs/messages">bridgejobs.ug/admin-bridgejobs/messages</a></p>
+          `,
+        }).catch(err => logger.warn({ err: err.message }, 'Failed to notify admin of message'));
+      }
     }
 
     res.status(201).json({ id: result.rows[0].id, success: true });
@@ -47,7 +68,7 @@ router.post('/', validate(messageSchema), async (req, res, next) => {
 router.get('/', authenticate, async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-    const result = await pool.query('SELECT * FROM messages ORDER BY created_date DESC');
+    const result = await pool.query('SELECT * FROM messages ORDER BY created_date DESC LIMIT 100');
     res.json(result.rows);
   } catch (err) {
     next(err);

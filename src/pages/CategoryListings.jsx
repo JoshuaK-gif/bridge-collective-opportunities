@@ -36,7 +36,7 @@ export default function CategoryListingsPage() {
 
   useEffect(() => {
     setLoading(true);
-    api.opportunities.list({ category: apiCategory, all: true })
+    api.opportunities.list({ category: apiCategory })
       .then(setListings)
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -46,8 +46,8 @@ export default function CategoryListingsPage() {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     'itemListElement': [
-      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bridgejobs.ug/' },
-      { '@type': 'ListItem', 'position': 2, 'name': `${displayName} Opportunities`, 'item': `https://bridgejobs.ug/category/${category}` }
+      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bridgecollectiveopport.org/' },
+      { '@type': 'ListItem', 'position': 2, 'name': `${displayName} Opportunities`, 'item': `https://bridgecollectiveopport.org/category/${category}` }
     ]
   };
 
@@ -60,7 +60,7 @@ export default function CategoryListingsPage() {
     'itemListElement': listings.slice(0, 10).map((item, i) => ({
       '@type': 'ListItem',
       'position': i + 1,
-      'url': `https://bridgejobs.ug/opportunities/${item.id}`
+'url': `https://bridgecollectiveopport.org/opportunities/${item.id}`
     }))
   } : null;
 

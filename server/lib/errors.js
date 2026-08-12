@@ -8,6 +8,11 @@ export class AppError extends Error {
 }
 
 export function errorHandler(err, req, res, _next) {
+  if (res.headersSent) {
+    logger.warn({ err: err.message, path: req.path }, 'Headers already sent, skipping error response');
+    return;
+  }
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ error: err.message });
   }

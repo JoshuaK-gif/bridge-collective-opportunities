@@ -37,8 +37,11 @@ export default function Login() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
         <Card className="border-0 shadow-xl">
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-4">
-              <img src="/BCO.png" alt="BCO" className="h-20 w-auto" />
+            <div className="flex items-center justify-center gap-0 mb-4">
+              <img src="https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png" alt="BCO" className="h-20 w-auto" />
+              <span className="font-bold text-xs leading-tight text-left">
+                BRIDGE COLLECTIVE<br />OPPORTUNITIES
+              </span>
             </div>
             <CardTitle className="text-xl">Welcome Back</CardTitle>
             <CardDescription>Sign in to manage opportunities</CardDescription>

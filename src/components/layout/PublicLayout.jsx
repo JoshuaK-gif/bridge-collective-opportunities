@@ -1,8 +1,6 @@
-import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import SocialSidebar from './SocialSidebar';
 import BottomNav from './BottomNav';
 import BackToTop from './BackToTop';
 
@@ -16,8 +14,7 @@ export default function PublicLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col pb-14 md:pb-0">
-      <SocialSidebar />
+    <div className="min-h-screen flex flex-col pb-14 md:pb-0 select-none">
       <Navbar />
       <main className="flex-1">
         <Outlet />

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Deploy Bridge Jobs to OCI using only Always Free Tier resources (lifetime free).
+  Deploy Bridge Collective Opportunities to OCI using only Always Free Tier resources (lifetime free).
 .DESCRIPTION
   Creates VCN, subnet, security list, and a single compute instance using
   the Ampere A1.Flex shape (ARM, up to 4 OCPUs / 24 GB RAM — all free).
@@ -24,7 +24,7 @@ param(
   [string]$VcnCidr = "10.0.0.0/16",
   [string]$SubnetCidr = "10.0.1.0/24",
   [string]$AdminCidr = "0.0.0.0/0",
-  [string]$Domain = "bridgejobs.ug",
+  [string]$Domain = "bridgecollectiveopport.org",
   [string]$JwtSecret = $(Write-Host "Enter JWT secret" -ForegroundColor Yellow; Read-Host -AsSecureString),
   [string]$DbPassword = $(Write-Host "Enter DB password" -ForegroundColor Yellow; Read-Host -AsSecureString)
 )
@@ -44,7 +44,7 @@ if (-not (Test-Path $SshPublicKeyPath)) {
 
 $SshKey = Get-Content $SshPublicKeyPath -Raw
 
-Write-Host "=== Deploying Bridge Jobs to OCI Free Tier ===" -ForegroundColor Cyan
+Write-Host "=== Deploying Bridge Collective Opportunities to OCI Free Tier ===" -ForegroundColor Cyan
 Write-Host "Region    : $Region" -ForegroundColor Gray
 Write-Host "Shape     : VM.Standard.A1.Flex (1 OCPU, 6 GB) — Always Free" -ForegroundColor Gray
 Write-Host "Boot Vol  : 50 GB (200 GB free tier remaining)" -ForegroundColor Gray

@@ -5,12 +5,16 @@ import { authenticate } from '../auth.js';
 import { AppError } from '../lib/errors.js';
 import { validate, categorySchema } from '../lib/validate.js';
 import { logAudit } from '../lib/audit.js';
+import cache from '../lib/cache.js';
 
 const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
+    const cached = await cache.get('cats:list');
+    if (cached) return res.json(cached);
     const result = await pool.query('SELECT * FROM categories ORDER BY name ASC');
+    cache.set('cats:list', result.rows, 120);
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -37,6 +41,7 @@ router.post('/', authenticate, validate(categorySchema), async (req, res, next) 
       'INSERT INTO categories (name, description, icon, color, accent, accent_bg) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
       [name, description || '', icon || 'Briefcase', color || 'text-blue-600 bg-blue-100', accent || 'bg-blue-500', accent_bg || 'bg-blue-50']
     );
+    await cache.del('cats:list');
     logAudit({ userId: req.user.id, action: 'create', entityType: 'category', entityId: result.rows[0].id, ipAddress: req.ip });
     logger.info({ categoryId: result.rows[0].id, name }, 'Category created');
     res.status(201).json(result.rows[0]);
@@ -45,7 +50,7 @@ router.post('/', authenticate, validate(categorySchema), async (req, res, next) 
   }
 });
 
-router.put('/:id', authenticate, async (req, res, next) => {
+router.put('/:id', authenticate, validate(categorySchema), async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
     const { name, description, icon, color, accent, accent_bg } = req.body;
@@ -54,6 +59,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
       [name, description, icon, color, accent, accent_bg, req.params.id]
     );
     if (!result.rows.length) throw new AppError(404, 'Category not found');
+    await cache.del('cats:list');
     logAudit({ userId: req.user.id, action: 'update', entityType: 'category', entityId: req.params.id, ipAddress: req.ip });
     logger.info({ categoryId: req.params.id }, 'Category updated');
     res.json(result.rows[0]);
@@ -68,6 +74,8 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     await pool.query('UPDATE opportunities SET category = \'\' WHERE category = (SELECT name FROM categories WHERE id = $1)', [req.params.id]);
     const result = await pool.query('DELETE FROM categories WHERE id = $1', [req.params.id]);
     if (!result.rowCount) throw new AppError(404, 'Category not found');
+    await cache.del('cats:list');
+    await cache.del('opps:list');
     logAudit({ userId: req.user.id, action: 'delete', entityType: 'category', entityId: req.params.id, ipAddress: req.ip });
     logger.info({ categoryId: req.params.id }, 'Category deleted');
     res.json({ success: true });

@@ -230,7 +230,7 @@ export default function SearchResults({
         <div className="flex-1 min-w-0 lg:max-w-[calc(70%-1.25rem)]">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>
-            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
+            <Button variant="default" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
               <Filter className="w-3.5 h-3.5" /> Filters
               {(filterCat || filterDeadline) && <span className="w-2 h-2 rounded-full bg-primary" />}
             </Button>

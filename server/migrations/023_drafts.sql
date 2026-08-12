@@ -1,0 +1,13 @@
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS raw_content TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS deadline TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS apply_url TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS summary TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS custom_image_url TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS edited_title TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS edited_description TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS edited_category TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS edited_image_url TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS edited_deadline TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS edited_apply_url TEXT DEFAULT '';
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';

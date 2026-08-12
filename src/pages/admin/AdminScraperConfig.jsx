@@ -10,9 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Save, Eye, EyeOff, Globe, Brain, Share2, MessageCircle, Twitter, Linkedin, Facebook, Instagram } from 'lucide-react';
 
+const PROVIDERS = {
+  openai: { label: 'OpenAI', models: ['gpt-4o-mini', 'gpt-4o'], defaultModel: 'gpt-4o-mini', needsKey: true },
+  openrouter: { label: 'OpenRouter', models: ['openai/gpt-4o-mini', 'openai/gpt-4o', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.0-flash'], defaultModel: 'openai/gpt-4o-mini', needsKey: true },
+  opencodezen: { label: 'OpenCode Zen', models: ['deepseek-v4-flash-free'], defaultModel: 'deepseek-v4-flash-free', needsKey: false },
+  gemini: { label: 'Google Gemini', models: ['gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'], defaultModel: 'gemini-2.0-flash', needsKey: true },
+};
+
 export default function AdminScraperConfig() {
-  const [openai, setOpenai] = useState({ api_key: '', model: 'gpt-4o-mini', enabled: false });
-  const [scraper, setScraper] = useState({ source_url: 'https://opportunitiesforyouth.org/feed/', enabled: false, interval_minutes: 60, auto_post: false, auto_social: false, generate_images: true, category_map: {} });
+  const [openai, setOpenai] = useState({ api_key: '', model: 'gpt-4o-mini', enabled: false, provider: 'openai' });
+  const [scraper, setScraper] = useState({ source_url: 'https://opportunitiesforyouth.org/feed/', source_feeds: ['https://opportunitiesforyouth.org/feed/'], enabled: false, interval_minutes: 60, auto_post: false, auto_social: false, generate_images: true, category_map: {} });
   const [social, setSocial] = useState({ twitter: { enabled: false, api_key: '', api_secret: '', access_token: '', access_secret: '' }, linkedin: { enabled: false, access_token: '', person_id: '' }, facebook: { enabled: false, page_id: '', access_token: '' }, instagram: { enabled: false, access_token: '', instagram_id: '', default_image_url: '' }, whatsapp: { enabled: false, access_token: '', phone_number_id: '', target_phone: '', group_id: '' } });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState('');
@@ -105,7 +112,7 @@ export default function AdminScraperConfig() {
       <Tabs defaultValue="scraper">
         <TabsList>
           <TabsTrigger value="scraper"><Globe className="w-4 h-4 mr-1.5" /> Scraper</TabsTrigger>
-          <TabsTrigger value="openai"><Brain className="w-4 h-4 mr-1.5" /> AI Rewriter</TabsTrigger>
+          <TabsTrigger value="openai"><Brain className="w-4 h-4 mr-1.5" /> AI</TabsTrigger>
           <TabsTrigger value="social"><Share2 className="w-4 h-4 mr-1.5" /> Social Media</TabsTrigger>
         </TabsList>
 
@@ -126,8 +133,17 @@ export default function AdminScraperConfig() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <Label className="text-xs text-muted-foreground">RSS Feed URL</Label>
-                  <Input value={scraper.source_url} onChange={e => setScraper(prev => ({ ...prev, source_url: e.target.value }))} />
+                  <Label className="text-xs text-muted-foreground">RSS Feed URLs (one per line)</Label>
+                  <textarea
+                    value={(scraper.source_feeds || [scraper.source_url]).join('\n')}
+                    onChange={e => {
+                      const urls = e.target.value.split('\n').map(s => s.trim()).filter(Boolean);
+                      setScraper(prev => ({ ...prev, source_feeds: urls, source_url: urls[0] || prev.source_url }));
+                    }}
+                    className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[80px]"
+                    placeholder="https://opportunitiesforyouth.org/feed/"
+                    rows={3}
+                  />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch checked={scraper.enabled} onCheckedChange={v => setScraper(prev => ({ ...prev, enabled: v }))} />
@@ -150,14 +166,14 @@ export default function AdminScraperConfig() {
           </Card>
         </TabsContent>
 
-        {/* OpenAI Config */}
+        {/* AI Rewriter Config */}
         <TabsContent value="openai" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">OpenAI Configuration</CardTitle>
-                  <CardDescription>Used for content rewriting and AI image generation (DALL-E 3)</CardDescription>
+                  <CardTitle className="text-lg">AI Rewriter & Image Generator</CardTitle>
+                  <CardDescription>Used for content rewriting and AI image generation (DALL-E 3 or Gemini Imagen)</CardDescription>
                 </div>
                 <Button size="sm" onClick={() => save('scraper_ai_config', openai)} disabled={saving === 'scraper_ai_config'}>
                   <Save className="w-3.5 h-3.5 mr-1" /> {saving === 'scraper_ai_config' ? 'Saving...' : 'Save'}
@@ -169,18 +185,37 @@ export default function AdminScraperConfig() {
                 <Switch checked={openai.enabled} onCheckedChange={v => setOpenai(prev => ({ ...prev, enabled: v }))} />
                 <Label>Enable AI rewriting & image generation</Label>
               </div>
-              <KeyInput label="API Key" field="openai_key" value={openai.api_key} onChange={v => setOpenai(prev => ({ ...prev, api_key: v }))} />
+              <div>
+                <Label className="text-xs text-muted-foreground">Provider</Label>
+                <Select value={openai.provider || 'openai'} onValueChange={v => setOpenai(prev => ({ ...prev, provider: v, model: PROVIDERS[v]?.defaultModel || prev.model }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PROVIDERS).map(([key, p]) => (
+                      <SelectItem key={key} value={key}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {PROVIDERS[openai.provider]?.needsKey !== false && (
+                <KeyInput label={openai.provider === 'gemini' ? 'Gemini API Key' : openai.provider === 'openrouter' ? 'OpenRouter API Key' : 'OpenAI API Key'} field="ai_key" value={openai.api_key} onChange={v => setOpenai(prev => ({ ...prev, api_key: v }))} />
+              )}
               <div>
                 <Label className="text-xs text-muted-foreground">Model</Label>
                 <Select value={openai.model} onValueChange={v => setOpenai(prev => ({ ...prev, model: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini (fast, cheap)</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o (best quality)</SelectItem>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                    {(PROVIDERS[openai.provider]?.models || PROVIDERS.openai.models).map(m => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {openai.provider === 'gemini' && 'Uses Gemini for rewriting and Imagen 3 for image generation. Get a free API key at aistudio.google.com.'}
+                {openai.provider === 'openai' && 'Uses OpenAI for rewriting (GPT-4o Mini) and DALL-E 3 for image generation.'}
+                {openai.provider === 'openrouter' && 'Uses OpenRouter for rewriting. Image generation not supported — uses placeholder instead. Get a key at openrouter.ai/keys.'}
+                {openai.provider === 'opencodezen' && 'Free tier — no API key needed. Uses DeepSeek V4 Flash for rewriting. Image generation not supported.'}
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

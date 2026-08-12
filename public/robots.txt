@@ -4,7 +4,9 @@ Disallow: /admin-bridgejobs/
 Disallow: /login
 Disallow: /500
 Disallow: /search?
-Disallow: /api/
 
-# Sitemaps
-Sitemap: https://bridgejobs.ug/api/sitemap.xml
+Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
+
+# Google Search Console verification - add your code here
+# User-agent: Googlebot
+# Disallow:

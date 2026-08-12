@@ -17,6 +17,10 @@ async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  if (options.parseJson === false) {
+    if (!res.ok) throw new Error('Download failed');
+    return res.blob();
+  }
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(data.error || 'API Error');
@@ -71,6 +75,22 @@ export const api = {
       }
       return data;
     },
+    opportunityImage: async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_URL}/upload/opportunity-image`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const err = new Error(data.error || 'Upload failed');
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    },
   },
   categories: {
     list: () => request('/categories'),
@@ -92,7 +112,7 @@ export const api = {
     update: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
   },
   subscribers: {
-    subscribe: (email, source = '') => request('/subscribers', { method: 'POST', body: JSON.stringify({ email, source_page: source || window.location.href, referrer: document.referrer || '' }) }),
+    subscribe: (email, source = '') => request('/subscribers', { method: 'POST', body: JSON.stringify({ email, source_page: source || window.location.pathname, referrer: document.referrer ? new URL(document.referrer).pathname : '' }) }),
     list: () => request('/subscribers'),
     delete: (id) => request(`/subscribers/${id}`, { method: 'DELETE' }),
     deleteBulk: (ids) => request('/subscribers/bulk', { method: 'DELETE', body: JSON.stringify({ ids }) }),
@@ -104,6 +124,14 @@ export const api = {
     posts: () => request('/scraper/posts'),
     logs: () => request('/scraper/logs'),
     socialPost: (id) => request(`/scraper/social/${id}`, { method: 'POST' }),
+    scrapeUrl: (url) => request('/scraper/scrape-url', { method: 'POST', body: JSON.stringify({ url }) }),
+    drafts: () => request('/scraper/drafts'),
+    getDraft: (id) => request(`/scraper/drafts/${id}`),
+    updateDraft: (id, data) => request(`/scraper/drafts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    publishDraft: (id) => request(`/scraper/drafts/${id}/publish`, { method: 'POST' }),
+    republishDraft: (id) => request(`/scraper/drafts/${id}/republish`, { method: 'POST' }),
+    deleteDraft: (id) => request(`/scraper/drafts/${id}`, { method: 'DELETE' }),
+    enrichDraft: (id) => request(`/scraper/drafts/${id}/enrich`, { method: 'POST' }),
   },
   lists: {
     list: () => request('/lists'),
@@ -135,6 +163,12 @@ export const api = {
     delete: (id) => request(`/opportunities/${id}`, { method: 'DELETE' }),
     deleteBulk: (ids) => request('/opportunities/bulk/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
     bulkUpdate: (ids, data) => request('/opportunities/bulk/update', { method: 'POST', body: JSON.stringify({ ids, data }) }),
+    enrich: (id) => request(`/opportunities/${id}/enrich`, { method: 'POST' }),
+    duplicate: (id) => request(`/opportunities/${id}/duplicate`, { method: 'POST' }),
+    bulkPublish: (ids) => request('/opportunities/bulk/publish', { method: 'POST', body: JSON.stringify({ ids }) }),
+    cloneFromUrl: (url) => request('/opportunities/clone-from-url', { method: 'POST', body: JSON.stringify({ url }) }),
+    checkDuplicates: (params) => request(`/opportunities/check-duplicates?${new URLSearchParams(params)}`),
+    submit: (data) => request('/opportunities/submit', { method: 'POST', body: JSON.stringify(data) }),
   },
   reminders: {
     create: (data) => request('/reminders', { method: 'POST', body: JSON.stringify(data) }),
@@ -144,7 +178,11 @@ export const api = {
     load: (token) => request(`/resumes/${token}`),
     delete: (token) => request(`/resumes/${token}`, { method: 'DELETE' }),
   },
+  cv: {
+    downloadPdf: (cv) => request('/cv/pdf', { method: 'POST', body: JSON.stringify(cv), parseJson: false }),
+  },
   ai: {
+    atsScan: (cv, jobDescription) => request('/ai/ats-scan', { method: 'POST', body: JSON.stringify({ cv, jobDescription }) }),
     cvFeedback: (cv) => request('/ai/cv-feedback', { method: 'POST', body: JSON.stringify({ cv }) }),
     generateSummary: (cv) => request('/ai/generate-summary', { method: 'POST', body: JSON.stringify({ cv }) }),
     suggestSkills: (title, existingSkills = []) => request('/ai/suggest-skills', { method: 'POST', body: JSON.stringify({ title, existingSkills }) }),
@@ -152,6 +190,15 @@ export const api = {
     applicationAssist: (opportunity) => request('/ai/application-assist', { method: 'POST', body: JSON.stringify(opportunity) }),
     grantWrite: (data) => request('/ai/grant-write', { method: 'POST', body: JSON.stringify(data) }),
     grantPolish: (text, section, tone) => request('/ai/grant-polish', { method: 'POST', body: JSON.stringify({ text, section, tone }) }),
+    grantGenerate: (data) => request('/ai/grant-generate', { method: 'POST', body: JSON.stringify(data) }),
+    extractFromUrl: (url) => request('/ai/extract-from-url', { method: 'POST', body: JSON.stringify({ url }) }),
+  },
+  templates: {
+    list: () => request('/templates'),
+    get: (id) => request(`/templates/${id}`),
+    create: (data) => request('/templates', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => request(`/templates/${id}`, { method: 'DELETE' }),
   },
   news: {
     list: (opts = {}) => {

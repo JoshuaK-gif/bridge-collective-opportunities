@@ -1,8 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft, FileText, Sparkles, Lightbulb, GripVertical, MoveUp, MoveDown, FileDown, Image, FileType, Linkedin, Github, Globe, Twitter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
+  useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
+  useSortable, arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS as DndCSS } from '@dnd-kit/utilities';
+import Cropper from 'react-easy-crop';
+import 'react-easy-crop/react-easy-crop.css';
+import { ArrowLeft, Plus, Trash2, Download, Eye, EyeOff, Undo2, ChevronRight, ChevronLeft, FileText, Sparkles, Lightbulb, GripVertical, MoveUp, MoveDown, Image as ImageIcon, FileType, Linkedin, Github, Globe, Twitter, AlertTriangle, Scan, ZoomIn, ZoomOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
@@ -35,24 +46,45 @@ const LEVEL_COLORS = {
   Native: 'bg-orange-100 text-orange-700',
 };
 
-const STEPS = ['Personal Info', 'Education', 'Experience', 'Skills', 'More', 'Arrange', 'Preview'];
+const STEPS = ['Personal Info', 'Education', 'Experience', 'Skills', 'Style', 'More', 'Arrange', 'Preview'];
 
+// Phase 2.3: ATS-safe templates are clearly labeled. Multi-column templates show ATS warning.
 const TEMPLATES = [
   { id: 'modern', name: 'Modern', desc: 'Clean blue gradient', color: 'from-blue-600 to-indigo-600', popular: true },
   { id: 'classic', name: 'Classic', desc: 'Serif traditional', color: 'from-gray-700 to-gray-800' },
   { id: 'elegant', name: 'Elegant', desc: 'Green accent serif', color: 'from-emerald-600 to-emerald-700' },
-  { id: 'minimal', name: 'Minimal', desc: 'Clean white, light touch', color: 'from-gray-400 to-gray-500' },
+  { id: 'minimal', name: 'Minimal', desc: 'Clean white, light touch', color: 'from-gray-400 to-gray-500', atsSafe: true },
   { id: 'bold', name: 'Bold', desc: 'Dark navy, red accent', color: 'from-[#1a1a2e] to-[#16213e]' },
-  { id: 'creative', name: 'Creative', desc: 'Teal sidebar layout', color: 'from-teal-500 to-cyan-600' },
+  { id: 'creative', name: 'Creative', desc: 'Teal sidebar layout', color: 'from-teal-500 to-cyan-600', multiColumn: true },
   { id: 'executive', name: 'Executive', desc: 'Navy & gold premium', color: 'from-[#0f1b2d] to-[#1a2a4a]' },
   { id: 'vibrant', name: 'Vibrant', desc: 'Purple-pink gradient', color: 'from-purple-500 via-pink-500 to-orange-400' },
-  { id: 'sidebar', name: 'Sidebar', desc: 'Dark sidebar layout', color: 'from-[#2d3436] to-[#1a1a2e]' },
-  { id: 'compact', name: 'Compact', desc: 'Dense info layout', color: 'from-gray-600 to-gray-700' },
-  { id: 'simple', name: 'Simple', desc: 'Ultra minimal, light', color: 'from-gray-300 to-gray-400' },
+  { id: 'sidebar', name: 'Sidebar', desc: 'Dark sidebar layout', color: 'from-[#2d3436] to-[#1a1a2e]', multiColumn: true },
+  { id: 'compact', name: 'Compact', desc: 'Dense info layout', color: 'from-gray-600 to-gray-700', atsSafe: true },
+  { id: 'simple', name: 'Simple', desc: 'Ultra minimal, light', color: 'from-gray-300 to-gray-400', atsSafe: true },
   { id: 'professional', name: 'Professional', desc: 'Burgundy serif', color: 'from-[#800020] to-[#a00030]' },
-  { id: 'ocean', name: 'Ocean', desc: 'Blue sidebar layout', color: 'from-blue-800 to-cyan-700' },
+  { id: 'ocean', name: 'Ocean', desc: 'Blue sidebar layout', color: 'from-blue-800 to-cyan-700', multiColumn: true },
   { id: 'sunset', name: 'Sunset', desc: 'Orange-red gradient', color: 'from-orange-500 via-red-500 to-pink-500' },
 ];
+
+// Phase 1.1: @dnd-kit SortableItem wrapper — works on mobile via TouchSensor
+function SortableItem({ id, children, className = '' }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: DndCSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+    position: 'relative',
+  };
+  return (
+    <div ref={setNodeRef} style={style} className={className}>
+      <span {...attributes} {...listeners} className="inline-flex mr-1.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors">
+        <GripVertical className="w-3.5 h-3.5" />
+      </span>
+      {children}
+    </div>
+  );
+}
 
 function StepIndicator({ current, steps }) {
   return (
@@ -76,8 +108,9 @@ function StepIndicator({ current, steps }) {
 
 const FORMATS = [
   { id: 'pdf', label: 'PDF', icon: FileText, desc: 'Best for sharing & printing' },
-  { id: 'png', label: 'PNG', icon: Image, desc: 'High-quality image' },
-  { id: 'jpeg', label: 'JPEG', icon: Image, desc: 'Smaller image file' },
+  { id: 'docx', label: 'Word', icon: FileText, desc: 'Microsoft Word format' },
+  { id: 'png', label: 'PNG', icon: ImageIcon, desc: 'High-quality image' },
+  { id: 'jpeg', label: 'JPEG', icon: ImageIcon, desc: 'Smaller image file' },
   { id: 'txt', label: 'Plain Text', icon: FileType, desc: 'Raw text content' },
 ];
 
@@ -200,48 +233,149 @@ export default function CVBuilder() {
   const [aiFeedback, setAiFeedback] = useState(null);
   const [fetchingFeedback, setFetchingFeedback] = useState(false);
   const [format, setFormat] = useState('pdf');
-  const [savingCloud, setSavingCloud] = useState(false);
-  const [loadingCloud, setLoadingCloud] = useState(false);
-  const [cloudToken, setCloudToken] = useState(localStorage.getItem('bridge_cv_token') || '');
 
-  useEffect(() => { saveCV(cv); }, [cv]);
+  // Phase 1.2: Mobile preview modal
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+  // Phase 2.1: ATS scanner
+  const [showAtsScanner, setShowAtsScanner] = useState(false);
+  const [atsJobDesc, setAtsJobDesc] = useState('');
+  const [atsResult, setAtsResult] = useState(null);
+  const [atsScanning, setAtsScanning] = useState(false);
+  // Phase 1.4: Mobile bottom sheet for skill/language level
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [bottomSheetField, setBottomSheetField] = useState(null); // { type, index }
+  const [bottomSheetOptions, setBottomSheetOptions] = useState([]);
+  // Phase 3.5: Undo stack (last 10 CV snapshots)
+  const [undoStack, setUndoStack] = useState([]);
+  const pushUndo = (cvSnap) => setUndoStack(prev => [cvSnap, ...prev].slice(0, 10));
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    const [previous, ...rest] = undoStack;
+    setCv(previous);
+    setUndoStack(rest);
+    toast.success('Undone last change');
+  };
 
-  useEffect(() => {
-    const token = localStorage.getItem('bridge_cv_token');
-    if (token) {
-      setLoadingCloud(true);
-      api.resumes.load(token).then(res => {
-        if (res.data) {
-          setCv(res.data);
-          toast.success('CV restored from cloud');
-        }
-      }).catch(() => {}).finally(() => setLoadingCloud(false));
-    }
+  // Phase 3.4: Hidden sections set (section keys that are hidden in preview)
+  const [hiddenSections, setHiddenSections] = useState([]);
+  const toggleSectionVisibility = (sectionKey) => {
+    setHiddenSections(prev =>
+      prev.includes(sectionKey) ? prev.filter(s => s !== sectionKey) : [...prev, sectionKey]
+    );
+  };
+
+  // Photo crop modal state (react-easy-crop)
+  const [cropImage, setCropImage] = useState(null); // blob URL of image to crop
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [cropUploading, setCropUploading] = useState(false);
+
+  const onCropComplete = useCallback((_, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
-  const handleCloudSave = async () => {
-    setSavingCloud(true);
+  // Crop the image on a canvas, then upload the cropped blob to Cloudinary
+  const handleCropConfirm = async () => {
+    if (!cropImage || !croppedAreaPixels) return;
+    setCropUploading(true);
     try {
-      const res = await api.resumes.save(cv, cloudToken);
-      setCloudToken(res.token);
-      localStorage.setItem('bridge_cv_token', res.token);
-      toast.success('CV saved to cloud!');
-    } catch {
-      toast.error('Failed to save to cloud');
+      const image = new Image();
+      image.src = cropImage;
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+      });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const { x, y, width, height } = croppedAreaPixels;
+      const outputSize = 400;
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, outputSize, outputSize);
+      // Draw circular clip for profile photo
+      ctx.beginPath();
+      ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(image, x, y, width, height, 0, 0, outputSize, outputSize);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) throw new Error('Failed to create image');
+
+      // Upload cropped image to Cloudinary
+      const formData = new FormData();
+      formData.append('file', blob, 'photo.jpg');
+      const res = await fetch('/api/upload/cv-photo', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      update('photo', data.url);
+      toast.success('Photo cropped & uploaded!');
+    } catch (err) {
+      toast.error(err?.message || 'Failed to crop photo. Try again.');
     } finally {
-      setSavingCloud(false);
+      if (cropImage) URL.revokeObjectURL(cropImage);
+      setCropUploading(false);
+      setCropImage(null);
+      setZoom(1);
+      setCrop({ x: 0, y: 0 });
+      setCroppedAreaPixels(null);
     }
   };
 
-  const update = (field, value) => setCv(prev => ({ ...prev, [field]: value }));
+  // Phase 3.3: Auto-resize textarea on input
+  const autoResize = (e) => {
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 300) + 'px';
+  };
 
-  const addArrayItem = (field, empty) => setCv(prev => ({ ...prev, [field]: [...prev[field], typeof empty === 'string' ? empty : { ...empty, id: newId() }] }));
-  const removeArrayItem = (field, index) => setCv(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }));
-  const updateArrayItem = (field, index, key, value) => setCv(prev => {
-    const items = [...prev[field]];
-    items[index] = { ...items[index], [key]: value };
-    return { ...prev, [field]: items };
-  });
+  // Wrap update functions to push undo before changes
+  const updateWithUndo = (field, value) => {
+    pushUndo(cv);
+    update(field, value);
+  };
+  const updateArrayItemWithUndo = (field, index, key, value) => {
+    pushUndo(cv);
+    updateArrayItem(field, index, key, value);
+  };
+
+  // Phase 1.1: @dnd-kit sensors (touch + mouse + keyboard)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  useEffect(() => { saveCV(cv); }, [cv]);
+
+
+  const update = (field, value) => {
+    pushUndo(cv);
+    setCv(prev => ({ ...prev, [field]: value }));
+  };
+
+  const addArrayItem = (field, empty) => {
+    pushUndo(cv);
+    setCv(prev => ({ ...prev, [field]: [...prev[field], typeof empty === 'string' ? empty : { ...empty, id: newId() }] }));
+  };
+  const removeArrayItem = (field, index) => {
+    pushUndo(cv);
+    setCv(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }));
+  };
+  const updateArrayItem = (field, index, key, value) => {
+    pushUndo(cv);
+    setCv(prev => {
+      const items = [...prev[field]];
+      items[index] = { ...items[index], [key]: value };
+      return { ...prev, [field]: items };
+    });
+  };
 
   const nextStep = () => { if (step < STEPS.length - 1) setStep(s => s + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const prevStep = () => { if (step > 0) setStep(s => s - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -249,31 +383,26 @@ export default function CVBuilder() {
   const captureCanvas = async () => {
     const el = document.getElementById('cv-preview');
     if (!el) throw new Error('Preview not found');
+    // Wait for all fonts to be fully loaded before capture
     await document.fonts.ready;
+    // Wait for next paint frame so fonts are fully rasterized
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
     const { default: html2canvas } = await import('html2canvas');
-    el.style.setProperty('-webkit-font-smoothing', 'antialiased');
-    el.style.setProperty('font-smooth', 'never');
-    el.style.setProperty('text-rendering', 'geometricPrecision');
     const canvas = await html2canvas(el, {
       scale: 3,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
       onclone: (doc) => {
+        // Lock exact dimensions on the clone to prevent layout reflow
         const clone = doc.getElementById('cv-preview');
         if (clone) {
-          clone.style.setProperty('-webkit-font-smoothing', 'antialiased');
-          clone.style.setProperty('font-smooth', 'never');
-          clone.style.setProperty('text-rendering', 'geometricPrecision');
-          clone.querySelectorAll('[class*="text-xs"], [class*="text-[10px]"], [class*="text-[11px]"]').forEach(
-            el => el.style.setProperty('font-size', '0.8125rem', 'important')
-          );
+          clone.style.width = `${el.offsetWidth}px`;
+          clone.style.height = `${el.offsetHeight}px`;
         }
       },
     });
-    el.style.removeProperty('-webkit-font-smoothing');
-    el.style.removeProperty('font-smooth');
-    el.style.removeProperty('text-rendering');
     return canvas;
   };
 
@@ -330,6 +459,19 @@ export default function CVBuilder() {
     downloadBlob(blob, 'txt');
   };
 
+  // Phase 4.1: DOCX export via simple HTML-based Blob
+  const handleDownloadDocx = () => {
+    const text = generateCvText(cv);
+    // Wrap plain text in a minimal Word-compatible HTML document
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${cv.firstName || 'CV'} ${cv.lastName || ''}</title></head><body>
+      <h1>${cv.firstName || ''} ${cv.lastName || ''}</h1>
+      ${cv.title ? `<h2>${cv.title}</h2>` : ''}
+      <pre style="font-family:'Calibri',sans-serif;font-size:11pt;white-space:pre-wrap;word-wrap:break-word;">${text.replace(/>/g,'&gt;').replace(/</g,'&lt;')}</pre>
+    </body></html>`;
+    const blob = new Blob([htmlContent], { type: 'application/msword' });
+    downloadBlob(blob, 'doc');
+  };
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -339,17 +481,47 @@ export default function CVBuilder() {
         return;
       }
 
-      const canvas = await captureCanvas();
+      if (format === 'docx') {
+        handleDownloadDocx();
+        toast.success('CV downloaded!');
+        return;
+      }
 
       if (format === 'pdf') {
-        await handleDownloadPdf(canvas);
-      } else if (format === 'png' || format === 'jpeg') {
+        const blob = await api.cv.downloadPdf(cv);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${cv.firstName || 'CV'}_${cv.lastName || 'Bridge'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('CV downloaded!');
+        return;
+      }
+
+      const canvas = await captureCanvas();
+
+      if (format === 'png' || format === 'jpeg') {
         await handleDownloadImage(canvas, format);
       }
 
       toast.success('CV downloaded!');
     } catch (err) {
-      toast.error(`Failed to generate ${format.toUpperCase()}`);
+      const msg = err?.message || '';
+      if (msg.includes('download') || msg.includes('PDF')) {
+        toast.error('Server PDF generation failed — falling back to browser capture');
+        try {
+          const canvas = await captureCanvas();
+          await handleDownloadPdf(canvas);
+          toast.success('CV downloaded (browser fallback)!');
+        } catch {
+          toast.error('Failed to generate PDF');
+        }
+      } else {
+        toast.error(`Failed to generate ${format.toUpperCase()}`);
+      }
     } finally {
       setDownloading(false);
     }
@@ -361,9 +533,11 @@ export default function CVBuilder() {
       <div className="min-h-screen bg-[#eef0fa]">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 group">
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to home
-            </Link>
+            <Button variant="default" size="sm" asChild className="mb-4">
+              <Link to="/" className="gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to home
+              </Link>
+            </Button>
 
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-6 h-6 text-primary" />
@@ -380,12 +554,13 @@ export default function CVBuilder() {
                   {/* Step 0: Personal Info */}
                   {step === 0 && (
                     <div className="space-y-4">
-                      <h2 className="text-lg font-bold mb-4">Personal Information</h2>
+                      <h2 className="text-lg font-bold text-gray-900 mb-4">Personal Information</h2>
                       {/* Photo Upload */}
                       <div className="flex items-center gap-4">
+                        {/* Phase 1.5+1.9: Smaller photo on mobile, camera capture */}
                         <div className="relative shrink-0">
                           {cv.photo ? (
-                            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-gray-200">
                               <img src={cv.photo} alt="Profile" className="w-full h-full object-cover" />
                               <button
                                 onClick={() => update('photo', '')}
@@ -394,7 +569,7 @@ export default function CVBuilder() {
                               >×</button>
                             </div>
                           ) : (
-                            <div className="w-20 h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => document.getElementById('photo-input').click()}>
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => document.getElementById('photo-input').click()}>
                               <span className="text-2xl text-gray-400">+</span>
                             </div>
                           )}
@@ -410,12 +585,11 @@ export default function CVBuilder() {
                                 toast.error('Photo must be under 2MB');
                                 return;
                               }
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                update('photo', ev.target?.result || '');
-                                toast.success('Photo added!');
-                              };
-                              reader.readAsDataURL(file);
+                              // Show crop modal instead of uploading directly
+                              const blobUrl = URL.createObjectURL(file);
+                              setCropImage(blobUrl);
+                              setCrop({ x: 0, y: 0 });
+                              setZoom(1);
                               e.target.value = '';
                             }}
                           />
@@ -425,6 +599,67 @@ export default function CVBuilder() {
                           <p>Upload a photo (max 2MB).</p>
                         </div>
                       </div>
+
+                      {/* Photo crop modal */}
+                      {cropImage && (
+                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4" onClick={() => { URL.revokeObjectURL(cropImage); setCropImage(null); }}>
+                          <div className="relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                              <h3 className="text-sm font-bold text-gray-900">Crop Photo</h3>
+                              <button onClick={() => { URL.revokeObjectURL(cropImage); setCropImage(null); }} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors text-lg">×</button>
+                            </div>
+                            {/* Cropper */}
+                            <div className="relative w-full h-64 sm:h-80 bg-gray-900">
+                              <Cropper
+                                image={cropImage}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={1}
+                                cropShape="round"
+                                showGrid={false}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                              />
+                            </div>
+                            {/* Zoom Slider */}
+                            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+                              <ZoomOut className="w-4 h-4 text-gray-400 shrink-0" />
+                              <input
+                                type="range"
+                                min={1}
+                                max={3}
+                                step={0.1}
+                                value={zoom}
+                                onChange={e => setZoom(Number(e.target.value))}
+                                className="flex-1 h-1.5 accent-primary cursor-pointer"
+                              />
+                              <ZoomIn className="w-4 h-4 text-gray-400 shrink-0" />
+                            </div>
+                            {/* Actions */}
+                            <div className="flex gap-3 px-4 py-3">
+                              <button
+                                onClick={() => { URL.revokeObjectURL(cropImage); setCropImage(null); }}
+                                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleCropConfirm}
+                                disabled={cropUploading}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                {cropUploading ? (
+                                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Cropping...</>
+                                ) : (
+                                  'Apply & Upload'
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="text-xs font-medium text-gray-600">First Name</label><Input value={cv.firstName} onChange={e => update('firstName', e.target.value)} placeholder="John" /></div>
                         <div><label className="text-xs font-medium text-gray-600">Last Name</label><Input value={cv.lastName} onChange={e => update('lastName', e.target.value)} placeholder="Doe" /></div>
@@ -457,25 +692,72 @@ export default function CVBuilder() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-600">Professional Summary</label>
-                        <div className="flex flex-col sm:flex-row gap-2 mt-1">
-                          <textarea value={cv.summary} onChange={e => update('summary', e.target.value)} rows={4} className="flex-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Brief overview of your background and goals..." />
-                          <div className="flex gap-2 shrink-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <label className="text-xs font-medium text-gray-600">Professional Summary</label>
+                          <button onClick={() => toggleSectionVisibility('summary')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('summary') ? 'Show in CV' : 'Hide from CV'}>
+                            {hiddenSections.includes('summary') ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </div>
+                        <div className="flex flex-col gap-2 mt-1">
+                          <div className="flex-1">
+                            <textarea
+                              value={cv.summary}
+                              onChange={e => update('summary', e.target.value)}
+                              onInput={autoResize}
+                              rows={4}
+                              spellCheck={true}
+                              className="w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden"
+                              placeholder="Brief overview of your background and goals..."
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1 text-right">{(cv.summary || '').length}/1000 characters</p>
+                          </div>
+                          <div className="flex gap-2 mt-2">
                             <button
                               onClick={async () => {
                                 setGeneratingSummary(true);
                                 try {
-                                  const result = await api.ai.generateSummary(cv);
-                                  if (result.summary) { update('summary', result.summary); toast.success('Summary generated!'); }
-                                  else toast.error('AI unavailable');
-                                } catch (err) { toast.error(err?.message || 'Failed to generate summary'); }
-                                finally { setGeneratingSummary(false); }
+                                  const body = JSON.stringify({ cv });
+                                  const res = await fetch('/api/ai/generate-summary-stream', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body,
+                                  });
+                                  if (!res.ok) {
+                                    const errData = await res.json().catch(() => ({}));
+                                    toast.error(errData.error || 'AI unavailable');
+                                    return;
+                                  }
+                                  const reader = res.body.getReader();
+                                  const decoder = new TextDecoder();
+                                  let summary = '';
+                                  while (true) {
+                                    const { done, value } = await reader.read();
+                                    if (done) break;
+                                    const chunk = decoder.decode(value, { stream: true });
+                                    const lines = chunk.split('\n');
+                                    for (const line of lines) {
+                                      if (!line.startsWith('data: ')) continue;
+                                      try {
+                                        const data = JSON.parse(line.slice(6));
+                                        if (data.done) break;
+                                        if (data.token) summary += data.token;
+                                        if (data.error) toast.error(data.error);
+                                      } catch {}
+                                    }
+                                    update('summary', summary);
+                                  }
+                                  if (summary) toast.success('Summary generated!');
+                                } catch (err) {
+                                  toast.error(err?.message || 'Failed to generate summary');
+                                } finally {
+                                  setGeneratingSummary(false);
+                                }
                               }}
                               disabled={generatingSummary}
-                              className="px-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1.5"
+                              className="px-4 py-1 h-8 btn-fill rounded-xl text-white text-sm font-semibold shrink-0 flex items-center gap-2"
                               title="Generate with AI"
                             >
-                              <Sparkles className={`w-3.5 h-3.5 ${generatingSummary ? 'animate-spin' : ''}`} />
+                              <Sparkles className={`w-4 h-4 ${generatingSummary ? 'animate-spin' : ''}`} />
                               {generatingSummary ? '...' : 'Generate'}
                             </button>
                             <button
@@ -490,10 +772,10 @@ export default function CVBuilder() {
                                 finally { setGeneratingSummary(false); }
                               }}
                               disabled={generatingSummary || !cv.summary?.trim()}
-                              className="px-3 rounded-lg border border-purple-200 text-purple-600 text-xs font-medium hover:bg-purple-50 transition-colors shrink-0 flex items-center gap-1.5"
+                              className="px-4 py-1 h-8 btn-fill rounded-xl text-white text-sm font-semibold shrink-0 flex items-center gap-2"
                               title="Polish existing text with AI"
                             >
-                              <Sparkles className="w-3 h-3" />
+                              <Sparkles className="w-4 h-4" />
                               Polish
                             </button>
                           </div>
@@ -502,119 +784,114 @@ export default function CVBuilder() {
                     </div>
                   )}
 
-                  {/* Step 1: Education — draggable */}
+                  {/* Phase 1.1: Education — @dnd-kit sortable (touch-compatible) */}
                   {step === 1 && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold">Education</h2>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-bold text-gray-900">Education</h2>
+                          <button onClick={() => toggleSectionVisibility('education')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('education') ? 'Show in CV' : 'Hide from CV'}>
+                            {hiddenSections.includes('education') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                         <Button variant="outline" size="sm" onClick={() => addArrayItem('education', { id: newId(), school: '', degree: '', field: '', startYear: '', endYear: '' })} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                       </div>
                       {cv.education.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No education entries. Click "Add" to start.</p>}
-                      {cv.education.map((edu, i) => (
-                        <div key={edu.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative draggable-item"
-                          draggable
-                          onDragStart={e => { e.dataTransfer.setData('text/plain', `education:${i}`); e.currentTarget.classList.add('opacity-40'); }}
-                          onDragEnd={e => e.currentTarget.classList.remove('opacity-40')}
-                          onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary'); }}
-                          onDragLeave={e => e.currentTarget.classList.remove('border-primary')}
-                          onDrop={e => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-primary');
-                            const [fromField, fromIdx] = e.dataTransfer.getData('text/plain').split(':');
-                            if (fromField !== 'education') return;
-                            const items = [...cv.education];
-                            const [moved] = items.splice(parseInt(fromIdx), 1);
-                            items.splice(i, 0, moved);
-                            update('education', items);
-                          }}
-                        >
-                          {cv.education.length > 1 && (
-                            <button onClick={() => removeArrayItem('education', i)} className="absolute top-3 right-3 p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                          )}
-                          <div className="flex items-center gap-1 mb-2">
-                            <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab shrink-0" />
-                            <span className="text-[10px] text-gray-400 font-medium">Drag to reorder</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">School / Institution</label><Input value={edu.school} onChange={e => updateArrayItem('education', i, 'school', e.target.value)} placeholder="Makerere University" /></div>
-                            <div><label className="text-xs font-medium text-gray-600">Degree</label><Input value={edu.degree} onChange={e => updateArrayItem('education', i, 'degree', e.target.value)} placeholder="Bachelor of Science" /></div>
-                            <div><label className="text-xs font-medium text-gray-600">Field of Study</label><Input value={edu.field} onChange={e => updateArrayItem('education', i, 'field', e.target.value)} placeholder="Computer Science" /></div>
-                            <div><label className="text-xs font-medium text-gray-600">Start Year</label><Input value={edu.startYear} onChange={e => updateArrayItem('education', i, 'startYear', e.target.value)} placeholder="2018" /></div>
-                            <div><label className="text-xs font-medium text-gray-600">End Year</label><Input value={edu.endYear} onChange={e => updateArrayItem('education', i, 'endYear', e.target.value)} placeholder="2022" /></div>
-                          </div>
-                        </div>
-                      ))}
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => {
+                        const { active, over } = e;
+                        if (!over || active.id === over.id) return;
+                        const oldIdx = cv.education.findIndex(item => item.id === active.id);
+                        const newIdx = cv.education.findIndex(item => item.id === over.id);
+                        if (oldIdx === -1 || newIdx === -1) return;
+                        update('education', arrayMove(cv.education, oldIdx, newIdx));
+                      }}>
+                        <SortableContext items={cv.education.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                          {cv.education.map((edu, i) => (
+                            <SortableItem key={edu.id} id={edu.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative mb-3">
+                              {cv.education.length > 1 && (
+                                <button onClick={() => removeArrayItem('education', i)} className="absolute top-3 right-3 p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                              )}
+                              <span className="text-[10px] text-gray-400 font-medium block mb-2 pl-6">Drag to reorder</span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">School / Institution</label><Input value={edu.school} onChange={e => updateArrayItem('education', i, 'school', e.target.value)} placeholder="Makerere University" className="sm:h-10" /></div>
+                                <div><label className="text-xs font-medium text-gray-600">Degree</label><Input value={edu.degree} onChange={e => updateArrayItem('education', i, 'degree', e.target.value)} placeholder="Bachelor of Science" className="sm:h-10" /></div>
+                                <div><label className="text-xs font-medium text-gray-600">Field of Study</label><Input value={edu.field} onChange={e => updateArrayItem('education', i, 'field', e.target.value)} placeholder="Computer Science" className="sm:h-10" /></div>
+                                <div><label className="text-xs font-medium text-gray-600">Start Year</label><Input value={edu.startYear} onChange={e => updateArrayItem('education', i, 'startYear', e.target.value)} placeholder="2018" className="sm:h-10" /></div>
+                                <div><label className="text-xs font-medium text-gray-600">End Year</label><Input value={edu.endYear} onChange={e => updateArrayItem('education', i, 'endYear', e.target.value)} placeholder="2022" className="sm:h-10" /></div>
+                              </div>
+                            </SortableItem>
+                          ))}
+                        </SortableContext>
+                      </DndContext>
                     </div>
                   )}
 
-                  {/* Step 2: Experience — draggable */}
+                  {/* Phase 1.1: Experience — @dnd-kit sortable (touch-compatible) */}
                   {step === 2 && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold">Work Experience</h2>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-bold text-gray-900">Work Experience</h2>
+                          <button onClick={() => toggleSectionVisibility('experience')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('experience') ? 'Show in CV' : 'Hide from CV'}>
+                            {hiddenSections.includes('experience') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                         <Button variant="outline" size="sm" onClick={() => addArrayItem('experience', { id: newId(), company: '', position: '', startDate: '', endDate: '', current: false, description: '' })} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                       </div>
                       {cv.experience.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No experience entries. Click "Add" to start.</p>}
-                      {cv.experience.map((exp, i) => (
-                        <div key={exp.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative draggable-item"
-                          draggable
-                          onDragStart={e => { e.dataTransfer.setData('text/plain', `experience:${i}`); e.currentTarget.classList.add('opacity-40'); }}
-                          onDragEnd={e => e.currentTarget.classList.remove('opacity-40')}
-                          onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary'); }}
-                          onDragLeave={e => e.currentTarget.classList.remove('border-primary')}
-                          onDrop={e => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-primary');
-                            const [fromField, fromIdx] = e.dataTransfer.getData('text/plain').split(':');
-                            if (fromField !== 'experience') return;
-                            const items = [...cv.experience];
-                            const [moved] = items.splice(parseInt(fromIdx), 1);
-                            items.splice(i, 0, moved);
-                            update('experience', items);
-                          }}
-                        >
-                          {cv.experience.length > 1 && (
-                            <button onClick={() => removeArrayItem('experience', i)} className="absolute top-3 right-3 p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                          )}
-                          <div className="flex items-center gap-1 mb-2">
-                            <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab shrink-0" />
-                            <span className="text-[10px] text-gray-400 font-medium">Drag to reorder</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label className="text-xs font-medium text-gray-600">Company</label><Input value={exp.company} onChange={e => updateArrayItem('experience', i, 'company', e.target.value)} placeholder="Google" /></div>
-                            <div><label className="text-xs font-medium text-gray-600">Position</label><Input value={exp.position} onChange={e => updateArrayItem('experience', i, 'position', e.target.value)} placeholder="Software Engineer" /></div>
-                            <div><label className="text-xs font-medium text-gray-600">Start Date</label><Input value={exp.startDate} onChange={e => updateArrayItem('experience', i, 'startDate', e.target.value)} placeholder="Jan 2020" /></div>
-                            <div className="flex items-end gap-2">
-                              <div className="flex-1"><label className="text-xs font-medium text-gray-600">End Date</label><Input value={exp.endDate} onChange={e => updateArrayItem('experience', i, 'endDate', e.target.value)} placeholder="Present" disabled={exp.current} /></div>
-                              <label className="flex items-center gap-1.5 pb-2 text-xs text-gray-500 cursor-pointer shrink-0">
-                                <input type="checkbox" checked={exp.current} onChange={e => updateArrayItem('experience', i, 'current', e.target.checked)} className="rounded" />
-                                Current
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <label className="text-xs font-medium text-gray-600">Description</label>
-                              <textarea value={exp.description} onChange={e => updateArrayItem('experience', i, 'description', e.target.value)} rows={3} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Key responsibilities and achievements..." />
-                              {exp.description?.trim() && (
-                                <button
-                                  onClick={async () => {
-                                    setGeneratingSummary(true);
-                                    try {
-                                      const result = await api.ai.rewrite(exp.description, 'description', 'professional');
-                                      if (result.rewritten) { updateArrayItem('experience', i, 'description', result.rewritten); toast.success('Description polished!'); }
-                                      else toast.error('AI unavailable');
-                                    } catch { toast.error('Failed to polish'); }
-                                    finally { setGeneratingSummary(false); }
-                                  }}
-                                  disabled={generatingSummary}
-                                  className="mt-1.5 px-2.5 py-1 rounded-lg border border-purple-200 text-purple-600 text-[10px] font-medium hover:bg-purple-50 transition-colors flex items-center gap-1"
-                                >
-                                  <Sparkles className="w-3 h-3" /> Polish with AI
-                                </button>
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => {
+                        const { active, over } = e;
+                        if (!over || active.id === over.id) return;
+                        const oldIdx = cv.experience.findIndex(item => item.id === active.id);
+                        const newIdx = cv.experience.findIndex(item => item.id === over.id);
+                        if (oldIdx === -1 || newIdx === -1) return;
+                        update('experience', arrayMove(cv.experience, oldIdx, newIdx));
+                      }}>
+                        <SortableContext items={cv.experience.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                          {cv.experience.map((exp, i) => (
+                            <SortableItem key={exp.id} id={exp.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative mb-3">
+                              {cv.experience.length > 1 && (
+                                <button onClick={() => removeArrayItem('experience', i)} className="absolute top-3 right-3 p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                               )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                              <span className="text-[10px] text-gray-400 font-medium block mb-2 pl-6">Drag to reorder</span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div><label className="text-xs font-medium text-gray-600">Company</label><Input value={exp.company} onChange={e => updateArrayItem('experience', i, 'company', e.target.value)} placeholder="Google" className="sm:h-10" /></div>
+                                <div><label className="text-xs font-medium text-gray-600">Position</label><Input value={exp.position} onChange={e => updateArrayItem('experience', i, 'position', e.target.value)} placeholder="Software Engineer" className="sm:h-10" /></div>
+                                <div><label className="text-xs font-medium text-gray-600">Start Date</label><Input value={exp.startDate} onChange={e => updateArrayItem('experience', i, 'startDate', e.target.value)} placeholder="Jan 2020" className="sm:h-10" /></div>
+                                <div className="flex items-end gap-2">
+                                  <div className="flex-1"><label className="text-xs font-medium text-gray-600">End Date</label><Input value={exp.endDate} onChange={e => updateArrayItem('experience', i, 'endDate', e.target.value)} placeholder="Present" disabled={exp.current} className="sm:h-10" /></div>
+                                  <label className="flex items-center gap-1.5 pb-2 text-xs text-gray-500 cursor-pointer shrink-0">
+                                    <input type="checkbox" checked={exp.current} onChange={e => updateArrayItem('experience', i, 'current', e.target.checked)} className="rounded" />
+                                    Current
+                                  </label>
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-xs font-medium text-gray-600">Description</label>
+                                  <textarea value={exp.description} onChange={e => updateArrayItem('experience', i, 'description', e.target.value)} onInput={autoResize} rows={3} spellCheck={true} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden" placeholder="Key responsibilities and achievements..." />
+                                  {exp.description?.length > 0 && <p className="text-[10px] text-gray-400 mt-0.5 text-right">{exp.description.length}/2000 characters</p>}
+                                  {exp.description?.trim() && (
+                                    <button
+                                      onClick={async () => {
+                                        setGeneratingSummary(true);
+                                        try {
+                                          const result = await api.ai.rewrite(exp.description, 'description', 'professional');
+                                          if (result.rewritten) { updateArrayItem('experience', i, 'description', result.rewritten); toast.success('Description polished!'); }
+                                          else toast.error('AI unavailable');
+                                        } catch { toast.error('Failed to polish'); }
+                                        finally { setGeneratingSummary(false); }
+                                      }}
+                                      disabled={generatingSummary}
+                                      className="mt-1.5 px-2.5 py-1 btn-fill rounded-lg text-white text-[10px] font-medium flex items-center gap-1"
+                                    >
+                                      <Sparkles className="w-3 h-3" /> Polish with AI
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </SortableItem>
+                          ))}
+                        </SortableContext>
+                      </DndContext>
                     </div>
                   )}
 
@@ -623,7 +900,12 @@ export default function CVBuilder() {
                     <div className="space-y-6">
                       <div>
                         <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-bold">Skills</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-gray-900">Skills</h2>
+                            <button onClick={() => toggleSectionVisibility('skills')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('skills') ? 'Show in CV' : 'Hide from CV'}>
+                              {hiddenSections.includes('skills') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={async () => {
@@ -643,7 +925,7 @@ export default function CVBuilder() {
                                  finally { setSuggestingSkills(false); }
                               }}
                               disabled={suggestingSkills}
-                              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                              className="px-3 py-1.5 btn-fill rounded-lg text-white text-xs font-medium flex items-center gap-1.5"
                             >
                               <Sparkles className={`w-3.5 h-3.5 ${suggestingSkills ? 'animate-spin' : ''}`} />
                               {suggestingSkills ? '...' : 'AI Suggest'}
@@ -652,84 +934,95 @@ export default function CVBuilder() {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          {cv.skills.map((skill, i) => (
-                            <div key={skill.id || i} className="flex items-center gap-1.5 bg-gray-50 rounded-lg border border-gray-200 px-2 py-1.5 sm:px-3 sm:py-2 draggable-item flex-wrap sm:flex-nowrap"
-                              draggable
-                              onDragStart={e => { e.dataTransfer.setData('text/plain', `skills:${i}`); e.currentTarget.classList.add('opacity-40'); }}
-                              onDragEnd={e => e.currentTarget.classList.remove('opacity-40')}
-                              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary'); }}
-                              onDragLeave={e => e.currentTarget.classList.remove('border-primary')}
-                              onDrop={e => {
-                                e.preventDefault();
-                                e.currentTarget.classList.remove('border-primary');
-                                const [fromField, fromIdx] = e.dataTransfer.getData('text/plain').split(':');
-                                if (fromField !== 'skills') return;
-                                const items = [...cv.skills];
-                                const [moved] = items.splice(parseInt(fromIdx), 1);
-                                items.splice(i, 0, moved);
-                                update('skills', items);
-                              }}
-                            >
-                              <GripVertical className="w-4 h-4 text-gray-300 cursor-grab shrink-0" />
-                              <input value={skill.name} onChange={e => { const s = [...cv.skills]; s[i] = { ...s[i], name: e.target.value }; update('skills', s); }} className="flex-1 text-sm text-gray-900 bg-transparent border-none outline-none min-w-[80px]" placeholder="e.g. JavaScript" />
-                              <select
-                                value={skill.level}
-                                onChange={e => { const s = [...cv.skills]; s[i] = { ...s[i], level: e.target.value }; update('skills', s); }}
-                                className={`text-xs rounded-md border border-gray-200 px-1.5 py-0.5 bg-white font-medium ${LEVEL_COLORS[skill.level] || LEVEL_COLORS.Intermediate}`}
-                              >
-                                {SKILL_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                              </select>
-                              <button onClick={() => { const s = cv.skills.filter((_, j) => j !== i); update('skills', s); }} className="text-gray-400 hover:text-red-500 p-0.5 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </div>
-                          ))}
+                          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => {
+                            const { active, over } = e;
+                            if (!over || active.id === over.id) return;
+                            const oldIdx = cv.skills.findIndex(item => item.id === active.id);
+                            const newIdx = cv.skills.findIndex(item => item.id === over.id);
+                            if (oldIdx === -1 || newIdx === -1) return;
+                            update('skills', arrayMove(cv.skills, oldIdx, newIdx));
+                          }}>
+                            <SortableContext items={cv.skills.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                              {cv.skills.map((skill, i) => (
+                                <SortableItem key={skill.id} id={skill.id} className="flex items-center gap-1.5 bg-gray-50 rounded-lg border border-gray-200 px-2 py-1.5 sm:px-3 sm:py-2 flex-wrap sm:flex-nowrap">
+                                  <input value={skill.name} onChange={e => { const s = [...cv.skills]; s[i] = { ...s[i], name: e.target.value }; update('skills', s); }} className="flex-1 text-sm text-gray-900 bg-transparent border-none outline-none min-w-[80px]" placeholder="e.g. JavaScript" />
+                                  {/* Phase 1.4: Level picker — on mobile, opens bottom sheet */}
+                                  <select
+                                    value={skill.level}
+                                    onChange={e => { const s = [...cv.skills]; s[i] = { ...s[i], level: e.target.value }; update('skills', s); }}
+                                    onClick={e => {
+                                      if (window.innerWidth < 768) {
+                                        e.preventDefault();
+                                        setBottomSheetField({ type: 'skills', index: i });
+                                        setBottomSheetOptions(SKILL_LEVELS);
+                                        setShowBottomSheet(true);
+                                      }
+                                    }}
+                                    className={`text-xs sm:rounded-md sm:border sm:border-gray-200 px-1.5 py-0.5 bg-white font-medium md:block ${LEVEL_COLORS[skill.level] || LEVEL_COLORS.Intermediate}`}
+                                  >
+                                    {SKILL_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                                  </select>
+                                  <button onClick={() => { const s = cv.skills.filter((_, j) => j !== i); update('skills', s); }} className="text-gray-400 hover:text-red-500 p-0.5 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+                                </SortableItem>
+                              ))}
+                            </SortableContext>
+                          </DndContext>
                         </div>
                       </div>
 
                       <div className="border-t border-gray-200 pt-6">
                         <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-bold">Languages</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-gray-900">Languages</h2>
+                            <button onClick={() => toggleSectionVisibility('languages')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('languages') ? 'Show in CV' : 'Hide from CV'}>
+                              {hiddenSections.includes('languages') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                           <Button variant="outline" size="sm" onClick={() => update('languages', [...cv.languages, { id: newId(), name: '', level: 'Professional' }])} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                         </div>
                         <div className="space-y-2">
-                          {cv.languages.map((lang, i) => (
-                            <div key={lang.id || i} className="flex items-center gap-1.5 bg-gray-50 rounded-lg border border-gray-200 px-2 py-1.5 sm:px-3 sm:py-2 draggable-item flex-wrap sm:flex-nowrap"
-                              draggable
-                              onDragStart={e => { e.dataTransfer.setData('text/plain', `languages:${i}`); e.currentTarget.classList.add('opacity-40'); }}
-                              onDragEnd={e => e.currentTarget.classList.remove('opacity-40')}
-                              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary'); }}
-                              onDragLeave={e => e.currentTarget.classList.remove('border-primary')}
-                              onDrop={e => {
-                                e.preventDefault();
-                                e.currentTarget.classList.remove('border-primary');
-                                const [fromField, fromIdx] = e.dataTransfer.getData('text/plain').split(':');
-                                if (fromField !== 'languages') return;
-                                const items = [...cv.languages];
-                                const [moved] = items.splice(parseInt(fromIdx), 1);
-                                items.splice(i, 0, moved);
-                                update('languages', items);
-                              }}
-                            >
-                              <GripVertical className="w-4 h-4 text-gray-300 cursor-grab shrink-0" />
-                              <input value={lang.name} onChange={e => { const l = [...cv.languages]; l[i] = { ...l[i], name: e.target.value }; update('languages', l); }} className="flex-1 text-sm text-gray-900 bg-transparent border-none outline-none min-w-[80px]" placeholder="e.g. English" />
-                              <select
-                                value={lang.level}
-                                onChange={e => { const l = [...cv.languages]; l[i] = { ...l[i], level: e.target.value }; update('languages', l); }}
-                                className={`text-xs rounded-md border border-gray-200 px-1.5 py-0.5 bg-white font-medium ${LEVEL_COLORS[lang.level] || LEVEL_COLORS.Professional}`}
-                              >
-                                {LANG_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                              </select>
-                              <button onClick={() => { const l = cv.languages.filter((_, j) => j !== i); update('languages', l); }} className="text-gray-400 hover:text-red-500 p-0.5 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </div>
-                          ))}
+                          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => {
+                            const { active, over } = e;
+                            if (!over || active.id === over.id) return;
+                            const oldIdx = cv.languages.findIndex(item => item.id === active.id);
+                            const newIdx = cv.languages.findIndex(item => item.id === over.id);
+                            if (oldIdx === -1 || newIdx === -1) return;
+                            update('languages', arrayMove(cv.languages, oldIdx, newIdx));
+                          }}>
+                            <SortableContext items={cv.languages.map(l => l.id)} strategy={verticalListSortingStrategy}>
+                              {cv.languages.map((lang, i) => (
+                                <SortableItem key={lang.id} id={lang.id} className="flex items-center gap-1.5 bg-gray-50 rounded-lg border border-gray-200 px-2 py-1.5 sm:px-3 sm:py-2 flex-wrap sm:flex-nowrap">
+                                  <input value={lang.name} onChange={e => { const l = [...cv.languages]; l[i] = { ...l[i], name: e.target.value }; update('languages', l); }} className="flex-1 text-sm text-gray-900 bg-transparent border-none outline-none min-w-[80px]" placeholder="e.g. English" />
+                                  <select
+                                    value={lang.level}
+                                    onChange={e => { const l = [...cv.languages]; l[i] = { ...l[i], level: e.target.value }; update('languages', l); }}
+                                    onClick={e => {
+                                      if (window.innerWidth < 768) {
+                                        e.preventDefault();
+                                        setBottomSheetField({ type: 'languages', index: i });
+                                        setBottomSheetOptions(LANG_LEVELS);
+                                        setShowBottomSheet(true);
+                                      }
+                                    }}
+                                    className={`text-xs sm:rounded-md sm:border sm:border-gray-200 px-1.5 py-0.5 bg-white font-medium md:block ${LEVEL_COLORS[lang.level] || LEVEL_COLORS.Professional}`}
+                                  >
+                                    {LANG_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                                  </select>
+                                  <button onClick={() => { const l = cv.languages.filter((_, j) => j !== i); update('languages', l); }} className="text-gray-400 hover:text-red-500 p-0.5 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+                                </SortableItem>
+                              ))}
+                            </SortableContext>
+                          </DndContext>
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-bold">Template</h2>
+                          <h2 className="text-lg font-bold text-gray-900">Template</h2>
                           <span className="text-[10px] text-gray-400">{TEMPLATES.length} styles</span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {/* Phase 1.7: Single column on mobile for larger tap targets */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           {TEMPLATES.map(t => (
                             <button
                               key={t.id}
@@ -745,53 +1038,242 @@ export default function CVBuilder() {
                                   <span className="text-[8px] font-bold text-white bg-white/20 px-1.5 py-0.5 rounded">POPULAR</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 flex-wrap">
                                 <p className="text-xs font-semibold">{t.name}</p>
-                                {t.id === 'sidebar' || t.id === 'creative' || t.id === 'ocean' ? (
-                                  <span className="text-[8px] text-purple-500 font-medium bg-purple-50 px-1 rounded">2-col</span>
-                                ) : null}
+                                {t.multiColumn && (
+                                  <span className="text-[8px] text-amber-600 font-medium bg-amber-50 px-1 rounded">2-col ⚠️</span>
+                                )}
+                                {t.atsSafe && (
+                                  <span className="text-[8px] text-green-600 font-medium bg-green-50 px-1 rounded">ATS ✅</span>
+                                )}
                               </div>
                               <p className="text-[9px] text-gray-400 mt-0.5">{t.desc}</p>
+                              {t.multiColumn && (
+                                <p className="text-[7px] text-amber-500 mt-0.5">May cause ATS parsing issues</p>
+                              )}
                             </button>
                           ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Step 4: Style — Font & Color Settings */}
+                  {step === 4 && (
+                    <div className="space-y-6">
+                      <h2 className="text-lg font-bold text-gray-900 mb-4">Style Customization</h2>
+
+                      {/* Font Family */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1.5 block">Font Family</label>
+                        <select
+                          value={cv.fontFamily || 'sans'}
+                          onChange={e => update('fontFamily', e.target.value)}
+                          className="w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="sans">Sans-serif (Modern)</option>
+                          <option value="serif">Serif (Classic)</option>
+                          <option value="mono">Monospace (Technical)</option>
+                          <option value="system">System UI</option>
+                          <option value="arial">Arial</option>
+                          <option value="calibri">Calibri</option>
+                          <option value="georgia">Georgia</option>
+                          <option value="times">Times New Roman</option>
+                          <option value="garamond">Garamond</option>
+                          <option value="inter">Inter</option>
+                          <option value="roboto">Roboto</option>
+                          <option value="opensans">Open Sans</option>
+                          <option value="poppins">Poppins</option>
+                          <option value="montserrat">Montserrat</option>
+                          <option value="lato">Lato</option>
+                          <option value="raleway">Raleway</option>
+                          <option value="nunito">Nunito</option>
+                          <option value="quicksand">Quicksand</option>
+                          <option value="merriweather">Merriweather</option>
+                          <option value="playfair">Playfair Display</option>
+                        </select>
+                      </div>
+
+                      {/* Font Size — dropdown 11px–72px */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1.5 block">Font Size</label>
+                        <select
+                          value={cv.fontSize || '14px'}
+                          onChange={e => update('fontSize', e.target.value)}
+                          className="w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                          {Array.from({ length: 62 }, (_, i) => {
+                            const px = i + 11;
+                            return <option key={px} value={`${px}px`}>{px}px</option>;
+                          })}
+                        </select>
+                        <p className="text-[10px] text-gray-400 mt-1.5">{cv.fontSize || '14px'} base text size</p>
+                      </div>
+
+                      {/* Heading Color — native color picker */}
+                      <div className="border-t border-gray-100 pt-5">
+                        <label className="text-xs font-medium text-gray-600 mb-3 block">Section Heading Color</label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={cv.headingColor || '#2563eb'}
+                              onChange={e => update('headingColor', e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Pick a custom color"
+                            />
+                            <div
+                              className="w-10 h-10 rounded-full border-2 border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                              style={{ backgroundColor: cv.headingColor || '#2563eb' }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">
+                              {cv.headingColor ? cv.headingColor.toUpperCase() : 'Default (Template)'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Click the circle to pick any color, or click <button onClick={() => update('headingColor', '')} className="text-primary underline">here</button> to reset to default</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Header Background Color */}
+                      <div className="border-t border-gray-100 pt-5">
+                        <label className="text-xs font-medium text-gray-600 mb-3 block">Header Background Color</label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={cv.headerBg || '#2563eb'}
+                              onChange={e => update('headerBg', e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Pick header background color"
+                            />
+                            <div
+                              className="w-10 h-10 rounded-full border-2 border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                              style={{ backgroundColor: cv.headerBg || '#2563eb' }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">
+                              {cv.headerBg ? cv.headerBg.toUpperCase() : 'Default (Template)'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Choose header background, or <button onClick={() => update('headerBg', '')} className="text-primary underline">reset to default</button></p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Header Font Color */}
+                      <div className="border-t border-gray-100 pt-5">
+                        <label className="text-xs font-medium text-gray-600 mb-3 block">Header Text Color</label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={cv.headerFontColor || '#ffffff'}
+                              onChange={e => update('headerFontColor', e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Pick header text color"
+                            />
+                            <div
+                              className="w-10 h-10 rounded-full border-2 border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                              style={{ backgroundColor: cv.headerFontColor || '#ffffff' }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">
+                              {cv.headerFontColor ? cv.headerFontColor.toUpperCase() : 'Default (Template)'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Choose header text color, or <button onClick={() => update('headerFontColor', '')} className="text-primary underline">reset to default</button></p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Body Background Color */}
+                      <div className="border-t border-gray-100 pt-5">
+                        <label className="text-xs font-medium text-gray-600 mb-3 block">Body Background Color</label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={cv.bodyBg || '#ffffff'}
+                              onChange={e => update('bodyBg', e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Pick body background color"
+                            />
+                            <div
+                              className="w-10 h-10 rounded-full border-2 border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                              style={{ backgroundColor: cv.bodyBg || '#ffffff' }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">
+                              {cv.bodyBg ? cv.bodyBg.toUpperCase() : 'Default (White)'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Choose body background, or <button onClick={() => update('bodyBg', '')} className="text-primary underline">reset to white</button></p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Body Text Color */}
+                      <div className="border-t border-gray-100 pt-5">
+                        <label className="text-xs font-medium text-gray-600 mb-3 block">Body Text Color</label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={cv.bodyTextColor || '#333333'}
+                              onChange={e => update('bodyTextColor', e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Pick body text color"
+                            />
+                            <div
+                              className="w-10 h-10 rounded-full border-2 border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                              style={{ backgroundColor: cv.bodyTextColor || '#333333' }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">
+                              {cv.bodyTextColor ? cv.bodyTextColor.toUpperCase() : 'Default (#333)'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Choose body text color, or <button onClick={() => update('bodyTextColor', '')} className="text-primary underline">reset to default</button></p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 4: More Sections (Certifications, Projects, References, Custom) */}
-                  {step === 4 && (
+                  {/* Step 5: More Sections (Certifications, Projects, References, Custom) */}
+                  {step === 5 && (
                     <div className="space-y-6">
                       {/* Certifications */}
                       <div>
                         <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-bold">Certifications</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-gray-900">Certifications</h2>
+                            <button onClick={() => toggleSectionVisibility('certifications')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('certifications') ? 'Show in CV' : 'Hide from CV'}>
+                              {hiddenSections.includes('certifications') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                           <Button variant="outline" size="sm" onClick={() => update('certifications', [...cv.certifications, { id: newId(), name: '', issuer: '', date: '', link: '', description: '' }])} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                         </div>
                         {cv.certifications.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No certifications yet.</p>}
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => {
+                          const { active, over } = e;
+                          if (!over || active.id === over.id) return;
+                          const oldIdx = cv.certifications.findIndex(item => item.id === active.id);
+                          const newIdx = cv.certifications.findIndex(item => item.id === over.id);
+                          if (oldIdx === -1 || newIdx === -1) return;
+                          update('certifications', arrayMove(cv.certifications, oldIdx, newIdx));
+                        }}>
+                          <SortableContext items={cv.certifications.map(c => c.id)} strategy={verticalListSortingStrategy}>
                         {cv.certifications.map((cert, i) => (
-                          <div key={cert.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative mb-3 draggable-item"
-                            draggable
-                            onDragStart={e => { e.dataTransfer.setData('text/plain', `certifications:${i}`); e.currentTarget.classList.add('opacity-40'); }}
-                            onDragEnd={e => e.currentTarget.classList.remove('opacity-40')}
-                            onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary'); }}
-                            onDragLeave={e => e.currentTarget.classList.remove('border-primary')}
-                            onDrop={e => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('border-primary');
-                              const [fromField, fromIdx] = e.dataTransfer.getData('text/plain').split(':');
-                              if (fromField !== 'certifications') return;
-                              const items = [...cv.certifications];
-                              const [moved] = items.splice(parseInt(fromIdx), 1);
-                              items.splice(i, 0, moved);
-                              update('certifications', items);
-                            }}
-                          >
+                          <SortableItem key={cert.id} id={cert.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative mb-3">
                             {cv.certifications.length > 1 && (
                               <button onClick={() => update('certifications', cv.certifications.filter((_, j) => j !== i))} className="absolute top-3 right-3 p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                             )}
-                            <div className="flex items-center gap-1 mb-2">
-                              <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab shrink-0" />
+                            {/* Note: GripVertical is rendered by SortableItem wrapper — no duplicate needed */}
+                            <div className="flex items-center gap-1 mb-2 pl-6">
                               <span className="text-[10px] text-gray-400 font-medium">Drag to reorder</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -800,43 +1282,43 @@ export default function CVBuilder() {
                               <div><label className="text-xs font-medium text-gray-600">Date</label><Input value={cert.date} onChange={e => { const c = [...cv.certifications]; c[i] = { ...c[i], date: e.target.value }; update('certifications', c); }} placeholder="2024" /></div>
                               <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">Credential URL (optional)</label><Input value={cert.link} onChange={e => { const c = [...cv.certifications]; c[i] = { ...c[i], link: e.target.value }; update('certifications', c); }} placeholder="https://coursera.org/verify/..." /></div>
                               <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">Description (optional)</label>
-                                <textarea value={cert.description} onChange={e => { const c = [...cv.certifications]; c[i] = { ...c[i], description: e.target.value }; update('certifications', c); }} rows={2} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Key skills covered..." />
+                                <textarea value={cert.description} onChange={e => { const c = [...cv.certifications]; c[i] = { ...c[i], description: e.target.value }; update('certifications', c); }} rows={2} spellCheck={true} onInput={autoResize} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden" placeholder="Key skills covered..." />
                               </div>
                             </div>
-                          </div>
+                          </SortableItem>
                         ))}
+                          </SortableContext>
+                        </DndContext>
                       </div>
 
                       {/* Projects */}
                       <div className="border-t border-gray-200 pt-6">
                         <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-bold">Projects</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-gray-900">Projects</h2>
+                            <button onClick={() => toggleSectionVisibility('projects')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('projects') ? 'Show in CV' : 'Hide from CV'}>
+                              {hiddenSections.includes('projects') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                           <Button variant="outline" size="sm" onClick={() => update('projects', [...cv.projects, { id: newId(), name: '', description: '', technologies: '', link: '' }])} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                         </div>
                         {cv.projects.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Add projects to showcase your work.</p>}
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => {
+                          const { active, over } = e;
+                          if (!over || active.id === over.id) return;
+                          const oldIdx = cv.projects.findIndex(item => item.id === active.id);
+                          const newIdx = cv.projects.findIndex(item => item.id === over.id);
+                          if (oldIdx === -1 || newIdx === -1) return;
+                          update('projects', arrayMove(cv.projects, oldIdx, newIdx));
+                        }}>
+                          <SortableContext items={cv.projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
                         {cv.projects.map((proj, i) => (
-                          <div key={proj.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative mb-3 draggable-item"
-                            draggable
-                            onDragStart={e => { e.dataTransfer.setData('text/plain', `projects:${i}`); e.currentTarget.classList.add('opacity-40'); }}
-                            onDragEnd={e => e.currentTarget.classList.remove('opacity-40')}
-                            onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary'); }}
-                            onDragLeave={e => e.currentTarget.classList.remove('border-primary')}
-                            onDrop={e => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('border-primary');
-                              const [fromField, fromIdx] = e.dataTransfer.getData('text/plain').split(':');
-                              if (fromField !== 'projects') return;
-                              const items = [...cv.projects];
-                              const [moved] = items.splice(parseInt(fromIdx), 1);
-                              items.splice(i, 0, moved);
-                              update('projects', items);
-                            }}
-                          >
+                          <SortableItem key={proj.id} id={proj.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative mb-3">
                             {cv.projects.length > 1 && (
                               <button onClick={() => update('projects', cv.projects.filter((_, j) => j !== i))} className="absolute top-3 right-3 p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                             )}
-                            <div className="flex items-center gap-1 mb-2">
-                              <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab shrink-0" />
+                            {/* Note: GripVertical is rendered by SortableItem wrapper — no duplicate needed */}
+                            <div className="flex items-center gap-1 mb-2 pl-6">
                               <span className="text-[10px] text-gray-400 font-medium">Drag to reorder</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -844,17 +1326,24 @@ export default function CVBuilder() {
                               <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">Technologies Used</label><Input value={proj.technologies} onChange={e => { const p = [...cv.projects]; p[i] = { ...p[i], technologies: e.target.value }; update('projects', p); }} placeholder="React, Node.js, PostgreSQL" /></div>
                               <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">Project URL (optional)</label><Input value={proj.link} onChange={e => { const p = [...cv.projects]; p[i] = { ...p[i], link: e.target.value }; update('projects', p); }} placeholder="https://github.com/..." /></div>
                               <div className="sm:col-span-2"><label className="text-xs font-medium text-gray-600">Description</label>
-                                <textarea value={proj.description} onChange={e => { const p = [...cv.projects]; p[i] = { ...p[i], description: e.target.value }; update('projects', p); }} rows={2} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="What did you build? What problem does it solve?" />
+                                <textarea value={proj.description} onChange={e => { const p = [...cv.projects]; p[i] = { ...p[i], description: e.target.value }; update('projects', p); }} rows={2} spellCheck={true} onInput={autoResize} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden" placeholder="What did you build? What problem does it solve?" />
                               </div>
                             </div>
-                          </div>
+                          </SortableItem>
                         ))}
+                          </SortableContext>
+                        </DndContext>
                       </div>
 
                       {/* References */}
                       <div className="border-t border-gray-200 pt-6">
                         <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-bold">References</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-gray-900">References</h2>
+                            <button onClick={() => toggleSectionVisibility('references')} className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={hiddenSections.includes('references') ? 'Show in CV' : 'Hide from CV'}>
+                              {hiddenSections.includes('references') ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                           <Button variant="outline" size="sm" onClick={() => addArrayItem('references', { id: newId(), name: '', title: '', company: '', email: '', phone: '' })} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                         </div>
                         {cv.references.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No references added.</p>}
@@ -878,7 +1367,7 @@ export default function CVBuilder() {
                       <div className="border-t border-gray-200 pt-6">
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <h2 className="text-lg font-bold">Custom Sections</h2>
+                            <h2 className="text-lg font-bold text-gray-900">Custom Sections</h2>
                             <p className="text-xs text-gray-400">Add extra sections like Signature, Awards, or anything else</p>
                           </div>
                           <Button variant="outline" size="sm" onClick={() => addArrayItem('customSections', { id: newId(), title: '', content: '' })} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add Section</Button>
@@ -894,21 +1383,21 @@ export default function CVBuilder() {
                               </div>
                               <div>
                                 <label className="text-xs font-medium text-gray-600">Content</label>
-                                <textarea value={sec.content} onChange={e => { const s = [...cv.customSections]; s[i] = { ...s[i], content: e.target.value }; update('customSections', s); }} rows={3} className="w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Enter your content here..." />
+                                <textarea value={sec.content} onChange={e => { const s = [...cv.customSections]; s[i] = { ...s[i], content: e.target.value }; update('customSections', s); }} rows={3} spellCheck={true} onInput={autoResize} className="w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden" placeholder="Enter your content here..." />
                               </div>
                             </div>
                           </div>
-                        ))}
+                          ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Step 5: Arrange Sections — Canva-style drag & drop */}
-                  {step === 5 && (
+                  {/* Step 6: Arrange Sections — Canva-style drag & drop */}
+                  {step === 6 && (
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h2 className="text-lg font-bold">Arrange Sections</h2>
+                          <h2 className="text-lg font-bold text-gray-900">Arrange Sections</h2>
                           <p className="text-xs text-gray-400 mt-1">Drag sections up/down to arrange your CV layout</p>
                         </div>
                       </div>
@@ -1003,11 +1492,11 @@ export default function CVBuilder() {
                     </div>
                   )}
 
-                  {/* Step 6: Preview */}
-                  {step === 6 && (
+                  {/* Step 7: Preview */}
+                  {step === 7 && (
                     <div className="space-y-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-                        <h2 className="text-lg font-bold">Preview & Download</h2>
+                        <h2 className="text-lg font-bold text-gray-900">Preview & Download</h2>
                         <div className="flex flex-wrap items-center gap-2">
                           {aiFeedback && (
                             <Button variant="outline" size="sm" onClick={() => setAiFeedback(null)} className="text-xs">
@@ -1032,7 +1521,7 @@ export default function CVBuilder() {
                             <Lightbulb className={`w-3.5 h-3.5 ${fetchingFeedback ? 'animate-pulse' : ''}`} />
                             {fetchingFeedback ? 'Analyzing...' : 'AI Review'}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => { clearCV(); setCv(loadCV()); toast.success('CV cleared'); }} className="text-red-500 hover:text-red-600 text-xs">Clear</Button>
+                          <Button variant="outline" size="sm" onClick={() => { clearCV(); setCv(loadCV()); setUndoStack([]); toast.success('CV cleared'); }} className="text-red-500 hover:text-red-600 text-xs">Clear</Button>
                           <div className="flex gap-1">
                             <div className="relative">
                               <select
@@ -1074,25 +1563,40 @@ export default function CVBuilder() {
                         </div>
                       ) : (
                         <div ref={previewRef}>
-                          <CVPreview data={cv} />
+                          <CVPreview data={{ ...cv, hiddenSections }} />
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Navigation */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 pt-4 border-t border-gray-100">
-                    <Button variant="outline" onClick={prevStep} disabled={step === 0} className="gap-1 w-full sm:w-auto justify-center">
-                      <ChevronLeft className="w-4 h-4" /> Previous
-                    </Button>
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
-                      <Button variant="outline" size="sm" onClick={handleCloudSave} disabled={savingCloud} className="gap-1 text-xs flex-1 sm:flex-initial">
-                        {savingCloud ? 'Saving...' : 'Save to Cloud'}
+                  {/* Phase 1.2+2.1+3.5: Mobile toolbar — Preview toggle + Undo + ATS Scan */}
+                  <div className="flex sm:hidden gap-2 mb-3">
+                    {undoStack.length > 0 && (
+                      <Button variant="outline" size="sm" onClick={handleUndo} className="gap-1 text-xs" title="Undo last change">
+                        <Undo2 className="w-3.5 h-3.5" />
                       </Button>
-                      {cloudToken && (
-                        <span className="text-[10px] text-muted-foreground self-center">Saved</span>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => setShowAtsScanner(true)} className="gap-1 flex-1 text-xs">
+                      <Scan className="w-3.5 h-3.5" /> ATS
+                    </Button>
+                    <Button variant={showMobilePreview ? 'default' : 'outline'} size="sm" onClick={() => setShowMobilePreview(prev => !prev)} className="gap-1 flex-1 text-xs">
+                      <Eye className="w-3.5 h-3.5" /> {showMobilePreview ? 'Hide Preview' : 'Preview'}
+                    </Button>
+                  </div>
+
+                  {/* Navigation — Phase 1.8: px-4 on mobile */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 pt-4 border-t border-gray-100 px-4 sm:px-0">
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      {undoStack.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={handleUndo} className="gap-1 text-xs text-gray-500 hover:text-gray-700" title="Undo last change (Ctrl+Z)">
+                          <Undo2 className="w-3.5 h-3.5" /> Undo
+                        </Button>
                       )}
-                      {step < STEPS.length - 1 ? (
+                      <Button variant="default" onClick={prevStep} disabled={step === 0} className="gap-1 w-full sm:w-auto justify-center">
+                        <ChevronLeft className="w-4 h-4" /> Previous
+                      </Button>
+                    </div>
+                    {step < STEPS.length - 1 ? (
                         <Button onClick={nextStep} className="gap-1 flex-1 sm:flex-initial justify-center">
                           Next <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -1101,7 +1605,6 @@ export default function CVBuilder() {
                           <FileText className="w-4 h-4" /> Start Over
                         </Button>
                       )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1114,15 +1617,198 @@ export default function CVBuilder() {
                       <Eye className="w-3.5 h-3.5" /> Live Preview
                     </h3>
                     <div style={{ transform: 'scale(0.65)', transformOrigin: 'top left', width: '153.8%' }}>
-                      <CVPreview data={cv} compact />
+                      <CVPreview data={{ ...cv, hiddenSections }} compact />
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </div>            </motion.div>
         </div>
       </div>
+
+      {/* Phase 1.2: Mobile floating preview button — hidden when modal is open */}
+      {!showMobilePreview && (
+        <button
+          onClick={() => setShowMobilePreview(true)}
+          className="fixed bottom-6 right-6 z-50 lg:hidden w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all active:scale-95 hover:shadow-xl hover:-translate-y-0.5"
+          aria-label="Preview CV"
+        >
+          <Eye className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Phase 1.2: Mobile preview modal (fullscreen) */}
+      {showMobilePreview && (
+        <div className="fixed inset-0 z-50 lg:hidden bg-white overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-10">
+            <h3 className="text-sm font-bold">CV Preview</h3>
+            <button
+              onClick={() => setShowMobilePreview(false)}
+              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="p-4">
+            <CVPreview data={{ ...cv, hiddenSections }} />
+          </div>
+        </div>
+      )}
+
+      {/* Phase 1.4: Mobile bottom sheet for skill/language level */}
+      {showBottomSheet && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => { setShowBottomSheet(false); setBottomSheetField(null); setBottomSheetOptions([]); }} />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl animate-slide-up">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h4 className="text-sm font-bold">Select Level</h4>
+              <button onClick={() => { setShowBottomSheet(false); setBottomSheetField(null); setBottomSheetOptions([]); }} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200">✕</button>
+            </div>
+            <div className="p-3 space-y-1">
+              {bottomSheetOptions.map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    if (bottomSheetField) {
+                      const { type, index } = bottomSheetField;
+                      const arr = [...cv[type]];
+                      arr[index] = { ...arr[index], level: opt };
+                      update(type, arr);
+                    }
+                    setShowBottomSheet(false);
+                    setBottomSheetField(null);
+                    setBottomSheetOptions([]);
+                  }}
+                  className={`w-full text-left px-4 py-3.5 rounded-xl text-sm font-medium transition-colors ${
+                    (bottomSheetField && cv[bottomSheetField.type]?.[bottomSheetField.index]?.level === opt)
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{opt}</span>
+                    {(bottomSheetField && cv[bottomSheetField.type]?.[bottomSheetField.index]?.level === opt) && (
+                      <span className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="h-6" /> {/* Safe area for notched phones */}
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2.1: ATS Scanner modal — mobile responsive */}
+      {showAtsScanner && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-end sm:justify-center">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl sm:shadow-xl max-h-[92vh] sm:max-h-[85vh] overflow-y-auto rounded-t-2xl">
+            <div className="sticky top-0 bg-white px-4 sm:px-5 py-3.5 sm:py-4 border-b border-gray-100 flex items-center justify-between rounded-t-2xl">
+              <div className="min-w-0 flex-1 mr-2">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <Scan className="w-4 h-4 text-primary shrink-0" /> 
+                  <span className="truncate">ATS Keyword Scanner</span>
+                </h3>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">Compare your CV against a job description</p>
+              </div>
+              <button onClick={() => { setShowAtsScanner(false); setAtsResult(null); setAtsJobDesc(''); }} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 shrink-0">✕</button>
+            </div>
+            <div className="p-4 sm:p-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Paste Job Description</label>
+                <textarea
+                  value={atsJobDesc}
+                  onChange={e => setAtsJobDesc(e.target.value)}
+                  rows={8}
+                  onInput={autoResize}
+                  className="w-full text-sm rounded-xl border border-gray-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden"
+                  placeholder="Paste the full job description here to check keyword match..."
+                />
+              </div>
+              <Button
+                onClick={async () => {
+                  if (!atsJobDesc.trim()) { toast.error('Paste a job description first'); return; }
+                  setAtsScanning(true);
+                  setAtsResult(null);
+                  try {
+                    const res = await api.ai.atsScan(cv, atsJobDesc);
+                    setAtsResult(res);
+                  } catch (err) {
+                    toast.error(err?.message || 'ATS scan failed');
+                  } finally {
+                    setAtsScanning(false);
+                  }
+                }}
+                disabled={atsScanning || !atsJobDesc.trim()}
+                className="w-full gap-2 min-h-[44px]"
+              >
+                {atsScanning ? (
+                  <><Sparkles className="w-4 h-4 animate-spin" /> Scanning...</>
+                ) : (
+                  <><Scan className="w-4 h-4" /> Analyze Against CV</>
+                )}
+              </Button>
+
+              {atsResult && (
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3.5 sm:p-4 border border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-gray-700">Keyword Match</span>
+                      <span className={`text-base sm:text-lg font-bold ${
+                        atsResult.matchScore >= 70 ? 'text-green-600' :
+                        atsResult.matchScore >= 40 ? 'text-amber-600' : 'text-red-600'
+                      }`}>{atsResult.matchScore}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-2">
+                      <div
+                        className={`h-2.5 sm:h-2 rounded-full transition-all ${
+                          atsResult.matchScore >= 70 ? 'bg-green-500' :
+                          atsResult.matchScore >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${atsResult.matchScore}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {atsResult.missingKeywords?.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-700 mb-2.5 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" /> 
+                        Missing Keywords
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {atsResult.missingKeywords.map((kw, i) => (
+                          <span key={i} className="px-2.5 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium border border-amber-200">
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {atsResult.suggestions?.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-700 mb-2.5">Suggestions</h4>
+                      <ul className="space-y-2">
+                        {atsResult.suggestions.map((s, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-gray-600 leading-relaxed">
+                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Phase 2.1: Safe area padding for notched phones */}
+              <div className="h-4 sm:hidden" />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

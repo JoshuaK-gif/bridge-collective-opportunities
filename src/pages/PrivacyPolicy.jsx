@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import SEO from '@/components/SEO';
 
 export default function PrivacyPolicy() {
@@ -12,7 +13,9 @@ export default function PrivacyPolicy() {
     <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
         <div className="bg-white rounded-xl shadow-sm p-6 sm:p-10 space-y-6">
-          <Link to="/" className="text-sm text-primary hover:underline">&larr; Back to Home</Link>
+          <Button variant="default" size="sm" asChild>
+            <Link to="/">&larr; Back to Home</Link>
+          </Button>
           <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
           <p className="text-sm text-gray-500">Last updated: July 2026</p>
 
@@ -43,12 +46,12 @@ export default function PrivacyPolicy() {
 
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-gray-800">6. Your Rights</h2>
-            <p className="text-gray-600 leading-relaxed">You may request access to, correction of, or deletion of your personal data. Email us at <a href="mailto:support@bridgejobs.ug" className="text-primary hover:underline">support@bridgejobs.ug</a>.</p>
+            <p className="text-gray-600 leading-relaxed">You may request access to, correction of, or deletion of your personal data. Email us at <a href="mailto:support@bridgecollectiveopport.org" className="text-primary hover:underline">support@bridgecollectiveopport.org</a>.</p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-gray-800">7. Contact</h2>
-            <p className="text-gray-600 leading-relaxed">For questions about this policy, contact: <a href="mailto:support@bridgejobs.ug" className="text-primary hover:underline">support@bridgejobs.ug</a></p>
+            <p className="text-gray-600 leading-relaxed">For questions about this policy, contact: <a href="mailto:support@bridgecollectiveopport.org" className="text-primary hover:underline">support@bridgecollectiveopport.org</a></p>
           </section>
         </div>
       </div>

@@ -5,9 +5,7 @@
     }
 
     reverse_proxy {$APP_URL} {
-        lb_policy random
-        # Sticky sessions for Socket.io
-        lb_consistent
+        lb_policy ip_hash
     }
 
     header {
@@ -16,7 +14,7 @@
         X-Frame-Options "DENY"
     }
 
-    encode gzip
+    encode zstd br gzip
 
     log {
         output file /data/access.log

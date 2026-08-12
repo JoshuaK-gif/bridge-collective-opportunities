@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { oppImageSrc, CATEGORY_STYLES } from '@/lib/images';
 
@@ -187,12 +188,9 @@ export default function ListingResults({ listings = [], query, category, loading
                   </p>
                 )}
 
-                <Link
-                  to={`/opportunities/${item.id}`}
-                  className="text-blue-700 font-semibold hover:underline inline-flex items-center gap-1"
-                >
-                  Read More <span aria-hidden="true">→</span>
-                </Link>
+                <Button variant="default" size="sm" asChild>
+                  <Link to={`/opportunities/${item.id}`}>Read More</Link>
+                </Button>
               </article>
             );
           })}

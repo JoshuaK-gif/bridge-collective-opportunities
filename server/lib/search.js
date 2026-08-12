@@ -44,8 +44,10 @@ export async function researchGrant(opportunityTitle, organization) {
   const allResults = [];
   const seen = new Set();
 
-  for (const query of queries) {
-    const results = await searchWeb(query);
+  // Run all searches in parallel to cut total time from ~40s to ~10s
+  const resultsArrays = await Promise.all(queries.map(q => searchWeb(q)));
+
+  for (const results of resultsArrays) {
     for (const r of results) {
       const key = r.link;
       if (!seen.has(key)) {
@@ -53,7 +55,6 @@ export async function researchGrant(opportunityTitle, organization) {
         allResults.push(r);
       }
     }
-    if (allResults.length >= 10) break;
   }
 
   return allResults.slice(0, 10);

@@ -1,10 +1,9 @@
+import crypto from 'crypto';
 import { XMLParser } from 'fast-xml-parser';
+import * as chrono from 'chrono-node';
 import pool from './db.js';
 import logger from './logger.js';
-import cache from './cache.js';
-
-const CACHE_KEY = 'scraper:last_fetch';
-const CACHE_TTL = 300;
+import { cleanPromotionalContent } from './rewriter.js';
 
 const CATEGORY_DEFAULTS = {
   Scholarships: 'Scholarship',
@@ -19,20 +18,173 @@ const CATEGORY_DEFAULTS = {
   'Short Courses': 'Training',
 };
 
-function extractDeadline(html) {
-  const patterns = [
-    /deadline[:\s]+([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
-    /deadline[:\s]+(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i,
-    /due[:\s]+([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
-    /due[:\s]+(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i,
-    /no later than\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
-    /by\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
+/** Category keyword patterns: FIRST match wins, checked in priority order */
+const CATEGORY_KEYWORD_RULES = [
+  { name: 'scholarship', priority: 1, patterns: [/scholarship/i, /tuition/i, /academic\s+year/i, /undergraduate\s+(study|program|degree)/i, /postgraduate\s+(study|program|degree)/i, /master'?s\s+(degree|program|scholarship)/i, /phd\s+(scholarship|position|program)/i, /bachelor'?s\s+(scholarship|program)/i, /financial\s+aid/i, /merit\s+based/i, /fully?\s*funded\s+(scholarship|program)/i, /partial\s+(scholarship|funding)/i] },
+  { name: 'job', priority: 2, patterns: [/hiring/i, /vacancy/i, /job\s+(title|opening|position|opportunity)/i, /employment/i, /recruit/i, /career\s+opportunity/i, /we\s+are\s+(hiring|looking\s+for|seeking)/i, /position\s+(is\s+)?open/i, /full[-\s]time/i, /salary/i, /remuneration/i, /cv\s+and\s+cover\s+letter/i] },
+  { name: 'internship', priority: 3, patterns: [/internship/i, /intern\s+program/i, /graduate\s+(trainee|internship)/i, /industrial\s+attachment/i, /work\s+experience\s+program/i, /placement/i, /traineeship/i, /attachment\s+opportunity/i] },
+  { name: 'grant', priority: 4, patterns: [/grant/i, /funding\s+(opportunity|program)/i, /research\s+(grant|funding)/i, /seed\s+funding/i, /small\s+grant/i, /project\s+grant/i, /innovation\s+(grant|fund)/i, /startup\s+(grant|funding)/i] },
+  { name: 'fellowship', priority: 5, patterns: [/fellowship/i, /fellow\s+program/i, /postdoctoral/i, /research\s+(fellow|fellowship)/i, /leadership\s+program/i, /professional\s+fellow/i, /visiting\s+(scholar|fellow)/i, /residency/i] },
+];
+
+/** Minimum confidence threshold below which we flag for review */
+const CATEGORY_CONFIDENCE_THRESHOLD = 0.5;
+
+const VALID_CATEGORIES = ['scholarship', 'job', 'internship', 'grant', 'fellowship'];
+
+/**
+ * Extract deadline using chrono-node for robust date parsing.
+ * Returns { raw: string, iso: string|null } — iso is YYYY-MM-DD or null.
+ *
+ * PHASE 1: Uses chrono-node (not hand-rolled regex) for accurate date extraction.
+ * Extract deadline-related snippets from the full text to improve chrono accuracy.
+ */
+function extractDeadline(text) {
+  if (!text) return { raw: '', iso: null };
+
+  // Expanded snippet patterns to catch more deadline phrasing
+  const snippetPatterns = [
+    /deadline[:\s]+(.{1,60})/i,
+    /apply\s+by[:\s]+(.{1,60})/i,
+    /due[:\s]+(.{1,60})/i,
+    /closes[:\s]+(.{1,60})/i,
+    /no\s+later\s+than[:\s]+(.{1,60})/i,
+    /submission\s+(deadline|date)[:\s]+(.{1,60})/i,
+    /application\s+(deadline|by|period|closing)[:\s]+(.{1,60})/i,
+    /closing\s+date[:\s]+(.{1,60})/i,
+    /end\s+date[:\s]+(.{1,60})/i,
+    /last\s+date[:\s]+(.{1,60})/i,
+    /final\s+date[:\s]+(.{1,60})/i,
+    /applications?\s+close\s+(on|by)[:\s]+(.{1,60})/i,
+    /deadline\s+for\s+(application|submission)[:\s]+(.{1,60})/i,
   ];
-  for (const p of patterns) {
-    const m = html.match(p);
-    if (m) return m[1].trim();
+  for (const p of snippetPatterns) {
+    const m = text.match(p);
+    if (m) {
+      // Take last capture group (handles both 1 and 2 capture group patterns)
+      const rawDate = m[m.length - 1].trim();
+      const parsed = chrono.parseDate(rawDate, { forwardDate: false });
+      if (parsed && !isNaN(parsed.getTime())) {
+        const iso = parsed.toISOString().split('T')[0];
+        return { raw: rawDate, iso };
+      }
+    }
   }
-  return '';
+
+  // Fallback: scan entire text for ANY date reference
+  const candidates = chrono.parse(text, { forwardDate: false });
+  if (candidates.length > 0) {
+    // Pick the first parsed date that isn't obviously a duration reference or start date
+    const best = candidates[0];
+    const rawText = best.text.toLowerCase().trim();
+
+    // Skip phrases that are clearly durations, not specific dates:
+    // e.g. "6 months", "for 6 months", "2 years", "about 3 weeks", "several days"
+    const durationPattern = /^(\s*for\s+|about\s+|approximately\s+)?\d+\s+(months?|years?|weeks?|days?|hours?|minutes?)$/i;
+    const vaguePattern = /^(soon|immediately|asap|ongoing|rolling|tbd|tba|open|anytime|tba)$/i;
+    if (durationPattern.test(rawText) || vaguePattern.test(rawText)) {
+      return { raw: '', iso: null };
+    }
+
+    const parsed = best.date();
+    if (parsed && !isNaN(parsed.getTime())) {
+      const iso = parsed.toISOString().split('T')[0];
+      return { raw: best.text, iso };
+    }
+  }
+
+  return { raw: '', iso: null };
+}
+
+/**
+ * Validate a parsed deadline date.
+ * Returns null if valid, or a review_reason string if invalid.
+ *
+ * Rules (Phase 1):
+ * - If no date → deadline_unclear
+ * - If date is more than 1 week in the past → deadline_unclear (allow 1 week grace)
+ * - If date is more than 2 years in the future → deadline_unclear (likely parsing error)
+ * - Otherwise → valid
+ */
+function validateDeadline(isoDate) {
+  if (!isoDate) return 'deadline_unclear';
+  const d = new Date(isoDate + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return 'deadline_unclear';
+  const now = new Date();
+  const twoYears = 2 * 365 * 24 * 60 * 60 * 1000;
+  if (d < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)) return 'deadline_unclear'; // more than a week past
+  if (d.getTime() > now.getTime() + twoYears) return 'deadline_unclear';
+  return null;
+}
+
+/**
+ * Classify opportunity into one of: scholarship, job, internship, grant, fellowship.
+ * Uses keyword matching first pass, LLM fallback only when ambiguous.
+ */
+async function classifyCategory(title, description, feedCategories, userMap = {}) {
+  const text = `${title}\n${description}`.toLowerCase();
+  const mergedMap = { ...CATEGORY_DEFAULTS, ...userMap };
+
+  // First pass: try feed's own categories via mapping
+  for (const cat of feedCategories) {
+    const lower = cat.toLowerCase();
+    for (const vc of VALID_CATEGORIES) {
+      if (lower.includes(vc)) return { category: vc, method: 'feed', confidence: 0.9 };
+    }
+  }
+
+  // Second pass: keyword matching
+  let bestMatch = null;
+  let bestScore = 0;
+  for (const rule of CATEGORY_KEYWORD_RULES) {
+    let score = 0;
+    for (const p of rule.patterns) {
+      const matches = text.match(p);
+      if (matches) {
+        // Weight by pattern specificity
+        const specificity = p.source.length;
+        score += specificity * (matches.length || 1);
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = rule;
+    }
+  }
+
+  if (bestMatch && bestScore > 50) {
+    const confidence = Math.min(bestScore / 200, 0.95);
+    if (confidence >= CATEGORY_CONFIDENCE_THRESHOLD) {
+      return { category: bestMatch.name, method: 'keyword', confidence };
+    }
+  }
+
+  // Third pass: LLM fallback for ambiguous cases
+  try {
+    const { callEnrichAI, getAiConfig } = await import('./enrich.js');
+    const config = await getAiConfig();
+    const prompt = `Classify this opportunity into EXACTLY ONE category: scholarship, job, internship, grant, fellowship.
+Return ONLY valid JSON: {"category": "...", "reason": "..."}
+
+Title: "${title}"
+Description: "${description.slice(0, 500)}"
+Feed categories: "${feedCategories.join(', ')}"`;
+
+    const content = await callEnrichAI(prompt, config);
+    let result;
+    try {
+      result = JSON.parse(content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim());
+    } catch { result = {}; }
+    const llmCat = (result.category || '').toLowerCase();
+    if (VALID_CATEGORIES.includes(llmCat)) {
+      return { category: llmCat, method: 'llm', confidence: 0.8 };
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Category LLM classification failed, falling back');
+  }
+
+  // Last resort: default and flag for review
+  return { category: 'scholarship', method: 'fallback', confidence: 0.1 };
 }
 
 function extractLink(html) {
@@ -71,7 +223,7 @@ function stripHtml(html) {
 }
 
 function getSummary(html) {
-  const text = stripHtml(html);
+  const text = cleanPromotionalContent(stripHtml(html));
   const sentences = text.split(/\.\s+/);
   let summary = '';
   for (const s of sentences) {
@@ -132,48 +284,258 @@ export async function getCategoryMap() {
   return {};
 }
 
-export async function getNewPosts(feedUrl) {
+/**
+ * Build a dedup hash from title + deadline + organization text.
+ */
+function buildDedupHash(title, deadline, organizationText) {
+  const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+  const parts = [norm(title).slice(0, 60), norm(deadline || ''), norm(organizationText).slice(0, 40)];
+  return crypto.createHash('md5').update(parts.join('|')).digest('hex');
+}
+
+/**
+ * Extract organization name from feed text (heuristic: first proper noun before "offers"/"invites"/"announces").
+ */
+function extractOrganizationName(text) {
+  const m = text.match(/([A-Z][A-Za-z0-9\s&]+?)\s+(offers|invites|announces|is\s+pleased|presents|launches|seeks|calls\s+for)/);
+  return m ? m[1].trim() : '';
+}
+
+export async function getNewPosts(feedUrl, feedHealth) {
   const items = await fetchFeed(feedUrl);
   const categoryMap = await getCategoryMap();
-  const result = await pool.query('SELECT source_id FROM scraped_posts');
-  const existing = new Set(result.rows.map(r => r.source_id));
+  
+  // Get existing scraped posts and published opportunities to prevent duplicates
+  const [scrapedResult, oppResult, hashResult, oppHashResult] = await Promise.all([
+    pool.query('SELECT source_id FROM scraped_posts'),
+    pool.query('SELECT link FROM opportunities WHERE link IS NOT NULL AND link != \'\''),
+    pool.query('SELECT dedup_hash FROM scraped_posts WHERE dedup_hash != \'\''),
+    pool.query('SELECT dedup_hash FROM opportunities WHERE dedup_hash != \'\''),
+  ]);
+  const existingScraped = new Set(scrapedResult.rows.map(r => r.source_id));
+  const existingLinks = new Set(oppResult.rows.map(r => r.link));
+  const existingHashes = new Set([
+    ...hashResult.rows.map(r => r.dedup_hash),
+    ...oppHashResult.rows.map(r => r.dedup_hash),
+  ]);
 
   const newPosts = [];
   for (const item of items) {
-    if (existing.has(item.sourceId)) continue;
+    if (existingScraped.has(item.sourceId)) continue;
     if (!item.title || !item.link) continue;
-    const deadline = extractDeadline(item.content || item.description);
-    const applyLink = extractLink(item.content || item.description);
-    const imageUrl = extractImageUrl(item.content || item.description);
-    const summary = getSummary(item.content || item.description);
-    const category = mapCategory(item.categories, categoryMap);
+
+    const contentText = item.content || item.description || '';
+
+    // Phase 1: deadline extraction with chrono-node + validation
+    const deadlineResult = extractDeadline(contentText);
+    const deadlineValidation = validateDeadline(deadlineResult.iso);
+
+    // Phase 2: category classification
+    const classification = await classifyCategory(item.title, contentText, item.categories, categoryMap);
+
+    const applyLink = extractLink(contentText);
+    
+    // Skip if this apply link has already been published as an opportunity
+    if (applyLink && existingLinks.has(applyLink)) continue;
+
+    // Phase 5: fuzzy dedup by hash
+    const dedupHash = buildDedupHash(item.title, deadlineResult.iso, extractOrganizationName(contentText));
+    if (existingHashes.has(dedupHash)) continue;
+
+    const imageUrl = extractImageUrl(contentText);
+    const summary = getSummary(contentText);
+    const category = classification.category;
+
+    // Determine the item status based on validation results
+    // Phase 4: status = 'scraped' unless validation fails → 'needs_review'
+    // Items with both deadline and category clear may go to 'pending_review'
+    // if we want a human to final-check before publishing
+    let itemStatus = 'scraped';
+    let reviewReason = '';
+    if (deadlineValidation) {
+      reviewReason = deadlineValidation;
+    } else if (classification.confidence < CATEGORY_CONFIDENCE_THRESHOLD && classification.method !== 'llm') {
+      reviewReason = 'category_unclear';
+    }
+    if (reviewReason) {
+      itemStatus = 'needs_review';
+    }
 
     newPosts.push({
       ...item,
-      deadline,
-      applyLink: applyLink || item.link,
+      deadline: deadlineResult.iso || '',
+      deadlineRaw: deadlineResult.raw,
+      applyLink,
       imageUrl,
       summary: summary || item.description,
       category,
+      classificationMethod: classification.method,
+      classificationConfidence: classification.confidence,
+      dedupHash,
+      status: itemStatus,
+      reviewReason,
+      source_feed: feedUrl,
     });
   }
+
+  // Phase 6: feed health tracking
+  if (feedHealth && newPosts.length === 0) {
+    try {
+      await pool.query(
+        `INSERT INTO feed_health (feed_url, consecutive_empty_runs, updated_at)
+         VALUES ($1, 1, now())
+         ON CONFLICT (feed_url) DO UPDATE SET
+           consecutive_empty_runs = feed_health.consecutive_empty_runs + 1,
+           updated_at = now()`,
+        [feedUrl]
+      );
+      const healthResult = await pool.query('SELECT consecutive_empty_runs FROM feed_health WHERE feed_url = $1', [feedUrl]);
+      if (healthResult.rows.length && healthResult.rows[0].consecutive_empty_runs >= 3) {
+        logger.warn({ feedUrl, emptyRuns: healthResult.rows[0].consecutive_empty_runs }, 'Feed produced no new posts for 3+ consecutive runs — may be broken');
+        await logAction('feed_health_warning', { feedUrl, consecutiveEmptyRuns: healthResult.rows[0].consecutive_empty_runs }, true);
+      }
+    } catch (e) {
+      logger.warn({ err: e.message }, 'Failed to update feed health');
+    }
+  } else if (feedHealth && newPosts.length > 0) {
+    try {
+      await pool.query(
+        `INSERT INTO feed_health (feed_url, last_successful_run, consecutive_empty_runs, updated_at)
+         VALUES ($1, now(), 0, now())
+         ON CONFLICT (feed_url) DO UPDATE SET
+           last_successful_run = now(),
+           consecutive_empty_runs = 0,
+           updated_at = now()`,
+        [feedUrl]
+      );
+    } catch (e) {
+      logger.warn({ err: e.message }, 'Failed to reset feed health');
+    }
+  }
+
   return newPosts;
 }
 
 export async function saveScrapedPost(post) {
+  const structured = post.structured_data ? JSON.stringify(post.structured_data) : '{}';
+  const deadlineDate = post.deadline || null;
+  const status = post.status || 'scraped';
+  const reviewReason = post.reviewReason || '';
   await pool.query(
-    `INSERT INTO scraped_posts (source_id, source_url, source_title, source_category)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (source_id) DO NOTHING`,
-    [post.sourceId, post.link, post.title, post.category]
+    `INSERT INTO scraped_posts (source_id, source_url, source_title, source_category, raw_content, image_url, deadline, deadline_date, apply_url, summary, structured_data, status, review_reason, dedup_hash, feed_url, classification_method, classification_confidence)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+     ON CONFLICT (source_id) DO UPDATE SET
+       raw_content = EXCLUDED.raw_content,
+       image_url = EXCLUDED.image_url,
+       deadline = EXCLUDED.deadline,
+       deadline_date = EXCLUDED.deadline_date,
+       apply_url = EXCLUDED.apply_url,
+       summary = EXCLUDED.summary,
+       structured_data = EXCLUDED.structured_data,
+       status = EXCLUDED.status,
+       review_reason = EXCLUDED.review_reason,
+       dedup_hash = EXCLUDED.dedup_hash,
+       classification_method = EXCLUDED.classification_method,
+       classification_confidence = EXCLUDED.classification_confidence`,
+    [post.sourceId, post.link, post.title, post.category, post.content || '', post.imageUrl || '', post.deadline || '', deadlineDate, post.applyLink || '', post.summary || '', structured, status, reviewReason, post.dedupHash || '', post.source_feed || '', post.classificationMethod || '', post.classificationConfidence || 0]
   );
+}
+
+export async function saveDraftFromUrl(url) {
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'BridgeJobs/1.0 (Opportunity Aggregator)' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+
+  const html = await response.text();
+  const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() || 'Untitled';
+  const desc = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i)?.[1] || '';
+  const image = extractImageUrl(html);
+  const deadlineResult = extractDeadline(html);
+  const deadlineValidation = validateDeadline(deadlineResult.iso);
+  const applyUrl = extractLink(html);
+
+  const classification = await classifyCategory(title, desc, []);
+  const dedupHash = buildDedupHash(title, deadlineResult.iso, extractOrganizationName(html));
+  const reviewReason = deadlineValidation || '';
+  const status = reviewReason ? 'needs_review' : 'scraped';
+
+  const sourceId = `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await pool.query(
+    `INSERT INTO scraped_posts (source_id, source_url, source_title, source_category, raw_content, image_url, deadline, deadline_date, apply_url, summary, structured_data, status, review_reason, dedup_hash, classification_method, classification_confidence)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, '{}', $11, $12, $13, $14, $15)
+     ON CONFLICT (source_id) DO NOTHING`,
+    [sourceId, url, title, classification.category, html, image, deadlineResult.iso || '', deadlineResult.iso, applyUrl, desc, status, reviewReason, dedupHash, classification.method, classification.confidence]
+  );
+  return sourceId;
+}
+
+export async function updateDraft(id, fields) {
+  const sets = [];
+  const vals = [];
+  let idx = 1;
+  for (const [key, val] of Object.entries(fields)) {
+    if (['edited_title', 'edited_description', 'edited_category', 'edited_image_url', 'edited_deadline', 'edited_apply_url', 'source_title', 'source_category', 'summary', 'image_url', 'deadline', 'apply_url', 'raw_content', 'structured_data'].includes(key)) {
+      sets.push(`${key} = $${idx++}`);
+      vals.push(val);
+    }
+  }
+  if (sets.length === 0) return;
+  vals.push(id);
+  await pool.query(
+    `UPDATE scraped_posts SET ${sets.join(', ')} WHERE id = $${idx}`,
+    vals
+  );
+}
+
+export async function publishDraft(id, userId) {
+  const draft = await pool.query('SELECT * FROM scraped_posts WHERE id = $1', [id]);
+  if (!draft.rows.length) throw new Error('Draft not found');
+  const d = draft.rows[0];
+
+  const title = d.edited_title || d.source_title || '';
+  const description = d.edited_description || d.summary || '';
+  const category = d.edited_category || d.source_category || 'Scholarship';
+  const imageUrl = d.edited_image_url || d.image_url || '';
+  const deadline = d.edited_deadline || d.deadline || null;
+  const deadlineDate = d.deadline_date || null;
+  const applyUrl = d.edited_apply_url || d.apply_url || d.source_url;
+
+  const oppId = (await import('uuid')).v4();
+  const structuredData = d.structured_data || {};
+  await pool.query(
+      `INSERT INTO opportunities (id, title, description, link, image_url, category, deadline, deadline_date, status, created_by, created_date, updated_date, structured_data)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::date,'active',$9,now(),now(),$10)`,
+      [oppId, title, description, applyUrl, imageUrl, category, deadline, deadlineDate, userId, JSON.stringify(structuredData)]
+    );
+
+    await pool.query(
+      `UPDATE scraped_posts SET rewritten_title = $1, rewritten_description = $2, opportunity_id = $3, posted_to_website = true, posted_date = now(), status = 'published'
+       WHERE id = $4`,
+    [title, description, oppId, id]
+  );
+
+  return oppId;
 }
 
 export async function getUnprocessedPosts() {
   const result = await pool.query(
-    "SELECT * FROM scraped_posts WHERE opportunity_id IS NULL ORDER BY created_date DESC"
+    "SELECT * FROM scraped_posts WHERE status IN ('scraped', 'rewriting', 'needs_review', 'draft') ORDER BY created_date DESC"
   );
   return result.rows;
+}
+
+export async function getQueuedForImagePosts() {
+  const result = await pool.query(
+    "SELECT * FROM scraped_posts WHERE status = 'queued_for_image' ORDER BY deadline_date ASC NULLS LAST, created_date ASC"
+  );
+  return result.rows;
+}
+
+export async function getDraftById(id) {
+  const result = await pool.query('SELECT * FROM scraped_posts WHERE id = $1', [id]);
+  return result.rows[0] || null;
 }
 
 export async function getPublishedPosts(limit = 50) {

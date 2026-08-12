@@ -15,6 +15,13 @@ const EMPTY_CV = {
   customSections: [],
   sectionOrder: ['summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects', 'references'],
   template: 'modern',
+  fontFamily: 'sans',
+  fontSize: '14px',
+  headingColor: '',
+  headerBg: '',
+  headerFontColor: '',
+  bodyBg: '',
+  bodyTextColor: '',
 };
 
 export function loadCV() {
@@ -38,6 +45,13 @@ export function loadCV() {
     if (!data.sectionOrder) data.sectionOrder = [...EMPTY_CV.sectionOrder];
     if (!data.references) data.references = [];
     if (!data.customSections) data.customSections = [];
+    if (!data.fontFamily) data.fontFamily = 'sans';
+    if (!data.fontSize) data.fontSize = '14px';
+    if (!data.headingColor && data.headingColor !== '') data.headingColor = '';
+    if (!data.headerBg) data.headerBg = '';
+    if (!data.headerFontColor) data.headerFontColor = '';
+    if (!data.bodyBg) data.bodyBg = '';
+    if (!data.bodyTextColor) data.bodyTextColor = '';
     return data;
   } catch { return cloneEmpty(); }
 }

@@ -1,48 +1,69 @@
-import { Toaster } from "@/components/ui/toaster"
+import { lazy, Suspense } from 'react';
+import { Toaster } from 'sonner'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from '@/lib/AuthContext';
 import { HelmetProvider } from 'react-helmet-async';
+import { Loader2 } from 'lucide-react';
 
 const queryClient = new QueryClient();
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PageNotFound from './lib/PageNotFound';
 import CookieConsent from '@/components/CookieConsent';
-
-import Login from '@/pages/Login';
-import Home from '@/pages/Home';
-import About from '@/pages/About';
-import Services from '@/pages/Services';
-import ContactForm from '@/pages/ContactForm';
-import OpportunityDetail from '@/pages/OpportunityDetail';
-import CategoryListings from '@/pages/CategoryListings';
-import SearchResults from '@/pages/SearchResults';
-import SavedOpportunities from '@/pages/SavedOpportunities';
-import MyApplications from '@/pages/MyApplications';
-import CVBuilder from '@/pages/CVBuilder';
-import CVReview from '@/pages/CVReview';
-import CVTips from '@/pages/CVTips';
-import AIAssistant from '@/pages/AIAssistant';
-import ServerError from '@/pages/ServerError';
 import PublicLayout from './components/layout/PublicLayout';
 import AdminRoute from '@/components/AdminRoute';
 import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminOpportunities from './pages/admin/AdminOpportunities';
-import AdminCategories from './pages/admin/AdminCategories';
-import AdminMessages from './pages/admin/AdminMessages';
-import AdminSiteSettings from './pages/admin/AdminSiteSettings';
-import AdminSubscribers from './pages/admin/AdminSubscribers';
-import AdminScraper from './pages/admin/AdminScraper';
-import AdminScraperConfig from './pages/admin/AdminScraperConfig';
-import AdminLists from './pages/admin/AdminLists';
-import AdminPages from './pages/admin/AdminPages';
-import AdminNews from './pages/admin/AdminNews';
-import OpportunityForm from './pages/admin/OpportunityForm';
-import PrivacyPolicy from '@/pages/PrivacyPolicy';
-import TermsOfService from '@/pages/TermsOfService';
+
+// Route-based code splitting — pages load on-demand
+const Home = lazy(() => import('@/pages/Home'));
+const About = lazy(() => import('@/pages/About'));
+const Services = lazy(() => import('@/pages/Services'));
+const ContactForm = lazy(() => import('@/pages/ContactForm'));
+const OpportunityDetail = lazy(() => import('@/pages/OpportunityDetail'));
+const CategoryListings = lazy(() => import('@/pages/CategoryListings'));
+const SearchResults = lazy(() => import('@/pages/SearchResults'));
+const Login = lazy(() => import('@/pages/Login'));
+const SavedOpportunities = lazy(() => import('@/pages/SavedOpportunities'));
+const MyApplications = lazy(() => import('@/pages/MyApplications'));
+const CVBuilder = lazy(() => import('@/pages/CVBuilder'));
+const CVReview = lazy(() => import('@/pages/CVReview'));
+const CVTips = lazy(() => import('@/pages/CVTips'));
+const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
+const GenerateAssistant = lazy(() => import('@/pages/GenerateAssistant'));
+const PolishAssistant = lazy(() => import('@/pages/PolishAssistant'));
+const ServerError = lazy(() => import('@/pages/ServerError'));
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
+const SubmitOpportunity = lazy(() => import('@/pages/SubmitOpportunity'));
+
+// Admin pages — only loaded when user visits /admin-bridgejobs
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const AdminOpportunities = lazy(() => import('@/pages/admin/AdminOpportunities'));
+const AdminCategories = lazy(() => import('@/pages/admin/AdminCategories'));
+const AdminMessages = lazy(() => import('@/pages/admin/AdminMessages'));
+const AdminSiteSettings = lazy(() => import('@/pages/admin/AdminSiteSettings'));
+const AdminSubscribers = lazy(() => import('@/pages/admin/AdminSubscribers'));
+const AdminScraper = lazy(() => import('@/pages/admin/AdminScraper'));
+const AdminScraperConfig = lazy(() => import('@/pages/admin/AdminScraperConfig'));
+const AdminDraftEditor = lazy(() => import('@/pages/admin/AdminDraftEditor'));
+const AdminLists = lazy(() => import('@/pages/admin/AdminLists'));
+const AdminPages = lazy(() => import('@/pages/admin/AdminPages'));
+const AdminNews = lazy(() => import('@/pages/admin/AdminNews'));
+const OpportunityForm = lazy(() => import('@/pages/admin/OpportunityForm'));
+const AdminTemplates = lazy(() => import('@/pages/admin/AdminTemplates'));
+const AIExtractFromUrl = lazy(() => import('@/pages/admin/AIExtractFromUrl'));
+const AdminCvTips = lazy(() => import('@/pages/admin/AdminCvTips'));
+
+// Loading spinner for lazy-loaded routes
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
+}
 
 function AppContent() {
   const location = useLocation();
@@ -50,48 +71,57 @@ function AppContent() {
     <AuthProvider>
       <ScrollToTop />
       <ErrorBoundary>
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/contact" element={<ContactForm />} />
-              <Route path="/opportunities/:id" element={<OpportunityDetail />} />
-              <Route path="/category/:category" element={<CategoryListings />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/saved" element={<SavedOpportunities />} />
-              <Route path="/my-applications" element={<MyApplications />} />
-              <Route path="/cv-builder" element={<CVBuilder />} />
-              <Route path="/cv-review" element={<CVReview />} />
-              <Route path="/cv-tips" element={<CVTips />} />
-              <Route path="/ai-assistant" element={<AIAssistant />} />
-            </Route>
-            <Route path="/login" element={<Login />} />
-            <Route path="/500" element={<ServerError />} />
-            <Route path="/admin-bridgejobs" element={<AdminRoute />}>
-              <Route element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="opportunities" element={<AdminOpportunities />} />
-                <Route path="opportunities/new" element={<OpportunityForm />} />
-                <Route path="opportunities/:id/edit" element={<OpportunityForm />} />
-                <Route path="categories" element={<AdminCategories />} />
-                <Route path="messages" element={<AdminMessages />} />
-                <Route path="settings" element={<AdminSiteSettings />} />
-                <Route path="subscribers" element={<AdminSubscribers />} />
-                <Route path="scraper" element={<AdminScraper />} />
-                <Route path="scraper/config" element={<AdminScraperConfig />} />
-                <Route path="lists" element={<AdminLists />} />
-                <Route path="pages" element={<AdminPages />} />
-                <Route path="news" element={<AdminNews />} />
+        <Suspense fallback={<PageLoader />}>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/contact" element={<ContactForm />} />
+                <Route path="/opportunities/:id" element={<OpportunityDetail />} />
+                <Route path="/category/:category" element={<CategoryListings />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/submit-opportunity" element={<SubmitOpportunity />} />
+                <Route path="/saved" element={<SavedOpportunities />} />
+                <Route path="/my-applications" element={<MyApplications />} />
+                <Route path="/cv-builder" element={<CVBuilder />} />
+                <Route path="/cv-review" element={<CVReview />} />
+                <Route path="/cv-tips" element={<CVTips />} />
+                <Route path="/ai-assistant" element={<AIAssistant />} />
+                <Route path="/ai-assistant/generate" element={<GenerateAssistant />} />
+                <Route path="/ai-assistant/polish" element={<PolishAssistant />} />
               </Route>
-            </Route>
-            <Route path="*" element={<PageNotFound />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/500" element={<ServerError />} />
+              <Route path="/admin-bridgejobs" element={<AdminRoute />}>
+                <Route element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="opportunities" element={<AdminOpportunities />} />
+                  <Route path="opportunities/new" element={<OpportunityForm />} />
+                  <Route path="opportunities/:id/edit" element={<OpportunityForm />} />
+                  <Route path="categories" element={<AdminCategories />} />
+                  <Route path="messages" element={<AdminMessages />} />
+                  <Route path="settings" element={<AdminSiteSettings />} />
+                  <Route path="subscribers" element={<AdminSubscribers />} />
+                  <Route path="scraper" element={<AdminScraper />} />
+                  <Route path="scraper/config" element={<AdminScraperConfig />} />
+                  <Route path="scraper/drafts/:id" element={<AdminDraftEditor />} />
+                  <Route path="lists" element={<AdminLists />} />
+                  <Route path="pages" element={<AdminPages />} />
+                  <Route path="news" element={<AdminNews />} />
+                  <Route path="templates" element={<AdminTemplates />} />
+                  <Route path="ai-extract" element={<AIExtractFromUrl />} />
+                  <Route path="cv-tips" element={<AdminCvTips />} />
+                </Route>
+              </Route>            <Route path="*" element={<PageNotFound />} />
           </Routes>
-        </AnimatePresence>
+          </AnimatePresence>
+        </Suspense>
       </ErrorBoundary>
+      <Toaster />
       <CookieConsent />
     </AuthProvider>
   );

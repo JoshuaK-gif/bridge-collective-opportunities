@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { oppImageSrc } from '@/lib/images';
 import BookmarkButton from './BookmarkButton';
 import DeadlineBadge from './DeadlineBadge';
@@ -106,13 +107,9 @@ export default function ResultCard({ item }) {
         <p className="text-gray-700 leading-relaxed mb-2">{excerpt}</p>
       )}
 
-      {/* 5. Read More link */}
-      <Link
-        to={detailLink}
-        className="text-blue-700 font-semibold hover:underline inline-flex items-center gap-1"
-      >
-        Read More
-      </Link>
+      <Button variant="default" size="sm" asChild>
+        <Link to={detailLink}>Read More</Link>
+      </Button>
     </article>
   );
 }

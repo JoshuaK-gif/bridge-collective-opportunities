@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { api } from '@/api/client';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -11,12 +12,9 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    checkUserAuth();
-  }, []);
-
-  const checkUserAuth = async () => {
+  const checkUserAuth = useCallback(async () => {
     const token = localStorage.getItem('bridge_jobs_token');
     if (!token) {
       setIsLoadingAuth(false);
@@ -38,14 +36,24 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setAuthChecked(true);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkUserAuth();
+  }, [checkUserAuth]);
 
   const login = async (email, password) => {
-    await api.auth.login(email, password);
-    const currentUser = await api.auth.me();
-    setUser(currentUser);
-    setIsAuthenticated(true);
-    setAuthChecked(true);
+    try {
+      await api.auth.login(email, password);
+      const currentUser = await api.auth.me();
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+      setAuthError(null);
+    } catch (err) {
+      setAuthError(err.message || 'Login failed');
+      throw err;
+    }
   };
 
   const logout = (shouldRedirect = true) => {
@@ -53,12 +61,12 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     api.auth.logout();
     if (shouldRedirect) {
-      window.location.href = '/';
+      navigate('/');
     }
   };
 
   const navigateToLogin = () => {
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   return (

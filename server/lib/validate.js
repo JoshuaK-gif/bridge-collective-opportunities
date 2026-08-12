@@ -17,14 +17,14 @@ export function validate(schema) {
 
 export const opportunitySchema = z.object({
   title: z.string().min(1, 'Title is required').max(500, 'Title too long'),
-  description: z.string().optional().default(''),
+  description: z.string().max(100000, 'Description too long').optional().default(''),
   link: z.string().url('Invalid URL').optional().or(z.literal('')).default(''),
-  image_url: z.string().optional().default(''),
-  image_public_id: z.string().optional().default(''),
+  image_url: z.string().url('Invalid image URL').optional().or(z.literal('')).default(''),
+  image_public_id: z.string().max(500).optional().default(''),
   image_crop: z.any().optional(),
   image_size: z.string().optional().default('medium'),
-  category: z.string().optional().default(''),
-  deadline: z.string().optional().default(''),
+  category: z.string().max(100).optional().default(''),
+  deadline: z.string().max(50).optional().default(''),
 });
 
 export const categorySchema = z.object({

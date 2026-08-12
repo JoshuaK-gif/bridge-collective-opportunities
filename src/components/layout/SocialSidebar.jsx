@@ -70,9 +70,9 @@ export default function SocialSidebar() {
               target="_blank"
               rel="noopener noreferrer"
               title={s.name}
-              className={`w-10 h-10 flex items-center justify-center text-muted-foreground ${s.color} hover:text-white transition-all`}
+              className={`w-10 h-10 flex items-center justify-center ${s.color} transition-all group`}
             >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">{s.svg}</svg>
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white transition-colors">{s.svg}</svg>
             </a>
           ))}
         </div>

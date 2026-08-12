@@ -1,6 +1,6 @@
-# Bridge Jobs
+# Bridge Collective Opportunities
 
-Connecting talent to opportunity across Uganda and East Africa.
+Connecting youth to life-changing opportunities across Uganda and East Africa.
 
 ## Getting Started
 
@@ -13,6 +13,6 @@ Connecting talent to opportunity across Uganda and East Africa.
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@bridgejobs.com | password123 |
-| Employer | employer@bridgejobs.com | password123 |
-| Seeker | seeker@bridgejobs.com | password123 |
+| Admin | admin@bridgecollectiveopport.org | password123 |
+| Employer | employer@bridgecollectiveopport.org | password123 |
+| Seeker | seeker@bridgecollectiveopport.org | password123 |

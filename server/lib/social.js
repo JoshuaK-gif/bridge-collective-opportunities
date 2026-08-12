@@ -1,25 +1,74 @@
+import { createHmac, randomBytes } from 'crypto';
 import pool from './db.js';
 import logger from './logger.js';
 
 async function getSocialAccounts() {
   const result = await pool.query("SELECT value FROM site_settings WHERE key = 'social_accounts'");
   if (!result.rows.length) return null;
-  return result.rows[0].value;
+  const val = result.rows[0].value;
+  return typeof val === 'string' ? JSON.parse(val) : val;
+}
+
+function oauth1Header(method, url, body, consumerKey, consumerSecret, token, tokenSecret) {
+  const params = {
+    oauth_consumer_key: consumerKey,
+    oauth_nonce: randomBytes(16).toString('hex'),
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: Math.floor(Date.now() / 1000),
+    oauth_token: token,
+    oauth_version: '1.0',
+  };
+
+  const allParams = { ...params };
+  if (body) {
+    for (const [k, v] of Object.entries(body)) {
+      allParams[k] = v;
+    }
+  }
+
+  const paramString = Object.keys(allParams)
+    .sort()
+    .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(allParams[k])}`)
+    .join('&');
+
+  const signatureBase = [
+    method.toUpperCase(),
+    encodeURIComponent(url),
+    encodeURIComponent(paramString),
+  ].join('&');
+
+  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+  const signature = createHmac('sha1', signingKey).update(signatureBase).digest('base64');
+  params.oauth_signature = signature;
+
+  const authHeader = 'OAuth ' + Object.keys(params)
+    .sort()
+    .map(k => `${encodeURIComponent(k)}="${encodeURIComponent(params[k])}"`)
+    .join(', ');
+
+  return authHeader;
 }
 
 export async function postToTwitter(account, title, link) {
-  if (!account?.enabled || !account.api_key) {
-    return { success: false, reason: 'Twitter not configured' };
+  if (!account?.enabled || !account.api_key || !account.api_key_secret || !account.access_token || !account.access_token_secret) {
+    return { success: false, reason: 'Twitter requires API key + secret + access token + secret (OAuth 1.0a)' };
   }
   const text = `${title}\n\n${link}`.slice(0, 280);
+  const url = 'https://api.twitter.com/2/tweets';
+  const body = { text };
   try {
-    const resp = await fetch('https://api.twitter.com/2/tweets', {
+    const authHeader = oauth1Header(
+      'POST', url, body,
+      account.api_key, account.api_key_secret,
+      account.access_token, account.access_token_secret
+    );
+    const resp = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${account.access_token}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify(body),
     });
     if (!resp.ok) {
       const err = await resp.text();

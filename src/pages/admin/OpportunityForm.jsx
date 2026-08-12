@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, Upload, X, Crop } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Upload, X, Crop, Download, Globe, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const QUILL_MODULES = {
   toolbar: [
@@ -41,15 +43,104 @@ const ASPECT_RATIOS = [
 export default function OpportunityForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const fileInputRef = useRef(null);
   const isEdit = !!id;
   const [uploading, setUploading] = useState(false);
 
-  const [form, setForm] = useState({ title: '', description: '', link: '', image_url: '', image_public_id: '', image_crop: null, image_size: 'medium', category: '', deadline: '' });
+  const [form, setForm] = useState({ title: '', description: '', link: '', image_url: '', image_public_id: '', image_crop: null, image_size: 'medium', category: '', deadline: '', status: 'active', publish_at: '', template_name: '', structured_data: null });
   const [loading, setLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [saveAsDraft, setSaveAsDraft] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [cloneUrl, setCloneUrl] = useState('');
+  const [cloning, setCloning] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const [categories, setCategories] = useState([]);
+  const [duplicates, setDuplicates] = useState([]);
+  const [checkingDups, setCheckingDups] = useState(false);
+  const dupTimer = useRef(null);
+
+  const handleEnrich = async () => {
+    if (!isEdit || !form.title) return;
+    setEnriching(true);
+    try {
+      const result = await api.opportunities.enrich(id);
+      setForm(prev => ({
+        ...prev,
+        title: result.title || prev.title,
+        description: result.description || prev.description,
+      }));
+      const kw = (result.keywords || []).slice(0, 5).join(', ');
+      toast('✨ AI description generated!' + (kw ? ` Keywords: ${kw}` : ''));
+    } catch (err) {
+      toast('AI enrichment failed: ' + (err.data?.error || err.message));
+    } finally {
+      setEnriching(false);
+    }
+  };
+
+  const handleCloneUrl = async () => {
+    if (!cloneUrl.trim()) return;
+    setCloning(true);
+    try {
+      const data = await api.opportunities.cloneFromUrl(cloneUrl.trim());
+      setForm(prev => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        category: data.category || prev.category,
+        deadline: data.deadline || prev.deadline,
+        link: data.link || prev.link,
+      }));
+      setCloneUrl('');
+      toast('URL scraped — form pre-filled. Review and save.');
+    } catch (err) {
+      toast('Failed to clone URL: ' + (err.data?.error || err.message));
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    const name = prompt('Template name:');
+    if (!name) return;
+    setSavingTemplate(true);
+    try {
+      await api.templates.create({
+        name,
+        category: form.category,
+        description: form.description,
+        image_url: form.image_url,
+        deadline: form.deadline,
+        link: form.link,
+      });
+      toast('Template saved: ' + name);
+      api.templates.list().then(data => setTemplates(data)).catch(() => {});
+    } catch (err) {
+      toast('Failed to save template: ' + (err.data?.error || err.message));
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleLoadTemplate = async (templateId) => {
+    try {
+      const t = await api.templates.get(templateId);
+      setForm(prev => ({
+        ...prev,
+        title: t.name || prev.title,
+        description: t.description || prev.description,
+        category: t.category || prev.category,
+        image_url: t.image_url || prev.image_url,
+        deadline: t.deadline || prev.deadline,
+        link: t.link || prev.link,
+      }));
+      toast('Template loaded: ' + t.name);
+    } catch (err) {
+      toast('Failed to load template');
+    }
+  };
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -59,7 +150,29 @@ export default function OpportunityForm() {
 
   useEffect(() => {
     api.categories.list().then(data => setCategories(data)).catch(() => {});
+    api.templates.list().then(data => setTemplates(data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const title = form.title?.trim();
+    const link = form.link?.trim();
+    if (!title && !link) { setDuplicates([]); return; }
+    if (dupTimer.current) clearTimeout(dupTimer.current);
+    dupTimer.current = setTimeout(async () => {
+      setCheckingDups(true);
+      try {
+        const params = { title, link };
+        if (id) params.exclude = id;
+        const result = await api.opportunities.checkDuplicates(params);
+        setDuplicates(result.duplicates || []);
+      } catch {
+        setDuplicates([]);
+      } finally {
+        setCheckingDups(false);
+      }
+    }, 800);
+    return () => { if (dupTimer.current) clearTimeout(dupTimer.current); };
+  }, [form.title, form.link, id]);
 
   useEffect(() => {
     if (isEdit) {
@@ -73,6 +186,10 @@ export default function OpportunityForm() {
         image_size: data.image_size || 'medium',
         category: data.category,
         deadline: data.deadline,
+        status: data.status || 'active',
+        publish_at: data.publish_at ? data.publish_at.slice(0, 16) : '',
+        template_name: data.template_name || '',
+        structured_data: data.structured_data,
       }));
     }
   }, [id, isEdit]);
@@ -81,11 +198,11 @@ export default function OpportunityForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      toast.error('Please select an image file');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'Error', description: 'Image must be under 5MB', variant: 'destructive' });
+      toast.error('Image must be under 5MB');
       return;
     }
     setUploading(true);
@@ -98,9 +215,9 @@ export default function OpportunityForm() {
       setAspect(16 / 9);
       setCroppedAreaPixels(null);
       setCropDialogOpen(true);
-      toast({ title: 'Image uploaded', description: 'Now crop the image area to display' });
+      toast('Image uploaded', { description: 'Now crop the image area to display' });
     } catch (err) {
-      toast({ title: 'Upload failed', description: err.data?.error || err.message, variant: 'destructive' });
+      toast.error('Upload failed', { description: err.data?.error || err.message });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -140,17 +257,19 @@ export default function OpportunityForm() {
         image_size: form.image_size,
         category: form.category,
         deadline: form.deadline,
+        status: saveAsDraft ? 'draft' : form.status,
+        publish_at: form.publish_at || null,
       };
       if (isEdit) {
         await api.opportunities.update(id, body);
-        toast({ title: 'Opportunity updated' });
+        toast('Opportunity updated');
       } else {
         await api.opportunities.create(body);
-        toast({ title: 'Opportunity created' });
+        toast('Opportunity created' + (saveAsDraft ? ' as draft' : ''));
       }
       navigate('/admin-bridgejobs/opportunities');
     } catch (err) {
-      toast({ title: 'Error', description: err.data?.error || 'Failed to save', variant: 'destructive' });
+      toast('Error: ' + (err.data?.error || 'Failed to save'));
     } finally {
       setLoading(false);
     }
@@ -164,16 +283,66 @@ export default function OpportunityForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{isEdit ? 'Edit Opportunity' : 'New Opportunity'}</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>{isEdit ? 'Edit Opportunity' : 'New Opportunity'}</span>
+            {form.status === 'pending' && <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending Review</Badge>}
+          </CardTitle>
         </CardHeader>
         <CardContent>
+          {form.structured_data?.type === 'user_submission' && (
+            <div className="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
+              <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+                <Globe className="w-4 h-4" /> User Submission Details
+              </h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <span className="text-amber-700">Submitter:</span>
+                <span className="font-medium text-amber-900">{form.structured_data.submitted_by}</span>
+                <span className="text-amber-700">Email:</span>
+                <span className="font-medium text-amber-900">{form.structured_data.submitter_email || 'Not provided'}</span>
+                <span className="text-amber-700">Submitted:</span>
+                <span className="font-medium text-amber-900">{new Date(form.structured_data.submitted_at).toLocaleString()}</span>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Title *</Label>
               <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
+              {duplicates.length > 0 && (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Potential {duplicates.length === 1 ? 'duplicate' : 'duplicates'} found
+                  </div>
+                  {duplicates.map(d => (
+                    <a key={d.id} href={`/admin-bridgejobs/opportunities/${d.id}`} target="_blank" rel="noopener noreferrer"
+                      className="block text-xs text-amber-600 dark:text-amber-300 hover:underline">
+                      {d.title} <span className="text-amber-400">({d.category}{d.deadline ? ` · ${d.deadline}` : ''})</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+              {checkingDups && <p className="text-xs text-muted-foreground mt-1">Checking for duplicates...</p>}
             </div>
             <div>
-              <Label>Description</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Description</Label>
+                {isEdit && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnrich}
+                    disabled={enriching || !form.title}
+                    className="text-xs gap-1.5"
+                  >
+                    {enriching ? (
+                      <><span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Generating...</>
+                    ) : (
+                      <><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg> Generate Full Description</>
+                    )}
+                  </Button>
+                )}
+              </div>
               <ReactQuill
                 value={form.description}
                 onChange={v => setForm({ ...form, description: v })}
@@ -247,7 +416,7 @@ export default function OpportunityForm() {
               <p className="text-xs text-muted-foreground mt-1">Upload an image or paste a URL. Optional — opportunities will work without one.</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Category</Label>
                 <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
@@ -269,12 +438,66 @@ export default function OpportunityForm() {
                 </Select>
               </div>
               <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Deadline</Label>
                 <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
               </div>
+              <div>
+                <Label>Schedule Publish</Label>
+                <Input type="datetime-local" value={form.publish_at} onChange={e => setForm({ ...form, publish_at: e.target.value })} />
+              </div>
             </div>
-            <Button type="submit" disabled={loading || uploading} className="w-full">
-              {loading ? 'Saving...' : isEdit ? 'Update' : 'Create'} Opportunity
+
+            {/* Save as Draft toggle */}
+            <div className="flex items-center gap-3">
+              <Switch checked={saveAsDraft} onCheckedChange={setSaveAsDraft} />
+              <Label>Save as Draft (don't publish yet)</Label>
+            </div>
+
+            {/* Clone from URL */}
+            {!isEdit && (
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Label>Clone from URL</Label>
+                  <Input value={cloneUrl} onChange={e => setCloneUrl(e.target.value)} placeholder="https://example.com/opportunity" onKeyDown={e => e.key === 'Enter' && handleCloneUrl()} />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleCloneUrl} disabled={cloning || !cloneUrl.trim()}>
+                  <Globe className="w-4 h-4 mr-1" /> {cloning ? 'Cloning...' : 'Clone'}
+                </Button>
+              </div>
+            )}
+
+            {/* Templates */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label>Load Template</Label>
+                <Select onValueChange={handleLoadTemplate}>
+                  <SelectTrigger><SelectValue placeholder="Choose template..." /></SelectTrigger>
+                  <SelectContent>
+                    {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button type="button" variant="outline" size="sm" onClick={handleSaveTemplate} disabled={savingTemplate}>
+                  <Download className="w-4 h-4 mr-1" /> {savingTemplate ? 'Saving...' : 'Save as Template'}
+                </Button>
+              </div>
+            </div>
+
+            <Button type="submit" disabled={loading || uploading} className={`w-full ${form.status === 'pending' && !saveAsDraft ? 'bg-green-600 hover:bg-green-700' : ''}`}>
+              {loading ? 'Saving...' : isEdit ? (form.status === 'pending' && !saveAsDraft ? 'Approve & Publish' : 'Update') : saveAsDraft ? 'Save as Draft' : 'Publish'} Opportunity
             </Button>
           </form>
         </CardContent>

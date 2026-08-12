@@ -3,9 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, TrendingUp, Star, Search, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, Star, Search, ChevronLeft, ChevronRight, Check, X, Copy, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 15;
@@ -20,19 +21,29 @@ const statusColors = {
 export default function AdminOpportunities() {
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get('category');
+  const statusFilter = searchParams.get('status');
   const [opportunities, setOpportunities] = useState([]);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [page, setPage] = useState(1);
   const [inlineEdit, setInlineEdit] = useState(null);
   const [inlineForm, setInlineForm] = useState({});
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     api.opportunities.list({ category: categoryFilter || undefined, all: true }).then(data => {
-      setOpportunities(data);
+      let filtered = data;
+      if (statusFilter) {
+        filtered = data.filter(o => o.status === statusFilter);
+      }
+      setOpportunities(filtered);
       setPage(1);
       setSelected(new Set());
     });
+    api.categories.list().then(data => setCategories(data)).catch(() => {});
   }, [categoryFilter]);
 
   const filtered = useMemo(() => {
@@ -108,6 +119,61 @@ export default function AdminOpportunities() {
     }
   };
 
+  const handleDuplicate = async (id) => {
+    try {
+      const res = await api.opportunities.duplicate(id);
+      toast.success('Duplicated as draft');
+      const data = await api.opportunities.list({ all: true });
+      setOpportunities(data);
+    } catch (err) {
+      toast.error(err.data?.error || 'Failed to duplicate');
+    }
+  };
+
+  const handleBulkCategoryChange = async () => {
+    if (!bulkCategory || selected.size === 0) return;
+    try {
+      const res = await api.opportunities.bulkUpdate([...selected], { category: bulkCategory });
+      toast.success(`${res.updated} opportunities updated`);
+      setOpportunities(prev => prev.map(o => selected.has(o.id) ? { ...o, category: bulkCategory } : o));
+      setSelected(new Set());
+      setBulkCategory('');
+    } catch (err) {
+      toast.error(err.data?.error || 'Failed to update');
+    }
+  };
+
+  const handleBulkStatusChange = async () => {
+    if (!bulkStatus || selected.size === 0) return;
+    try {
+      const res = await api.opportunities.bulkUpdate([...selected], { status: bulkStatus });
+      toast.success(`${res.updated} opportunities updated`);
+      setOpportunities(prev => prev.map(o => selected.has(o.id) ? { ...o, status: bulkStatus } : o));
+      setSelected(new Set());
+      setBulkStatus('');
+    } catch (err) {
+      toast.error(err.data?.error || 'Failed to update');
+    }
+  };
+
+  const handleBulkPublish = async () => {
+    const draftIds = [...selected];
+    if (draftIds.length === 0) return;
+    if (!confirm(`Publish ${draftIds.length} selected drafts?`)) return;
+    setBulkPublishing(true);
+    try {
+      const res = await api.opportunities.bulkPublish(draftIds);
+      toast.success(`${res.published} drafts published`);
+      const data = await api.opportunities.list({ all: true });
+      setOpportunities(data);
+      setSelected(new Set());
+    } catch (err) {
+      toast.error(err.data?.error || 'Bulk publish failed');
+    } finally {
+      setBulkPublishing(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Delete this opportunity?')) return;
     try {
@@ -141,6 +207,7 @@ export default function AdminOpportunities() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Opportunities</h1>
           {categoryFilter && <Badge variant="secondary">{categoryFilter}</Badge>}
+          {statusFilter && <Badge variant="secondary">{statusFilter}</Badge>}
         </div>
         <Link to="/admin-bridgejobs/opportunities/new">
           <Button><Plus className="w-4 h-4 mr-1" /> New Opportunity</Button>
@@ -153,7 +220,7 @@ export default function AdminOpportunities() {
           <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search title, category, status..." className="pl-9" />
         </div>
         {selected.size > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-muted-foreground whitespace-nowrap">{selected.size} selected</span>
             <Button variant="outline" size="sm" onClick={() => handleBulkUpdate({ trending: true })}>
               <TrendingUp className="w-3.5 h-3.5 mr-1" /> Trending
@@ -163,6 +230,24 @@ export default function AdminOpportunities() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleBulkUpdate({ featured_order: Date.now() % 10000 })}>
               <Star className="w-3.5 h-3.5 mr-1" /> Feature
+            </Button>
+            <Select value={bulkCategory} onValueChange={v => { setBulkCategory(v); setTimeout(() => handleBulkCategoryChange(), 0); }}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Set category..." /></SelectTrigger>
+              <SelectContent>
+                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={bulkStatus} onValueChange={v => { setBulkStatus(v); setTimeout(() => handleBulkStatusChange(), 0); }}>
+              <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Set status..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={handleBulkPublish} disabled={bulkPublishing}>
+              <Send className="w-3.5 h-3.5 mr-1" /> {bulkPublishing ? 'Publishing...' : 'Publish Drafts'}
             </Button>
             <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
               <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
@@ -255,6 +340,9 @@ export default function AdminOpportunities() {
                             <Link to={`/admin-bridgejobs/opportunities/${opp.id}/edit`}>
                               <Button variant="ghost" size="icon"><Pencil className="w-4 h-4" /></Button>
                             </Link>
+                            <Button variant="ghost" size="icon" onClick={() => handleDuplicate(opp.id)} title="Duplicate">
+                              <Copy className="w-4 h-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleDelete(opp.id)}>
                               <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>

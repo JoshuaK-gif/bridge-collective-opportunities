@@ -4,8 +4,9 @@ import { ThemeProvider } from 'next-themes'
 import App from '@/App.jsx'
 import '@/index.css'
 
-const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-if (gaId) {
+const isNative = typeof window !== 'undefined' && window.Capacitor !== undefined;
+
+function initGA(gaId) {
   const script = document.createElement('script');
   script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
   script.async = true;
@@ -16,14 +17,41 @@ if (gaId) {
   gtag('config', gaId);
 }
 
-if ('serviceWorker' in navigator) {
+async function loadGA() {
+  if (isNative) return;
+  try {
+    const res = await fetch('/api/settings/ga_measurement_id');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.value) initGA(data.value);
+  } catch {}
+}
+
+if ('serviceWorker' in navigator && !isNative) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js');
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-    <App />
-  </ThemeProvider>
-)
+async function initApp() {
+  if (isNative) {
+    try {
+      const { StatusBar } = await import('@capacitor/status-bar');
+      await StatusBar.setOverlaysWebView({ overlay: false });
+      await StatusBar.setBackgroundColor({ color: '#059669' });
+    } catch {}
+    try {
+      const { SplashScreen } = await import('@capacitor/splash-screen');
+      await SplashScreen.hide();
+    } catch {}
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+      <App />
+    </ThemeProvider>
+  )
+}
+
+loadGA();
+initApp();

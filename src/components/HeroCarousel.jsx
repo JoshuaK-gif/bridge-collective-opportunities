@@ -1,16 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function HeroCarousel({ items = [] }) {
   const [current, setCurrent] = useState(0);
+  const [prev, setPrev] = useState(null);
+  const [visible, setVisible] = useState(false);
+  const [loaded, setLoaded] = useState({});
+  const sectionRef = useRef(null);
+  const [slideKey, setSlideKey] = useState(0);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.1 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const changeSlide = useCallback((index) => {
+    if (index === current) return;
+    setPrev(current);
+    setCurrent(index);
+    setSlideKey(k => k + 1);
+  }, [current]);
 
   const next = useCallback(() => {
-    setCurrent((c) => (c + 1) % items.length);
-  }, [items.length]);
+    changeSlide((current + 1) % items.length);
+  }, [changeSlide, current, items.length]);
 
   const goTo = useCallback((index) => {
-    setCurrent(index);
-  }, []);
+    changeSlide(index);
+  }, [changeSlide]);
 
   useEffect(() => {
     if (items.length < 2) return;
@@ -23,74 +46,96 @@ export default function HeroCarousel({ items = [] }) {
   const main = items[current];
   const sideItems = items.filter((_, i) => i !== current).slice(0, 2);
 
+  const getOptimizedSrc = (url, width = 800) => {
+    if (!url) return '';
+    if (url.includes('res.cloudinary.com')) {
+      return url.replace('/image/upload/', `/image/upload/q_auto,f_auto,w_${width},c_fill/`);
+    }
+    return url;
+  };
+
+  const preloadImage = (src) => {
+    if (!src) return;
+    const img = new Image();
+    img.src = src;
+  };
+
   return (
-    <section className="bg-[#eef0fa]">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Main carousel */}
+    <section ref={sectionRef} className={`bg-[#eef0fa] transition-all duration-700 ease-in-out ${visible ? 'animate-fade-in-up' : 'opacity-0 translate-y-5'}`}>
+      <div className="max-w-6xl mx-auto px-4 py-4 lg:py-5">
+        <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
+          {/* Main carousel - cross-fade transition */}
           <div className="relative flex-1">
             <Link
               to={`/opportunities/${main.id}`}
               className="relative block w-full overflow-hidden rounded-xl group"
-              style={{ aspectRatio: '16/10' }}
+              style={{ aspectRatio: '16/9' }}
             >
+              {/* Previous image fading out */}
+              {prev !== null && (
+                <img
+                  key={'prev-' + slideKey}
+                  src={getOptimizedSrc(items[prev].image_url, 800)}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover animate-fade-out"
+                  style={{ willChange: 'opacity' }}
+                />
+              )}
+              {/* Current image fading in */}
               <img
-                src={main.image_url}
+                key={'curr-' + slideKey}
+                src={getOptimizedSrc(main.image_url, 800)}
                 alt={main.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                fetchpriority={current === 0 ? 'high' : 'low'}
+                loading={current === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+                onLoad={() => {
+                  setLoaded(prev => ({ ...prev, [main.id]: true }));
+                  preloadImage(items[(current + 1) % items.length]?.image_url);
+                }}
+                className="absolute inset-0 w-full h-full object-cover animate-fade-in group-hover:scale-105 transition-transform duration-700 ease-in-out"
+                style={{ willChange: 'transform, opacity' }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute top-4 left-4 z-10 flex gap-2">
+              {!loaded[main.id] && (
+                <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-xl" />
+              )}
+              {/* Dot indicators on top-left */}
+              <div className="absolute top-3 left-3 z-10 flex gap-1.5">
                 {items.map((_, i) => (
                   <button
                     key={i}
                     onClick={(e) => { e.preventDefault(); goTo(i); }}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      i === current ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80'
+                    className={`w-2 h-2 rounded-full transition-all duration-500 ease-in-out ${
+                      i === current ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80 hover:scale-110'
                     }`}
                   />
                 ))}
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-5">
-                <span className="inline-block px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider bg-primary text-white mb-2">
-                  {main.category}
-                </span>
-                <h3 className="text-white text-base md:text-2xl font-bold leading-tight max-w-2xl line-clamp-2">
-                  {main.title}
-                </h3>
-                {main.deadline && (
-                  <p className="text-white/60 text-xs md:text-sm mt-1">Deadline: {main.deadline}</p>
-                )}
               </div>
             </Link>
           </div>
 
           {/* Side cards */}
-          <div className="flex flex-row lg:flex-col gap-4 w-full lg:w-80">
-            {sideItems.map((item) => (
+          <div className="hidden lg:flex flex-row lg:flex-col gap-3 w-full lg:w-64">
+            {sideItems.map((item, i) => (
               <Link
                 key={item.id}
                 to={`/opportunities/${item.id}`}
-                className="group flex-1 lg:flex-none relative overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100"
+                className="group flex-1 lg:flex-none relative overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100 transition-all duration-500 ease-in-out animate-fade-in"
+                style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'backwards' }}
               >
-                <div className="relative h-28 md:h-32 overflow-hidden">
+                <div className="relative h-24 overflow-hidden">
                   <img
-                    src={item.image_url}
+                    src={getOptimizedSrc(item.image_url, 400)}
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover transition-all duration-500 ease-in-out group-hover:scale-105"
+                    style={{ willChange: 'transform' }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/90 text-white">
-                    {item.category}
-                  </span>
-                </div>
-                <div className="p-3">
-                  <h4 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                    {item.title}
-                  </h4>
-                  {item.deadline && (
-                    <p className="text-xs text-gray-500 mt-1">{item.deadline}</p>
-                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                    <p className="text-white text-[11px] font-semibold truncate">{item.title}</p>
+                  </div>
                 </div>
               </Link>
             ))}

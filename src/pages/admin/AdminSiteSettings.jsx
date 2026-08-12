@@ -3,7 +3,7 @@ import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, GripVertical, Mail, Send, CheckCircle2, XCircle, Sparkles, Globe } from 'lucide-react';
+import { Save, Plus, Trash2, GripVertical, Mail, Send, CheckCircle2, XCircle, Sparkles, Globe, BarChart3 } from 'lucide-react';
 
 const defaultStats = { monthly_visitors: '100K+', social_followers: '50K+', newsletter_subs: '20K+', opportunities_listed: '500+' };
 
@@ -31,6 +31,8 @@ export default function AdminSiteSettings() {
   const [aiConfig, setAiConfig] = useState({ api_key: '', provider: 'openrouter', model: 'google/gemini-2.0-flash-001', enabled: false });
   const [savingAi, setSavingAi] = useState(false);
   const [aiStatus, setAiStatus] = useState(null);
+  const [gaId, setGaId] = useState('');
+  const [savingGa, setSavingGa] = useState(false);
 
   useEffect(() => {
     api.settings.getAll().then(all => {
@@ -38,6 +40,7 @@ export default function AdminSiteSettings() {
       if (Array.isArray(all.packages)) setPackages(all.packages);
       if (all.smtp_config && all.smtp_config.host) setSmtp(all.smtp_config);
       if (all.openai_config) setAiConfig(all.openai_config);
+      if (all.ga_measurement_id) setGaId(all.ga_measurement_id);
     }).catch(() => {});
     api.request('/newsletter/status').then(d => setLastNewsletter(d)).catch(() => {});
     api.request('/ai/status').then(d => setAiStatus(d)).catch(() => {});
@@ -220,7 +223,7 @@ export default function AdminSiteSettings() {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">From Email</label>
-              <Input value={smtp.from_email} onChange={e => setSmtp(f => ({ ...f, from_email: e.target.value }))} placeholder="noreply@bridgejobs.ug" />
+              <Input value={smtp.from_email} onChange={e => setSmtp(f => ({ ...f, from_email: e.target.value }))} placeholder="noreply@bridgecollectiveopport.org" />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">From Name</label>
@@ -289,6 +292,47 @@ export default function AdminSiteSettings() {
           </div>
         </div>
       </section>
+      {/* Google Analytics */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold font-heading flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-500" /> Google Analytics
+          </h2>
+          <Button size="sm" onClick={async () => {
+            setSavingGa(true);
+            try {
+              await api.settings.update('ga_measurement_id', gaId);
+              toast.success('Google Analytics ID saved');
+            } catch {
+              toast.error('Failed to save');
+            }
+            setSavingGa(false);
+          }} disabled={savingGa}>
+            <Save className="w-4 h-4 mr-1" /> {savingGa ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+        <div className="rounded-xl border bg-card p-5 space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Measurement ID</label>
+            <Input
+              value={gaId}
+              onChange={e => setGaId(e.target.value)}
+              placeholder="G-XXXXXXXX"
+              className="font-mono max-w-xs"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Found in your Google Analytics property under Admin &rarr; Data Streams &rarr; Web &rarr; Measurement ID.
+            </p>
+          </div>
+          {gaId && (
+            <div className="flex items-center gap-2 text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+              <span className="text-green-700">GA tracking will load on all pages</span>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* AI Configuration */}
       <section>
         <div className="flex items-center justify-between mb-4">
@@ -381,15 +425,7 @@ export default function AdminSiteSettings() {
               <span className="text-xs text-muted-foreground">Cache: {aiStatus.cache_size} entries</span>
             )}
           </div>
-          <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
-            <p><strong>Gemini (recommended):</strong> Get a <strong>free API key</strong> from{' '}
-            <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>
-            {' '}— 60 requests/min free, no credit card needed. Select Gemini as provider and paste your key.</p>
-            <p><strong>Totally free:</strong> Select <strong>OpenCode Zen</strong> — no API key needed, $0 / 100% free, but has rate limits.</p>
-            <p><strong>Need more?</strong> Use <strong>OpenRouter</strong> —{' '}
-            <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai/keys</a>
-            , add $1 credit to start.</p>
-          </div>
+
         </div>
       </section>
     </div>

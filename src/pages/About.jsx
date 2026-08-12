@@ -6,7 +6,7 @@ import { api } from '@/api/client';
 import AnimatedCounter from '@/components/AnimatedCounter';
 
 const defaultContent = {
-  hero_title: 'About Bridge Collective Opportunities',
+  hero_title: 'About BCO',
   hero_subtitle: 'We are a leading platform dedicated to connecting young people with life-changing opportunities worldwide.',
   stats: [
     { value: '10K+', label: 'Opportunities' },
@@ -69,11 +69,16 @@ export default function About() {
       <AnimatedPage>
         {/* Hero */}
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-green-500 py-20">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 30px 30px, white 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
           <div className="absolute top-0 right-0 w-96 h-96 bg-orange-400/20 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-300/20 rounded-full blur-3xl" />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
-            <img src="/BCO.png" alt="BCO" className="h-28 md:h-40 w-auto mx-auto mb-6 drop-shadow-lg" />
+            <div className="flex items-center justify-center gap-0 mb-6">
+              <img src="https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png" alt="BCO" className="h-32 md:h-48 w-auto drop-shadow-lg" />
+              <span className="font-bold text-sm sm:text-base md:text-lg leading-tight text-white drop-shadow-sm text-left">
+                BRIDGE COLLECTIVE<br />OPPORTUNITIES
+              </span>
+            </div>
             <h1 className="font-heading font-bold text-4xl sm:text-5xl md:text-6xl text-white mb-4 drop-shadow-sm">
               {c.hero_title}
             </h1>

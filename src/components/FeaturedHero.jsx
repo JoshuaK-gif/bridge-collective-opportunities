@@ -1,21 +1,53 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 function FeaturedCarousel({ items }) {
   const [current, setCurrent] = useState(0);
+  const [fading, setFading] = useState(false);
+  const [prevItem, setPrevItem] = useState(null);
+  const timerRef = useRef(null);
+
+  // Preload next image
+  const preloadImage = (src) => {
+    if (!src) return;
+    const img = new Image();
+    img.src = src;
+  };
+
+  const changeSlide = useCallback((index) => {
+    if (fading) return;
+    const nextItem = items[index];
+    if (!nextItem) return;
+    
+    // Preload the next image
+    preloadImage(nextItem.image_url);
+    
+    // Start cross-fade
+    setPrevItem(items[current]);
+    setFading(true);
+    
+    setTimeout(() => {
+      setCurrent(index);
+      setFading(false);
+      setPrevItem(null);
+    }, 300);
+  }, [fading, items, current]);
 
   const next = useCallback(() => {
-    setCurrent((c) => (c + 1) % items.length);
-  }, [items.length]);
+    changeSlide((current + 1) % items.length);
+  }, [changeSlide, current, items.length]);
 
   const goTo = useCallback((index) => {
-    setCurrent(index);
-  }, []);
+    if (index === current) return;
+    // Preload the target image
+    preloadImage(items[index]?.image_url);
+    changeSlide(index);
+  }, [changeSlide, current, items]);
 
   useEffect(() => {
     if (items.length < 2) return;
-    const id = setInterval(next, 5000);
-    return () => clearInterval(id);
+    timerRef.current = setInterval(next, 5000);
+    return () => clearInterval(timerRef.current);
   }, [items, next]);
 
   if (!items || items.length === 0) return null;
@@ -29,13 +61,27 @@ function FeaturedCarousel({ items }) {
         className="relative block w-full overflow-hidden group"
         style={{ aspectRatio: '21 / 9' }}
       >
+        {/* Previous image fading out */}
+        {prevItem && (
+          <img
+            key={'prev-' + prevItem.id}
+            src={prevItem.image_url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+            style={{ opacity: fading ? 0 : 1 }}
+          />
+        )}
+        {/* Current image fading in */}
         <img
+          key={item.id + '-' + current}
           src={item.image_url}
           alt={item.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${prevItem ? 'animate-fade-in' : ''}`}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+        {/* Gradient overlay fades with image */}
+        <div key={'overlay-' + current} className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent animate-fade-in" />
+        {/* Text content fades in */}
+        <div key={'text-' + current} className="absolute bottom-0 left-0 right-0 p-6 md:p-10 animate-fade-in">
           <span className="inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-wider bg-primary text-white mb-3">
             {item.category}
           </span>
@@ -55,8 +101,8 @@ function FeaturedCarousel({ items }) {
               key={i}
               onClick={(e) => { e.preventDefault(); goTo(i); }}
               className={
-                'w-2.5 h-2.5 rounded-full transition-all ' +
-                (i === current ? 'bg-white scale-110' : 'bg-white/40 hover:bg-white/60')
+                'w-2.5 h-2.5 rounded-full transition-all duration-300 ' +
+                (i === current ? 'bg-white scale-110' : 'bg-white/40 hover:bg-white/60 hover:scale-110')
               }
             />
           ))}

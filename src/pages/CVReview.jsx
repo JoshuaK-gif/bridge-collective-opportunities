@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Upload, FileText, CheckCircle, Loader2, Sparkles, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
@@ -78,9 +79,11 @@ export default function CVReview() {
       <div className="min-h-screen bg-white">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to home
-            </Link>
+            <Button variant="default" size="sm" asChild className="mb-6">
+              <Link to="/" className="gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to home
+              </Link>
+            </Button>
 
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-6 h-6 text-primary" />
@@ -121,7 +124,7 @@ export default function CVReview() {
                     <button
                       onClick={handleAIFeedback}
                       disabled={fetchingAI}
-                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                      className="px-4 py-2 btn-fill text-white text-xs font-medium flex items-center gap-1.5"
                     >
                       <Sparkles className={`w-3.5 h-3.5 ${fetchingAI ? 'animate-spin' : ''}`} />
                       {fetchingAI ? 'Getting AI feedback...' : 'Get AI Suggestions'}
@@ -204,9 +207,9 @@ export default function CVReview() {
                   )}
 
                   <div className="text-center">
-                    <Link to="/cv-builder" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-                      Create a new CV with our CV Builder
-                    </Link>
+                    <Button variant="default" size="sm" asChild>
+                      <Link to="/cv-builder" className="gap-2">Create a new CV with our CV Builder</Link>
+                    </Button>
                   </div>
                 </div>
               )}

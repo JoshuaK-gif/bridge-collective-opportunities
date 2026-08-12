@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Save, X, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, ExternalLink, Upload } from 'lucide-react';
 
 export default function AdminNews() {
   const [news, setNews] = useState([]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
 
   const load = () => {
     setLoading(true);
@@ -18,6 +20,26 @@ export default function AdminNews() {
   };
 
   useEffect(load, []);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload/image', { method: 'POST', credentials: 'include', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setEditing(prev => ({ ...prev, image_url: data.url }));
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   const handleSave = async () => {
     if (!editing.title?.trim()) { toast.error('Title is required'); return; }
@@ -75,8 +97,18 @@ export default function AdminNews() {
               <Input value={editing.title} onChange={e => setEditing(prev => ({ ...prev, title: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Image URL</label>
-              <Input value={editing.image_url || ''} onChange={e => setEditing(prev => ({ ...prev, image_url: e.target.value }))} placeholder="https://..." />
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Image</label>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                  <Upload className="w-3.5 h-3.5 mr-1" /> {uploading ? 'Uploading...' : 'Upload'}
+                </Button>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                {editing.image_url && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{editing.image_url.split('/').pop()}</span>}
+                {!editing.image_url && <span className="text-xs text-muted-foreground">No image selected</span>}
+              </div>
+              {editing.image_url && (
+                <img src={editing.image_url} alt="" className="mt-2 h-20 rounded object-cover" />
+              )}
             </div>
           </div>
           <div>

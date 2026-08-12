@@ -1,11 +1,13 @@
-const CACHE = 'bridge-v2';
+const CACHE = 'bridge-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/BCO.png',
+  '/icons/icon-152x152.png',
+  '/icons/icon-167x167.png',
+  '/icons/icon-180x180.png',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/icon-152x152.png'
+  '/icons/icon-512x512.png'
 ];
 
 // Install: cache static assets

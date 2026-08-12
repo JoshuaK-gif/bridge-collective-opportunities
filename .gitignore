@@ -33,6 +33,17 @@ dist-ssr
 # Database
 server/pglite-data/
 
+# Capacitor native platforms (generated)
+/android/
+/ios/
+
+# Capacitor native build outputs
+android/.gradle/
+android/build/
+android/app/build/
+ios/App/build/
+ios/Pods/
+
 # Temp files
 *.bak
 test.txt

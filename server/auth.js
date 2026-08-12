@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken';
 import pool from './lib/db.js';
+import logger from './lib/logger.js';
 
-const SECRET = process.env.JWT_SECRET || 'bridge-jobs-secret-dev';
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  logger.error('JWT_SECRET is not set — authentication will fail');
+}
 
 export function generateToken(user) {
   return jwt.sign(

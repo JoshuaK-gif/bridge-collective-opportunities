@@ -95,6 +95,13 @@
     max-width: 100%;
     height: auto;
   }
+  /* All links & buttons turn orange on hover (except btn-fill which has its own hover) */
+  a, button:not(.btn-fill) {
+    transition: color 0.2s ease;
+  }
+  a:not(.btn-fill):hover, button:not(.btn-fill):hover {
+    color: hsl(var(--accent));
+  }
 }
 
 @layer utilities {
@@ -139,3 +146,75 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Phase 1.4: Bottom sheet slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
+
+/* Fade in for carousel images */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.8s ease-in-out;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.animate-fade-out {
+  animation: fade-out 0.8s ease-in-out forwards;
+}
+
+/* Button fill-from-left hover effect — green slides to orange */
+.btn-fill {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+/* Green base layer */
+.btn-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--secondary));
+  border-radius: inherit;
+  z-index: -1;
+}
+/* Orange overlay — slides in from left on hover */
+.btn-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--accent));
+  border-radius: inherit;
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-fill:hover::after {
+  transform: scaleX(1);
+}
+/* Keep text always readable against green & orange backgrounds */
+.btn-fill {
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+
+/* Direction variant: fill from right to left */
+.btn-fill-right::after {
+  transform-origin: right center;
+}
+

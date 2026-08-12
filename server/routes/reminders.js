@@ -1,17 +1,30 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import pool from '../lib/db.js';
 import logger from '../lib/logger.js';
 import { sendEmail, getSmtpConfig } from '../lib/email.js';
 
 const router = Router();
 
+const reminderSchema = z.object({
+  email: z.string().email('Invalid email'),
+  opportunityId: z.string().min(1, 'Opportunity ID is required'),
+  opportunityTitle: z.string().min(1, 'Title is required').max(500),
+  deadline: z.string().min(1, 'Deadline is required').max(50),
+});
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // POST /api/reminders - Schedule a reminder for an opportunity
 router.post('/', async (req, res, next) => {
   try {
-    const { email, opportunityId, opportunityTitle, deadline } = req.body;
-    if (!email || !opportunityId || !opportunityTitle || !deadline) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const parsed = reminderSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0].message });
     }
+    const { email, opportunityId, opportunityTitle, deadline } = parsed.data;
 
     // Store reminder in site_settings for simplicity
     const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'reminders'");
@@ -44,9 +57,17 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// POST /api/reminders/process - Process pending reminders (called by cron)
+// POST /api/reminders/process - Process pending reminders (called by cron only)
 router.post('/process', async (req, res, next) => {
   try {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret) {
+      const auth = req.headers['x-cron-secret'];
+      if (!auth || auth !== cronSecret) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
     const smtpConfig = await getSmtpConfig();
     if (!smtpConfig || !smtpConfig.host) {
       return res.json({ processed: 0, skipped: true });
@@ -66,11 +87,18 @@ router.post('/process', async (req, res, next) => {
 
     for (let i = 0; i < updatedReminders.length; i++) {
       const r = updatedReminders[i];
-      if (r.sent) continue;
-
-      const deadlineDate = new Date(r.deadline);
+      const deadlineDate = new Date(r.deadline + 'T00:00:00');
       const diffMs = deadlineDate.getTime() - now.getTime();
       const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      // Clean up reminders for past deadlines first
+      if (diffDays < -7) {
+        updatedReminders.splice(i, 1);
+        i--;
+        continue;
+      }
+
+      if (r.sent) continue;
 
       // Send reminder when 48h before deadline
       if (diffDays <= 2 && diffDays >= 0) {
@@ -85,13 +113,13 @@ router.post('/process', async (req, res, next) => {
               <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:24px;">
                 <h2 style="margin:0 0 8px;font-size:18px;">Deadline Reminder</h2>
                 <p style="color:#555;margin:0 0 16px;font-size:14px;">
-                  The opportunity <strong>"${r.opportunityTitle}"</strong> is closing soon!
+                  The opportunity <strong>"${escapeHtml(r.opportunityTitle)}"</strong> is closing soon!
                 </p>
                 <p style="color:#555;margin:0 0 16px;font-size:14px;">
-                  Deadline: <strong>${r.deadline}</strong><br/>
+                  Deadline: <strong>${escapeHtml(r.deadline)}</strong><br/>
                   Time remaining: <strong>${Math.ceil(diffDays * 24)} hours</strong>
                 </p>
-                <a href="https://bridgejobs.ug/opportunities/${r.opportunityId}"
+                <a href="https://bridgejobs.ug/opportunities/${encodeURIComponent(r.opportunityId)}"
                    style="display:inline-block;background:#667eea;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">
                   View Opportunity
                 </a>
@@ -108,12 +136,6 @@ router.post('/process', async (req, res, next) => {
           updatedReminders[i] = { ...r, sent: true, sentAt: now.toISOString() };
           processed++;
         }
-      }
-
-      // Clean up reminders for past deadlines
-      if (diffDays < -7) {
-        updatedReminders.splice(i, 1);
-        i--;
       }
     }
 

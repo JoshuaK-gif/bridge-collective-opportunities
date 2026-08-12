@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, RefreshCw, Sliders, BookOpen, Menu, X, FileText, Newspaper } from 'lucide-react';
+import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, RefreshCw, Sliders, BookOpen, Menu, X, FileText, Newspaper, Copy, Sparkles, Lightbulb } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -17,7 +17,11 @@ export default function AdminLayout() {
     { label: 'Messages', path: '/admin-bridgejobs/messages', icon: Mail },
     { label: 'Site Settings', path: '/admin-bridgejobs/settings', icon: Settings },
     { label: 'Pages', path: '/admin-bridgejobs/pages', icon: FileText },
+    { label: 'CV Tips', path: '/admin-bridgejobs/cv-tips', icon: Lightbulb },
     { label: 'News', path: '/admin-bridgejobs/news', icon: Newspaper },
+    { label: 'Templates', path: '/admin-bridgejobs/templates', icon: Copy },
+    { label: 'AI Extractor', path: '/admin-bridgejobs/ai-extract', icon: Sparkles },
+    { label: 'Submissions', path: '/admin-bridgejobs/opportunities?status=pending', icon: Mail },
     { label: 'Subscribers', path: '/admin-bridgejobs/subscribers', icon: Users },
     { label: 'Auto-Publish', path: '/admin-bridgejobs/scraper', icon: RefreshCw },
     { label: 'Scraper Config', path: '/admin-bridgejobs/scraper/config', icon: Sliders },
@@ -29,7 +33,12 @@ export default function AdminLayout() {
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between bg-white border-b px-4 h-14">
-        <Link to="/"><img src="/BCO.png" alt="BCO" className="h-12 md:h-14 w-auto" /></Link>
+        <Link to="/" className="flex items-center gap-0">
+          <img src="https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png" alt="BCO" className="h-16 md:h-20 w-auto" />
+          <span className="font-bold text-[10px] leading-tight">
+            BRIDGE COLLECTIVE<br />OPPORTUNITIES
+          </span>
+        </Link>
         <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </Button>
@@ -47,8 +56,11 @@ export default function AdminLayout() {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="hidden md:flex items-center justify-between mb-6">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/BCO.png" alt="BCO" className="h-12 md:h-14 w-auto" />
+          <Link to="/" className="flex items-center gap-0">
+            <img src="https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png" alt="BCO" className="h-20 w-auto" />
+            <span className="font-bold text-[10px] leading-tight">
+              BRIDGE COLLECTIVE<br />OPPORTUNITIES
+            </span>
           </Link>
         </div>
         <div className="md:hidden flex items-center justify-between mb-6">
