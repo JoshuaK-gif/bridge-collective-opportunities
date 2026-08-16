@@ -138,10 +138,15 @@ async function main() {
     if (typeof b !== 'string' || !b.includes('<rss')) throw new Error('not rss');
   });
 
-  // auth: login with no body → 400
+  // auth: POST /auth → 501 (login handled by Nhost Auth from the frontend)
   res = mockRes();
-  await auth(mockReq({ method: 'POST', body: {} }), res);
-  check('auth: login missing credentials → 400', res, 400, () => {});
+  await auth(mockReq({ method: 'POST', body: { email: 'x@y.com', password: 'z' } }), res);
+  check('auth: POST login → 501 (Nhost Auth)', res, 501, () => {});
+
+  // auth: me without token → 401
+  res = mockRes();
+  await auth(mockReq({ query: { action: 'me' } }), res);
+  check('auth: me without token → 401', res, 401, () => {});
 
   // cron: wrong secret → 401
   process.env.CRON_SECRET = 'test-secret';

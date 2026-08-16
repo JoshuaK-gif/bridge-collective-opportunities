@@ -1,5 +1,11 @@
 const API_URL = '/api';
 
+// Nhost Auth — sign-in happens directly with Nhost from the browser.
+// https://<subdomain>.auth.<region>.nhost.run/v1
+const NHOST_AUTH_URL =
+  import.meta.env?.VITE_NHOST_AUTH_URL ||
+  'https://ybgaidcwksqeuojraxoe.auth.ap-southeast-1.nhost.run/v1';
+
 function getToken() {
   return localStorage.getItem('bridge_jobs_token');
 }
@@ -12,11 +18,49 @@ function setToken(token) {
   }
 }
 
-async function request(path, options = {}) {
+function getRefreshToken() {
+  return localStorage.getItem('bridge_jobs_refresh');
+}
+
+function setRefreshToken(token) {
+  if (token) {
+    localStorage.setItem('bridge_jobs_refresh', token);
+  } else {
+    localStorage.removeItem('bridge_jobs_refresh');
+  }
+}
+
+/** Refresh the Nhost access token using the stored refresh token. */
+async function refreshSession() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+  try {
+    const res = await fetch(`${NHOST_AUTH_URL}/token/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.session?.accessToken) return false;
+    setToken(data.session.accessToken);
+    if (data.session.refreshToken) setRefreshToken(data.session.refreshToken);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function request(path, options = {}, _retried = false) {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+
+  // Nhost access tokens expire (~15 min). On a 401, refresh once and retry.
+  if (res.status === 401 && !_retried && (await refreshSession())) {
+    return request(path, options, true);
+  }
+
   if (options.parseJson === false) {
     if (!res.ok) throw new Error('Download failed');
     return res.blob();
@@ -91,13 +135,37 @@ export const api = {
       if (!token) throw new Error('Not authenticated');
       return request(`/auth${qs({ action: 'me' })}`);
     },
+    /** Sign in with Nhost Auth — returns the session. */
     login: async (email, password) => {
-      const data = await request('/auth', { method: 'POST', body: JSON.stringify({ action: 'login', email, password }) });
-      setToken(data.access_token);
-      return data;
+      const res = await fetch(`${NHOST_AUTH_URL}/signin/email-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.session?.accessToken) {
+        const err = new Error(data.message || data.error || 'Invalid email or password');
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+      setToken(data.session.accessToken);
+      setRefreshToken(data.session.refreshToken);
+      return data.session;
     },
-    logout: () => {
+    logout: async () => {
+      try {
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
+          await fetch(`${NHOST_AUTH_URL}/signout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+        }
+      } catch {}
       setToken(null);
+      setRefreshToken(null);
       window.location.href = '/';
     },
   },

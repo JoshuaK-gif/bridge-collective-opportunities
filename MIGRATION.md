@@ -44,20 +44,22 @@ Notes:
 | 0. Nhost project + creds | ✅ `ybgaidcwksqeuojraxoe` / `ap-southeast-1`; creds in `server/.env.nhost` (gitignored) |
 | 1. Database on Nhost | ✅ schema (migrations 001–029 + seed) applied; missing indexes fixed (pg_trgm, audit_log, title trgm) |
 | 2. API → Functions | ✅ 9 functions written + `scripts/smoke-functions.mjs` — **17/17 pass against live Nhost DB** |
-| 3. Frontend → client.js | ⬜ rewrite `src/api/client.js` to query-param scheme; feature-flag AI/Grant UI off |
-| 4. Deploy functions | ⬜ `nhost init --remote`, connect GitHub repo (functions deploy on push), set env vars |
-| 5. Vercel deploy | ⬜ push frontend; `/api/*` rewrite in `vercel.json` already points at functions URL |
-| 6. Cron | ⬜ add `NHOST_FUNCTIONS_URL` + `CRON_SECRET` to GitHub Actions secrets |
+| 3. Frontend → client.js | ✅ rewritten to query-param scheme; direct-to-Cloudinary uploads; feature-flag AI/Grant UI off |
+| 4. Auth → Nhost Auth | ✅ frontend signs in at Nhost Auth; functions verify Nhost JWTs (NHOST_JWT_SECRET auto-injected) and map by email |
+| 5. Deploy functions | ⬜ `nhost init --remote`, connect GitHub repo (functions deploy on push), set env vars |
+| 6. Vercel deploy | ⬜ pushed to GitHub ✓; deploy via Vercel (project `bridge-collective-nhost`) |
+| 7. Cron | ⬜ add `NHOST_FUNCTIONS_URL` + `CRON_SECRET` to GitHub Actions secrets |
 
 ## Env vars to set on Nhost (dashboard)
 
-`DATABASE_URL` (already set), `JWT_SECRET` (same value the old server used), `CRON_SECRET`, `SITE_URL`, `WEBHOOK_SECRET` (if scraper webhook is used), `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET`.
+`DATABASE_URL` (already set), `NHOST_JWT_SECRET` (auto-injected for functions), `CRON_SECRET`, `SITE_URL`, `WEBHOOK_SECRET` (if scraper webhook is used), `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET`.
+
+> Nhost Auth: create the admin user in the Nhost dashboard (Auth → Users → Add user) with the same email as the app's `users` row (`kamulegeyajoshua534@gmail.com`) so role mapping works.
 
 ## Removed from the Nhost deployment (kept in repo)
 
 - `server/routes/ai.js`, `lib/enrich.js`, `lib/rewriter.js` (AI)
 - `server/routes/grantkit.js`, `lib/grantkit.js`, `engine/` (GrantKit — the engine container is still useful if Nhost Run is ever enabled)
 - `server/routes/cv-pdf.js`, `lib/cv-pdf.js` (PDF)
-- `server/routes/resume.js` `/parse` (multipart PDF parsing — decide later: client-side pdfjs or engine)
 - Scraper AI steps (`process`, `process-all`, `draft-enrich`) → 501
-- Old `functions/_shared` auth against NHOST_JWT_SECRET replaced with JWT_SECRET-based custom auth for localhost parity
+- Custom login (bcrypt + JWT_SECRET) replaced by Nhost Auth; `functions/auth/route.js` now resolves Nhost tokens to the app user (role) only
