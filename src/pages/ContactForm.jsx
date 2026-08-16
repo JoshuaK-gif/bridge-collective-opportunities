@@ -175,7 +175,7 @@ export default function Contact() {
               <div className="flex gap-3">
                 {[
                   { name: 'WhatsApp', href: 'https://whatsapp.com/channel/0029Vb8Nr1KBPzjZzrhmfe24' },
-                  { name: 'Facebook', href: 'https://facebook.com/' },
+                  { name: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61591613761234' },
                   { name: 'X', href: 'https://x.com/' },
                   { name: 'LinkedIn', href: 'https://linkedin.com/' },
                 ].map((s, i) => (

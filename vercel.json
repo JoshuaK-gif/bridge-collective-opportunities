@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/sitemap.xml",
+      "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/seo?type=sitemap"
+    },
+    {
+      "source": "/api/rss.xml",
+      "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/seo?type=rss"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/:path*"
+    }
+  ]
+}

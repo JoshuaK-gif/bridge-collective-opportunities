@@ -1,7 +1,19 @@
-import { Sparkles, Wand2, Edit3, ArrowLeft } from 'lucide-react';
+import { Sparkles, Wand2, Edit3, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import SEO from '@/components/SEO';
+
+const toolStyles = {
+  blue: {
+    iconBg: 'bg-blue-50', icon: 'text-blue-500', card: 'hover:border-blue-200',
+  },
+  green: {
+    iconBg: 'bg-green-50', icon: 'text-green-600', card: 'hover:border-green-200',
+  },
+  purple: {
+    iconBg: 'bg-purple-50', icon: 'text-purple-500', card: 'hover:border-purple-200',
+  },
+};
 
 const tools = [
   {
@@ -10,6 +22,13 @@ const tools = [
     color: 'blue',
     title: 'Generate Grant Application',
     desc: 'Enter opportunity details and get AI-generated grant applications with web research.',
+  },
+  {
+    to: '/ai-assistant/check',
+    icon: ShieldCheck,
+    color: 'green',
+    title: 'Funder Check & Build',
+    desc: 'Check your application against the funder\'s real rules (NSF, Nuffield, PBIF) and download PDF, Word, or Markdown.',
   },
   {
     to: '/ai-assistant/polish',
@@ -40,14 +59,15 @@ export default function AIAssistant() {
           <div className="grid gap-4">
             {tools.map(t => {
               const Icon = t.icon;
+              const style = toolStyles[t.color] || toolStyles.blue;
               return (
                 <Link
                   key={t.to}
                   to={t.to}
-                  className={`group bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all hover:border-${t.color}-200 flex items-center gap-5`}
+                  className={`group bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all ${style.card} flex items-center gap-5`}
                 >
-                  <div className={`w-14 h-14 rounded-xl bg-${t.color}-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
-                    <Icon className={`w-7 h-7 text-${t.color}-500`} />
+                  <div className={`w-14 h-14 rounded-xl ${style.iconBg} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                    <Icon className={`w-7 h-7 ${style.icon}`} />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">{t.title}</h2>

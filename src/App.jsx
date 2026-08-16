@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Toaster } from 'sonner'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
@@ -15,6 +15,7 @@ import CookieConsent from '@/components/CookieConsent';
 import PublicLayout from './components/layout/PublicLayout';
 import AdminRoute from '@/components/AdminRoute';
 import AdminLayout from './pages/admin/AdminLayout';
+import { getFeatures } from '@/lib/features';
 
 // Route-based code splitting — pages load on-demand
 const Home = lazy(() => import('@/pages/Home'));
@@ -33,6 +34,7 @@ const CVTips = lazy(() => import('@/pages/CVTips'));
 const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
 const GenerateAssistant = lazy(() => import('@/pages/GenerateAssistant'));
 const PolishAssistant = lazy(() => import('@/pages/PolishAssistant'));
+const GrantCheckAssistant = lazy(() => import('@/pages/GrantCheckAssistant'));
 const ServerError = lazy(() => import('@/pages/ServerError'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
@@ -67,6 +69,12 @@ function PageLoader() {
 
 function AppContent() {
   const location = useLocation();
+  const [features, setFeatures] = useState(null);
+
+  useEffect(() => {
+    getFeatures().then(setFeatures);
+  }, []);
+
   return (
     <AuthProvider>
       <ScrollToTop />
@@ -90,9 +98,16 @@ function AppContent() {
                 <Route path="/cv-builder" element={<CVBuilder />} />
                 <Route path="/cv-review" element={<CVReview />} />
                 <Route path="/cv-tips" element={<CVTips />} />
-                <Route path="/ai-assistant" element={<AIAssistant />} />
-                <Route path="/ai-assistant/generate" element={<GenerateAssistant />} />
-                <Route path="/ai-assistant/polish" element={<PolishAssistant />} />
+                {features?.ai !== false && (
+                  <>
+                    <Route path="/ai-assistant" element={<AIAssistant />} />
+                    <Route path="/ai-assistant/generate" element={<GenerateAssistant />} />
+                    <Route path="/ai-assistant/polish" element={<PolishAssistant />} />
+                  </>
+                )}
+                {features?.grantAssistant !== false && (
+                  <Route path="/ai-assistant/check" element={<GrantCheckAssistant />} />
+                )}
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/500" element={<ServerError />} />

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, RefreshCw, Sliders, BookOpen, Menu, X, FileText, Newspaper, Copy, Sparkles, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, RefreshCw, Sliders, BookOpen, Menu, X, FileText, Newspaper, Copy, Lightbulb } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -20,7 +20,7 @@ export default function AdminLayout() {
     { label: 'CV Tips', path: '/admin-bridgejobs/cv-tips', icon: Lightbulb },
     { label: 'News', path: '/admin-bridgejobs/news', icon: Newspaper },
     { label: 'Templates', path: '/admin-bridgejobs/templates', icon: Copy },
-    { label: 'AI Extractor', path: '/admin-bridgejobs/ai-extract', icon: Sparkles },
+    // { label: 'AI Extractor', path: '/admin-bridgejobs/ai-extract', icon: Sparkles },
     { label: 'Submissions', path: '/admin-bridgejobs/opportunities?status=pending', icon: Mail },
     { label: 'Subscribers', path: '/admin-bridgejobs/subscribers', icon: Users },
     { label: 'Auto-Publish', path: '/admin-bridgejobs/scraper', icon: RefreshCw },

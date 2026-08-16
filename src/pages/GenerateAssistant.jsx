@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Sparkles, Lightbulb, Target, ArrowLeft, ExternalLink, FileText, Globe, Wand2 } from 'lucide-react';
+import { Sparkles, Lightbulb, Target, ArrowLeft, ExternalLink, FileText, Globe, Wand2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import { api } from '@/api/client';
 
 export default function GenerateAssistant() {
+  const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [organization, setOrganization] = useState('');
@@ -208,12 +209,19 @@ export default function GenerateAssistant() {
                   <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">
                     {result.draft}
                   </div>
-                  <Button size="sm" className="mt-4 gap-1.5" onClick={() => {
-                    navigator.clipboard.writeText(result.draft);
-                    toast.success('Draft copied to clipboard!');
-                  }}>
-                    Copy Draft
-                  </Button>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Button size="sm" className="gap-1.5" onClick={() => {
+                      navigator.clipboard.writeText(result.draft);
+                      toast.success('Draft copied to clipboard!');
+                    }}>
+                      Copy Draft
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => {
+                      navigate('/ai-assistant/check', { state: { draft: result.draft, title: title.trim() } });
+                    }}>
+                      <ShieldCheck className="w-3.5 h-3.5 text-green-600" /> Check with Funder Rules
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

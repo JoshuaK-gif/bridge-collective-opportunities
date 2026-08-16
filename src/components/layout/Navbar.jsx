@@ -39,6 +39,7 @@ import {
   Sparkles,
   Wand2,
   Edit3,
+  ShieldCheck,
   Send,
   Sun,
   Moon,
@@ -46,6 +47,7 @@ import {
 import { toast } from 'sonner';
 import { api } from '@/api/client';
 import { useTheme } from 'next-themes';
+import { getFeatures } from '@/lib/features';
 
 const navCategories = [
   { label: 'Scholarships', icon: BookOpen, path: '/category/scholarships' },
@@ -65,6 +67,7 @@ const pageLinks = [
 
 const aiLinks = [
   { label: 'Generate', icon: Wand2, path: '/ai-assistant/generate' },
+  { label: 'Funder Check', icon: ShieldCheck, path: '/ai-assistant/check' },
   { label: 'Polish', icon: Edit3, path: '/ai-assistant/polish' },
 ];
 
@@ -180,6 +183,11 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [subEmail, setSubEmail] = useState('');
   const [subscribing, setSubscribing] = useState(false);
+  const [features, setFeatures] = useState(null);
+
+  useEffect(() => {
+    getFeatures().then(setFeatures);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -286,13 +294,15 @@ export default function Navbar() {
 
                   <hr className="my-1 border-gray-100 dark:border-gray-700" />
 
-                  <MobileAccordion
-                    label="AI Assistant"
-                    icon={Sparkles}
-                    items={aiLinks}
-                    location={location}
-                    searchParams={searchParams}
-                  />
+                  {features?.ai !== false && (
+                    <MobileAccordion
+                      label="AI Assistant"
+                      icon={Sparkles}
+                      items={aiLinks}
+                      location={location}
+                      searchParams={searchParams}
+                    />
+                  )}
 
                   {pageLinks.map(({ label, icon: Icon, path }) => (
                     <SheetClose asChild key={label}>
@@ -565,15 +575,17 @@ export default function Navbar() {
             onOpen={() => setActiveDropdown('Resume / CV')}
             onClose={() => setActiveDropdown(prev => prev === 'Resume / CV' ? null : prev)}
           />
-          <DropdownMenu
-            label="AI Assistant"
-            icon={Sparkles}
-            items={aiLinks}
-            location={location}
-            isOpen={activeDropdown === 'AI Assistant'}
-            onOpen={() => setActiveDropdown('AI Assistant')}
-            onClose={() => setActiveDropdown(prev => prev === 'AI Assistant' ? null : prev)}
-          />
+          {features?.ai !== false && (
+            <DropdownMenu
+              label="AI Assistant"
+              icon={Sparkles}
+              items={aiLinks}
+              location={location}
+              isOpen={activeDropdown === 'AI Assistant'}
+              onOpen={() => setActiveDropdown('AI Assistant')}
+              onClose={() => setActiveDropdown(prev => prev === 'AI Assistant' ? null : prev)}
+            />
+          )}
 
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Upload, FileText, CheckCircle, Loader2, Sparkles, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import { api } from '@/api/client';
@@ -11,8 +11,6 @@ export default function CVReview() {
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
-  const [aiSuggestions, setAiSuggestions] = useState(null);
-  const [fetchingAI, setFetchingAI] = useState(false);
 
   const handleUpload = async (e) => {
     const f = e.target.files[0];
@@ -24,19 +22,15 @@ export default function CVReview() {
     setFile(f);
     setAnalyzing(true);
     setResult(null);
-    setAiSuggestions(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', f);
-      const token = localStorage.getItem('bridge_jobs_token');
-      const res = await fetch('/api/resume/parse', {
+      // Nhost Functions can't receive multipart — send the PDF as base64 JSON.
+      const buf = await f.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const data = await api.request('/collections', {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
+        body: JSON.stringify({ resource: 'resume', action: 'parse', data: base64 }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Parse failed');
       setResult(data);
       toast.success('CV analyzed!');
     } catch (err) {
@@ -46,36 +40,9 @@ export default function CVReview() {
     }
   };
 
-  const handleAIFeedback = async () => {
-    if (!result) return;
-    setFetchingAI(true);
-    setAiSuggestions(null);
-    try {
-      const res = await api.ai.cvFeedback({
-        name: result.name,
-        email: result.email,
-        phone: result.phone,
-        skills: result.skills,
-        education: result.education,
-        experience_years: result.experience_years,
-        title: result.headline?.split(' ').slice(0, 5).join(' ') || '',
-      });
-      if (res.suggestions?.length) {
-        setAiSuggestions(res.suggestions);
-        toast.success('AI suggestions ready!');
-      } else {
-        toast.error('AI unavailable right now');
-      }
-    } catch (err) {
-      toast.error(err?.message || 'Failed to get AI suggestions');
-    } finally {
-      setFetchingAI(false);
-    }
-  };
-
   return (
     <>
-      <SEO title="CV Review" description="Upload your CV and get instant feedback with our AI-powered CV reviewer." />
+      <SEO title="CV Review" description="Upload your CV and get a free analysis of skills, education, and experience." />
       <div className="min-h-screen bg-white">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -105,7 +72,7 @@ export default function CVReview() {
                     <CheckCircle className="w-10 h-10 mx-auto mb-3 text-green-500" />
                     <p className="text-sm font-medium text-gray-700">CV Analyzed Successfully!</p>
                     <p className="text-xs text-gray-400 mt-1">{file?.name}</p>
-                    <button onClick={() => { setFile(null); setResult(null); setAiSuggestions(null); document.getElementById('cv-file-input').value = ''; }} className="text-xs text-primary hover:underline mt-2">Analyze another CV</button>
+                    <button onClick={() => { setFile(null); setResult(null); document.getElementById('cv-file-input').value = ''; }} className="text-xs text-primary hover:underline mt-2">Analyze another CV</button>
                   </div>
                 ) : (
                   <div className="py-4">
@@ -119,35 +86,6 @@ export default function CVReview() {
               {/* Results */}
               {result && (
                 <div className="mt-6 space-y-6">
-                  {/* AI Suggestions Button */}
-                  <div className="flex justify-end">
-                    <button
-                      onClick={handleAIFeedback}
-                      disabled={fetchingAI}
-                      className="px-4 py-2 btn-fill text-white text-xs font-medium flex items-center gap-1.5"
-                    >
-                      <Sparkles className={`w-3.5 h-3.5 ${fetchingAI ? 'animate-spin' : ''}`} />
-                      {fetchingAI ? 'Getting AI feedback...' : 'Get AI Suggestions'}
-                    </button>
-                  </div>
-
-                  {/* AI Suggestions */}
-                  {aiSuggestions && aiSuggestions.length > 0 && (
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                      <h3 className="text-sm font-bold flex items-center gap-2 text-purple-700 mb-3">
-                        <Lightbulb className="w-4 h-4" /> AI Improvement Suggestions
-                      </h3>
-                      <ul className="space-y-2">
-                        {aiSuggestions.map((s, i) => (
-                          <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
-                            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                            {s}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
                   {/* Extracted Info */}
                   <div className="bg-gray-50 rounded-xl p-4">
                     <h3 className="font-bold text-sm mb-3">Extracted Info</h3>

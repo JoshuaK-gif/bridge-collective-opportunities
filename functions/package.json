@@ -1,0 +1,19 @@
+{
+  "name": "bco-functions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "chrono-node": "^2.10.0",
+    "cloudinary": "^2.10.0",
+    "fast-xml-parser": "^5.9.3",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^9.0.1",
+    "pg": "^8.22.0",
+    "pdf-parse": "^1.1.1",
+    "pino": "^10.3.1",
+    "uuid": "^11.0.0",
+    "zod": "^4.4.3"
+  }
+}

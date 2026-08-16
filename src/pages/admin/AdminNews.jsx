@@ -26,11 +26,7 @@ export default function AdminNews() {
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch('/api/upload/image', { method: 'POST', credentials: 'include', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const data = await api.upload.image(file);
       setEditing(prev => ({ ...prev, image_url: data.url }));
       toast.success('Image uploaded');
     } catch (err) {

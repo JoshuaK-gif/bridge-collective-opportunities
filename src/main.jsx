@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ThemeProvider } from 'next-themes'
 import App from '@/App.jsx'
+import { api } from '@/api/client'
 import '@/index.css'
 
 const isNative = typeof window !== 'undefined' && window.Capacitor !== undefined;
@@ -20,9 +21,7 @@ function initGA(gaId) {
 async function loadGA() {
   if (isNative) return;
   try {
-    const res = await fetch('/api/settings/ga_measurement_id');
-    if (!res.ok) return;
-    const data = await res.json();
+    const data = await api.settings.get('ga_measurement_id');
     if (data.value) initGA(data.value);
   } catch {}
 }

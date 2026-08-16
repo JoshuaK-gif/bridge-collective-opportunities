@@ -1,0 +1,82 @@
+# Triggers Nhost Function cron jobs (functions/cron/route.js).
+#
+# GitHub Actions scheduled events have a 5-minute floor, so the old 1–2 minute
+# cadences (scheduled-publish / auto-publish) become 5-minute runs. For the
+# original cadence, use Nhost cron triggers instead — see MIGRATION.md Phase 5.
+#
+# Secrets required:
+#   NHOST_FUNCTIONS_URL  e.g. https://<sub>.functions.<region>.nhost.run/v1
+#   CRON_SECRET          must match the CRON_SECRET env var on Nhost
+name: BCO cron jobs
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # auto-publish + scheduled-publish
+    - cron: '0 * * * *'     # reminders
+    - cron: '0 0 * * *'     # expired-cleanup
+    - cron: '0 20 * * *'    # newsletter
+  workflow_dispatch: {}
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    env:
+      NHOST_FUNCTIONS_URL: ${{ secrets.NHOST_FUNCTIONS_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: auto-publish + scheduled-publish (every 5 min)
+        if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sS -f -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/auto-publish" || true
+          curl -sS -f -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/scheduled-publish"
+
+      - name: reminders (hourly)
+        if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sS -f -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/reminders"
+
+      - name: expired-cleanup (daily)
+        if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sS -f -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/expired-cleanup"
+
+      - name: newsletter (daily 20:00)
+        if: github.event.schedule == '0 20 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          # The function sends one batch (50 subscribers) per invocation to stay
+          # under the 10s free-tier timeout. Loop offsets until the last batch
+          # returns done:true so every active subscriber receives the email.
+          offset=0
+          batches=0
+          while : ; do
+            resp=$(curl -sS -f -X POST \
+              -H "Content-Type: application/json" \
+              -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+              "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/newsletter?offset=$offset")
+            echo "batch offset=$offset: $resp"
+            done_flag=$(printf '%s' "$resp" | jq -r '.done // false')
+            total=$(printf '%s' "$resp" | jq -r '.total // 0')
+            skipped=$(printf '%s' "$resp" | jq -r '.skipped // false')
+            if [ "$done_flag" = "true" ] || [ "$skipped" = "true" ] || [ "$total" -lt 50 ]; then
+              break
+            fi
+            offset=$((offset + 50))
+            batches=$((batches + 1))
+            # Safety cap: never loop more than 20 batches (1000 subscribers)
+            if [ "$batches" -ge 20 ]; then
+              echo "Stopping after 20 batches (safety cap)"
+              break
+            fi
+          done

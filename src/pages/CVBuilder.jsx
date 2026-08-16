@@ -13,13 +13,12 @@ import {
 import { CSS as DndCSS } from '@dnd-kit/utilities';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
-import { ArrowLeft, Plus, Trash2, Download, Eye, EyeOff, Undo2, ChevronRight, ChevronLeft, FileText, Sparkles, Lightbulb, GripVertical, MoveUp, MoveDown, Image as ImageIcon, FileType, Linkedin, Github, Globe, Twitter, AlertTriangle, Scan, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Download, Eye, EyeOff, Undo2, ChevronRight, ChevronLeft, FileText, GripVertical, MoveUp, MoveDown, Image as ImageIcon, FileType, Linkedin, Github, Globe, Twitter, ZoomIn, ZoomOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import CVPreview from '@/components/CVPreview';
 import { loadCV, saveCV, clearCV, newId } from '@/lib/cvStore';
-import { api } from '@/api/client';
 
 const SECTION_LABELS = {
   summary: 'Professional Summary',
@@ -228,19 +227,10 @@ export default function CVBuilder() {
   const [cv, setCv] = useState(loadCV);
   const previewRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
-  const [generatingSummary, setGeneratingSummary] = useState(false);
-  const [suggestingSkills, setSuggestingSkills] = useState(false);
-  const [aiFeedback, setAiFeedback] = useState(null);
-  const [fetchingFeedback, setFetchingFeedback] = useState(false);
   const [format, setFormat] = useState('pdf');
 
   // Phase 1.2: Mobile preview modal
   const [showMobilePreview, setShowMobilePreview] = useState(false);
-  // Phase 2.1: ATS scanner
-  const [showAtsScanner, setShowAtsScanner] = useState(false);
-  const [atsJobDesc, setAtsJobDesc] = useState('');
-  const [atsResult, setAtsResult] = useState(null);
-  const [atsScanning, setAtsScanning] = useState(false);
   // Phase 1.4: Mobile bottom sheet for skill/language level
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [bottomSheetField, setBottomSheetField] = useState(null); // { type, index }
@@ -305,15 +295,8 @@ export default function CVBuilder() {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
       if (!blob) throw new Error('Failed to create image');
 
-      // Upload cropped image to Cloudinary
-      const formData = new FormData();
-      formData.append('file', blob, 'photo.jpg');
-      const res = await fetch('/api/upload/cv-photo', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      // Upload cropped image to Cloudinary (direct browser upload)
+      const data = await api.upload.cvPhoto(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
       update('photo', data.url);
       toast.success('Photo cropped & uploaded!');
     } catch (err) {
@@ -488,15 +471,8 @@ export default function CVBuilder() {
       }
 
       if (format === 'pdf') {
-        const blob = await api.cv.downloadPdf(cv);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${cv.firstName || 'CV'}_${cv.lastName || 'Bridge'}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const canvas = await captureCanvas();
+        await handleDownloadPdf(canvas);
         toast.success('CV downloaded!');
         return;
       }
@@ -508,20 +484,8 @@ export default function CVBuilder() {
       }
 
       toast.success('CV downloaded!');
-    } catch (err) {
-      const msg = err?.message || '';
-      if (msg.includes('download') || msg.includes('PDF')) {
-        toast.error('Server PDF generation failed — falling back to browser capture');
-        try {
-          const canvas = await captureCanvas();
-          await handleDownloadPdf(canvas);
-          toast.success('CV downloaded (browser fallback)!');
-        } catch {
-          toast.error('Failed to generate PDF');
-        }
-      } else {
-        toast.error(`Failed to generate ${format.toUpperCase()}`);
-      }
+    } catch {
+      toast.error(`Failed to generate ${format.toUpperCase()}`);
     } finally {
       setDownloading(false);
     }
@@ -711,74 +675,6 @@ export default function CVBuilder() {
                             />
                             <p className="text-[10px] text-gray-400 mt-1 text-right">{(cv.summary || '').length}/1000 characters</p>
                           </div>
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={async () => {
-                                setGeneratingSummary(true);
-                                try {
-                                  const body = JSON.stringify({ cv });
-                                  const res = await fetch('/api/ai/generate-summary-stream', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body,
-                                  });
-                                  if (!res.ok) {
-                                    const errData = await res.json().catch(() => ({}));
-                                    toast.error(errData.error || 'AI unavailable');
-                                    return;
-                                  }
-                                  const reader = res.body.getReader();
-                                  const decoder = new TextDecoder();
-                                  let summary = '';
-                                  while (true) {
-                                    const { done, value } = await reader.read();
-                                    if (done) break;
-                                    const chunk = decoder.decode(value, { stream: true });
-                                    const lines = chunk.split('\n');
-                                    for (const line of lines) {
-                                      if (!line.startsWith('data: ')) continue;
-                                      try {
-                                        const data = JSON.parse(line.slice(6));
-                                        if (data.done) break;
-                                        if (data.token) summary += data.token;
-                                        if (data.error) toast.error(data.error);
-                                      } catch {}
-                                    }
-                                    update('summary', summary);
-                                  }
-                                  if (summary) toast.success('Summary generated!');
-                                } catch (err) {
-                                  toast.error(err?.message || 'Failed to generate summary');
-                                } finally {
-                                  setGeneratingSummary(false);
-                                }
-                              }}
-                              disabled={generatingSummary}
-                              className="px-4 py-1 h-8 btn-fill rounded-xl text-white text-sm font-semibold shrink-0 flex items-center gap-2"
-                              title="Generate with AI"
-                            >
-                              <Sparkles className={`w-4 h-4 ${generatingSummary ? 'animate-spin' : ''}`} />
-                              {generatingSummary ? '...' : 'Generate'}
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!cv.summary?.trim()) { toast.error('Write a summary first'); return; }
-                                setGeneratingSummary(true);
-                                try {
-                                  const result = await api.ai.rewrite(cv.summary, 'summary', 'professional');
-                                  if (result.rewritten) { update('summary', result.rewritten); toast.success('Summary polished!'); }
-                                  else toast.error('AI unavailable');
-                                } catch (err) { toast.error(err?.message || 'Failed to polish'); }
-                                finally { setGeneratingSummary(false); }
-                              }}
-                              disabled={generatingSummary || !cv.summary?.trim()}
-                              className="px-4 py-1 h-8 btn-fill rounded-xl text-white text-sm font-semibold shrink-0 flex items-center gap-2"
-                              title="Polish existing text with AI"
-                            >
-                              <Sparkles className="w-4 h-4" />
-                              Polish
-                            </button>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -869,23 +765,6 @@ export default function CVBuilder() {
                                   <label className="text-xs font-medium text-gray-600">Description</label>
                                   <textarea value={exp.description} onChange={e => updateArrayItem('experience', i, 'description', e.target.value)} onInput={autoResize} rows={3} spellCheck={true} className="w-full mt-1 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden" placeholder="Key responsibilities and achievements..." />
                                   {exp.description?.length > 0 && <p className="text-[10px] text-gray-400 mt-0.5 text-right">{exp.description.length}/2000 characters</p>}
-                                  {exp.description?.trim() && (
-                                    <button
-                                      onClick={async () => {
-                                        setGeneratingSummary(true);
-                                        try {
-                                          const result = await api.ai.rewrite(exp.description, 'description', 'professional');
-                                          if (result.rewritten) { updateArrayItem('experience', i, 'description', result.rewritten); toast.success('Description polished!'); }
-                                          else toast.error('AI unavailable');
-                                        } catch { toast.error('Failed to polish'); }
-                                        finally { setGeneratingSummary(false); }
-                                      }}
-                                      disabled={generatingSummary}
-                                      className="mt-1.5 px-2.5 py-1 btn-fill rounded-lg text-white text-[10px] font-medium flex items-center gap-1"
-                                    >
-                                      <Sparkles className="w-3 h-3" /> Polish with AI
-                                    </button>
-                                  )}
                                 </div>
                               </div>
                             </SortableItem>
@@ -907,29 +786,6 @@ export default function CVBuilder() {
                             </button>
                           </div>
                           <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                if (!cv.title) { toast.error('Add a professional title first'); return; }
-                                setSuggestingSkills(true);
-                                try {
-                                  const skillNames = cv.skills.map(s => s.name).filter(Boolean);
-                                  const result = await api.ai.suggestSkills(cv.title, skillNames);
-                                  if (result.skills?.length) {
-                                    const existing = skillNames.map(s => s.toLowerCase());
-                                    const newSkills = result.skills.filter(s => !existing.includes(s.toLowerCase()));
-                                    const combined = [...cv.skills, ...newSkills.map(s => ({ id: newId(), name: s, level: 'Intermediate' }))];
-                                    update('skills', combined);
-                                    toast.success(`${newSkills.length} skills suggested!`);
-                                  } else toast.error('AI unavailable');
-                                 } catch (err) { toast.error(err?.message || 'Failed to get suggestions'); }
-                                 finally { setSuggestingSkills(false); }
-                              }}
-                              disabled={suggestingSkills}
-                              className="px-3 py-1.5 btn-fill rounded-lg text-white text-xs font-medium flex items-center gap-1.5"
-                            >
-                              <Sparkles className={`w-3.5 h-3.5 ${suggestingSkills ? 'animate-spin' : ''}`} />
-                              {suggestingSkills ? '...' : 'AI Suggest'}
-                            </button>
                             <Button variant="outline" size="sm" onClick={() => update('skills', [...cv.skills, { id: newId(), name: '', level: 'Intermediate' }])} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add</Button>
                           </div>
                         </div>
@@ -1498,29 +1354,6 @@ export default function CVBuilder() {
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                         <h2 className="text-lg font-bold text-gray-900">Preview & Download</h2>
                         <div className="flex flex-wrap items-center gap-2">
-                          {aiFeedback && (
-                            <Button variant="outline" size="sm" onClick={() => setAiFeedback(null)} className="text-xs">
-                              Hide AI Feedback
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              setFetchingFeedback(true);
-                              try {
-                                const result = await api.ai.cvFeedback(cv);
-                                setAiFeedback(result.suggestions || []);
-                                if (!result.suggestions?.length) toast.error('AI unavailable');
-                              } catch (err) { toast.error(err?.message || 'Failed to get feedback'); }
-                              finally { setFetchingFeedback(false); }
-                            }}
-                            disabled={fetchingFeedback}
-                            className="gap-1 text-xs"
-                          >
-                            <Lightbulb className={`w-3.5 h-3.5 ${fetchingFeedback ? 'animate-pulse' : ''}`} />
-                            {fetchingFeedback ? 'Analyzing...' : 'AI Review'}
-                          </Button>
                           <Button variant="outline" size="sm" onClick={() => { clearCV(); setCv(loadCV()); setUndoStack([]); toast.success('CV cleared'); }} className="text-red-500 hover:text-red-600 text-xs">Clear</Button>
                           <div className="flex gap-1">
                             <div className="relative">
@@ -1541,21 +1374,6 @@ export default function CVBuilder() {
                         </div>
                       </div>
 
-                      {aiFeedback && aiFeedback.length > 0 && (
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                          <h3 className="text-sm font-bold flex items-center gap-2 text-purple-700 mb-3">
-                            <Sparkles className="w-4 h-4" /> AI Suggestions
-                          </h3>
-                          <ul className="space-y-2">
-                            {aiFeedback.map((s, i) => (
-                              <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
-                                <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                       {!cv.firstName && !cv.email && !cv.phone ? (
                         <div className="text-center py-12 text-gray-400">
                           <Eye className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -1576,9 +1394,6 @@ export default function CVBuilder() {
                         <Undo2 className="w-3.5 h-3.5" />
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={() => setShowAtsScanner(true)} className="gap-1 flex-1 text-xs">
-                      <Scan className="w-3.5 h-3.5" /> ATS
-                    </Button>
                     <Button variant={showMobilePreview ? 'default' : 'outline'} size="sm" onClick={() => setShowMobilePreview(prev => !prev)} className="gap-1 flex-1 text-xs">
                       <Eye className="w-3.5 h-3.5" /> {showMobilePreview ? 'Hide Preview' : 'Preview'}
                     </Button>
@@ -1701,114 +1516,6 @@ export default function CVBuilder() {
         </div>
       )}
 
-      {/* Phase 2.1: ATS Scanner modal — mobile responsive */}
-      {showAtsScanner && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-end sm:justify-center">
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl sm:shadow-xl max-h-[92vh] sm:max-h-[85vh] overflow-y-auto rounded-t-2xl">
-            <div className="sticky top-0 bg-white px-4 sm:px-5 py-3.5 sm:py-4 border-b border-gray-100 flex items-center justify-between rounded-t-2xl">
-              <div className="min-w-0 flex-1 mr-2">
-                <h3 className="text-sm font-bold flex items-center gap-2">
-                  <Scan className="w-4 h-4 text-primary shrink-0" /> 
-                  <span className="truncate">ATS Keyword Scanner</span>
-                </h3>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">Compare your CV against a job description</p>
-              </div>
-              <button onClick={() => { setShowAtsScanner(false); setAtsResult(null); setAtsJobDesc(''); }} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 shrink-0">✕</button>
-            </div>
-            <div className="p-4 sm:p-5 space-y-4">
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Paste Job Description</label>
-                <textarea
-                  value={atsJobDesc}
-                  onChange={e => setAtsJobDesc(e.target.value)}
-                  rows={8}
-                  onInput={autoResize}
-                  className="w-full text-sm rounded-xl border border-gray-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none overflow-hidden"
-                  placeholder="Paste the full job description here to check keyword match..."
-                />
-              </div>
-              <Button
-                onClick={async () => {
-                  if (!atsJobDesc.trim()) { toast.error('Paste a job description first'); return; }
-                  setAtsScanning(true);
-                  setAtsResult(null);
-                  try {
-                    const res = await api.ai.atsScan(cv, atsJobDesc);
-                    setAtsResult(res);
-                  } catch (err) {
-                    toast.error(err?.message || 'ATS scan failed');
-                  } finally {
-                    setAtsScanning(false);
-                  }
-                }}
-                disabled={atsScanning || !atsJobDesc.trim()}
-                className="w-full gap-2 min-h-[44px]"
-              >
-                {atsScanning ? (
-                  <><Sparkles className="w-4 h-4 animate-spin" /> Scanning...</>
-                ) : (
-                  <><Scan className="w-4 h-4" /> Analyze Against CV</>
-                )}
-              </Button>
-
-              {atsResult && (
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3.5 sm:p-4 border border-blue-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-gray-700">Keyword Match</span>
-                      <span className={`text-base sm:text-lg font-bold ${
-                        atsResult.matchScore >= 70 ? 'text-green-600' :
-                        atsResult.matchScore >= 40 ? 'text-amber-600' : 'text-red-600'
-                      }`}>{atsResult.matchScore}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-2">
-                      <div
-                        className={`h-2.5 sm:h-2 rounded-full transition-all ${
-                          atsResult.matchScore >= 70 ? 'bg-green-500' :
-                          atsResult.matchScore >= 40 ? 'bg-amber-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${atsResult.matchScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {atsResult.missingKeywords?.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-700 mb-2.5 flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" /> 
-                        Missing Keywords
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {atsResult.missingKeywords.map((kw, i) => (
-                          <span key={i} className="px-2.5 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium border border-amber-200">
-                            {kw}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {atsResult.suggestions?.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-700 mb-2.5">Suggestions</h4>
-                      <ul className="space-y-2">
-                        {atsResult.suggestions.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-gray-600 leading-relaxed">
-                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                            {s}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Phase 2.1: Safe area padding for notched phones */}
-              <div className="h-4 sm:hidden" />
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

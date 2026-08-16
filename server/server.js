@@ -32,6 +32,7 @@ import reminderRoutes from './routes/reminders.js';
 import resumeRoutes from './routes/resume.js';
 import resumesRoutes from './routes/resumes.js';
 import aiRoutes from './routes/ai.js';
+import grantkitRoutes from './routes/grantkit.js';
 import cvPdfRoutes from './routes/cv-pdf.js';
 import templateRoutes from './routes/templates.js';
 
@@ -132,6 +133,7 @@ export function createApp() {
   app.use('/api/resume', resumeRoutes);
   app.use('/api/resumes', resumesRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/ai/grantkit', grantkitRoutes);
   app.use('/api', cvPdfRoutes);
   app.use('/api/templates', templateRoutes);
 
