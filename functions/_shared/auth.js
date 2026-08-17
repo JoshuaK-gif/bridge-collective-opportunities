@@ -11,6 +11,7 @@
  * tokens keep working during transition.
  */
 import jwt from 'jsonwebtoken';
+import { createPublicKey } from 'crypto';
 import { query } from './db.js';
 
 function getJwtSecret() {
@@ -33,17 +34,28 @@ export function signToken(user) {
 
 let jwksCache = null;
 
+/** Build a PEM public key from a JWKS key (supports x5c certs and n/e RSA). */
+function publicKeyFromJwk(key) {
+  if (key?.x5c?.[0]) {
+    return `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----`;
+  }
+  if (key?.n && key?.e) {
+    return createPublicKey({ key: { kty: 'RSA', n: key.n, e: key.e }, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
+  }
+  return null;
+}
+
 /**
- * Verify a Nhost JWT. Tries the symmetric secret first (HS256 — the Nhost
- * default; NHOST_JWT_SECRET is injected into Functions), then falls back to
- * the JWKS endpoint in case the project is configured with asymmetric keys.
+ * Verify a Nhost JWT. Tries the symmetric secret first (HS256 projects;
+ * NHOST_JWT_SECRET is injected into Functions), then falls back to the JWKS
+ * endpoint for asymmetric-key projects (RS256/384/512).
  */
 export async function verifyToken(token) {
   try {
     return jwt.verify(token, getJwtSecret());
   } catch (err) {
     if (err?.name === 'TokenExpiredError') throw err;
-    // Symmetric verify failed — try JWKS (asymmetric RS256 projects).
+    // Symmetric verify failed — try JWKS (asymmetric-key projects).
     const subdomain = process.env.NHOST_SUBDOMAIN;
     const region = process.env.NHOST_REGION;
     if (!subdomain || !region) throw err;
@@ -53,20 +65,16 @@ export async function verifyToken(token) {
     const { keys } = await resp.json();
     const header = jwt.decode(token, { complete: true })?.header;
     const key = keys?.find(k => k.kid === header?.kid) || keys?.[0];
-    if (!key) throw err;
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${key.x5c?.[0] || key.n}\n-----END PUBLIC KEY-----`;
+    const publicKey = publicKeyFromJwk(key);
+    if (!publicKey) throw err;
     return jwt.verify(token, publicKey, { algorithms: ['RS256', 'RS384', 'RS512'] });
   }
 }
 
-/** Extract the email from a Nhost JWT payload (custom claims or top-level). */
-function emailFromToken(decoded) {
+/** Nhost JWT sub = the Nhost Auth user id (auth.users.id). */
+function nhostUserIdFromToken(decoded) {
   const hasura = decoded?.['https://hasura.io/jwt/claims'];
-  return (
-    hasura?.['x-hasura-user-email'] ||
-    decoded?.email ||
-    ''
-  );
+  return hasura?.['x-hasura-user-id'] || decoded?.sub || '';
 }
 
 /** Returns the user row, or null after sending 401/403. */
@@ -79,20 +87,21 @@ export async function requireAuth(req, res) {
   try {
     const decoded = await verifyToken(header.split(' ')[1]);
 
-    // Nhost Auth flow: map by email to the app users table (source of role).
-    const email = emailFromToken(decoded);
-    if (email) {
+    // Nhost Auth flow: the token's sub is the Nhost Auth user id. Map it to
+    // the app users table (source of role) via the nhost_id column.
+    const nhostId = nhostUserIdFromToken(decoded);
+    if (nhostId) {
       const result = await query(
-        'SELECT id, email, full_name, role, created_date FROM users WHERE lower(email) = lower($1)',
-        [email]
+        'SELECT id, email, full_name, role, created_date FROM users WHERE nhost_id = $1',
+        [nhostId]
       );
       if (result.rows.length) return result.rows[0];
       // Nhost user without an app row — let them through as a normal user.
-      return { id: decoded.sub, email, full_name: email, role: 'user', created_date: null };
+      return { id: decoded.sub, email: decoded.email || '', full_name: '', role: 'user', created_date: null };
     }
 
     // Legacy custom-JWT flow: lookup by id.
-    const userId = decoded.id || decoded.sub || decoded['x-hasura-user-id'];
+    const userId = decoded.id || decoded.sub;
     const result = await query(
       'SELECT id, email, full_name, role, created_date FROM users WHERE id = $1',
       [userId]
