@@ -3,14 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "bridgecollectiveopport.org" }],
-      "destination": "https://www.bridgecollectiveopport.org/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/sitemap.xml",
