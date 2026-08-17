@@ -62,4 +62,4 @@ Notes:
 - `server/routes/grantkit.js`, `lib/grantkit.js`, `engine/` (GrantKit — the engine container is still useful if Nhost Run is ever enabled)
 - `server/routes/cv-pdf.js`, `lib/cv-pdf.js` (PDF)
 - Scraper AI steps (`process`, `process-all`, `draft-enrich`) → 501
-- Custom login (bcrypt + JWT_SECRET) replaced by Nhost Auth; `functions/auth/route.js` now resolves Nhost tokens to the app user (role) only
+- Custom login (bcrypt + JWT_SECRET) replaced by Nhost Auth; `functions/auth/index.js` now resolves Nhost tokens to the app user (role) only. **Function files are `functions/<name>/index.js` (Nhost file-based routing: `functions/auth/index.js` → `/v1/auth`).**

@@ -51,15 +51,15 @@ function check(name, res, expectStatus, validate) {
 }
 
 async function main() {
-  const health = (await import('../functions/health/route.js')).default;
-  const auth = (await import('../functions/auth/route.js')).default;
-  const content = (await import('../functions/content/route.js')).default;
-  const collections = (await import('../functions/collections/route.js')).default;
-  const admin = (await import('../functions/admin/route.js')).default;
-  const seo = (await import('../functions/seo/route.js')).default;
-  const scraper = (await import('../functions/scraper/route.js')).default;
-  const outreach = (await import('../functions/outreach/route.js')).default;
-  const cron = (await import('../functions/cron/route.js')).default;
+  const health = (await import('../functions/health/index.js')).default;
+  const auth = (await import('../functions/auth/index.js')).default;
+  const content = (await import('../functions/content/index.js')).default;
+  const collections = (await import('../functions/collections/index.js')).default;
+  const admin = (await import('../functions/admin/index.js')).default;
+  const seo = (await import('../functions/seo/index.js')).default;
+  const scraper = (await import('../functions/scraper/index.js')).default;
+  const outreach = (await import('../functions/outreach/index.js')).default;
+  const cron = (await import('../functions/cron/index.js')).default;
 
   // health
   let res = mockRes();

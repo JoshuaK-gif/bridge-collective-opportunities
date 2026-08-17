@@ -1,4 +1,4 @@
-# Triggers Nhost Function cron jobs (functions/cron/route.js).
+# Triggers Nhost Function cron jobs (functions/cron/index.js).
 #
 # GitHub Actions scheduled events have a 5-minute floor, so the old 1–2 minute
 # cadences (scheduled-publish / auto-publish) become 5-minute runs. For the
@@ -30,11 +30,11 @@ jobs:
           curl -sS -f -X POST \
             -H "Content-Type: application/json" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/auto-publish" || true
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=auto-publish" || true
           curl -sS -f -X POST \
             -H "Content-Type: application/json" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/scheduled-publish"
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=scheduled-publish"
 
       - name: reminders (hourly)
         if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
@@ -42,7 +42,7 @@ jobs:
           curl -sS -f -X POST \
             -H "Content-Type: application/json" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/reminders"
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=reminders"
 
       - name: expired-cleanup (daily)
         if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
@@ -50,7 +50,7 @@ jobs:
           curl -sS -f -X POST \
             -H "Content-Type: application/json" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/expired-cleanup"
+            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=expired-cleanup"
 
       - name: newsletter (daily 20:00)
         if: github.event.schedule == '0 20 * * *' || github.event_name == 'workflow_dispatch'
@@ -64,7 +64,7 @@ jobs:
             resp=$(curl -sS -f -X POST \
               -H "Content-Type: application/json" \
               -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-              "${{ secrets.NHOST_FUNCTIONS_URL }}/cron/newsletter?offset=$offset")
+              "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=newsletter&offset=$offset")
             echo "batch offset=$offset: $resp"
             done_flag=$(printf '%s' "$resp" | jq -r '.done // false')
             total=$(printf '%s' "$resp" | jq -r '.total // 0')
