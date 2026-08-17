@@ -15,6 +15,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
