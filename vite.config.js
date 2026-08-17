@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   logLevel: 'info',
   resolve: {
     alias: {
@@ -19,6 +19,10 @@ export default defineConfig({
     },
   },
   plugins: [react()],
+  esbuild: {
+    // Drop console/debugger only in production builds
+    ...(command === 'build' ? { drop: ['console', 'debugger'] } : {}),
+  },
   build: {
     rollupOptions: {
       output: {
@@ -27,8 +31,6 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           // Animation library — only used on some pages
           'vendor-framer': ['framer-motion'],
-          // PDF generation — only used on CV builder page
-          'vendor-pdf': ['jspdf', 'html2canvas'],
           // Data & state management
           'vendor-query': ['@tanstack/react-query'],
           // UI icons — used across many pages
@@ -39,4 +41,4 @@ export default defineConfig({
     // Raise warning limit for PDF vendor chunk (loaded only on CV page)
     chunkSizeWarningLimit: 600,
   },
-})
+}))
