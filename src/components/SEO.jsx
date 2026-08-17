@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 const SITE_NAME = 'Bridge Collective Opportunities (BCO)';
 const SITE_URL = 'https://www.bridgecollectiveopport.org';
-const DEFAULT_DESC = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships, fellowships and more. Apply today!';
+const DEFAULT_DESC = 'Bridge Collective Opportunities (BCO) is a global opportunity discovery platform that connects people with opportunities in education, employment, entrepreneurship, and personal development. We make it easier to discover, understand, and access jobs, scholarships, grants, fellowships, internships, competitions, and other opportunities from around the world.';
 const DEFAULT_IMAGE = 'https://res.cloudinary.com/et33rup2/image/upload/c_pad,w_1200,h_630,b_rgb:0f5e9e/v1786959015/BCO.png';
 const TWITTER_HANDLE = '@bridgecollectiveug';
 const LOCALE = 'en_US';
