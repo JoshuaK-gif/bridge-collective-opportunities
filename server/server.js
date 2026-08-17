@@ -190,8 +190,8 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
       const oppMatch = pathname.match(/^\/opportunities\/([a-f0-9-]+)$/i);
       const catMatch = pathname.match(/^\/category\/([a-z-]+)$/i);
 
-      let pageTitle = 'Bridge Collective Opportunities (BCO) — Youth Jobs, Scholarships & Grants in Uganda';
-      let pageDesc = 'Bridge Collective Opportunities connects Ugandan & East African youth to top scholarships, jobs, grants, internships & fellowships. Apply free today!';
+      let pageTitle = 'Bridge Collective Opportunities (BCO) — Youth Jobs, Scholarships & Grants';
+      let pageDesc = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships. Apply free today!';
       let pageImage = siteUrl + '/BCO.png';
       let extraSchema = '';
 
@@ -231,7 +231,7 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
         pageDesc = 'Browse ' + displayName.toLowerCase() + ' opportunities for youth in Uganda and East Africa. Find ' + displayName.toLowerCase() + ' programs, apply online free.';
       } else if (pathname === '/about') {
         pageTitle = 'About | Bridge Collective Opportunities';
-        pageDesc = 'Learn about Bridge Collective Opportunities (BCO) — your platform connecting talent with life-changing opportunities across Uganda and East Africa.';
+        pageDesc = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships.';
       } else if (pathname === '/services') {
         pageTitle = 'Media & Marketing Services | Bridge Collective Opportunities';
         pageDesc = 'Partner with Bridge Collective Opportunities to reach ambitious youth across Africa. Promote your scholarships, jobs and grants to thousands of qualified applicants.';
@@ -296,7 +296,7 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
     "name": "Bridge Collective Opportunities",
     "url": "${siteUrl}",
     "logo": "${siteUrl}/BCO.png",
-    "description": "Connecting youth to life-changing opportunities across Uganda and East Africa.",
+    "description": "Bridge Collective is a leading platform that connects youths to various opportunities.",
     "email": "bridgecollectiveopportunities@gmail.com"
     ${extraSchema}
   }

@@ -22,7 +22,7 @@ const CATEGORY_NAMES = {
 };
 
 const STATIC_META = {
-  '/about': ['About | Bridge Collective Opportunities', 'Learn about Bridge Collective Opportunities (BCO) — your platform connecting talent with life-changing opportunities across Uganda and East Africa.'],
+  '/about': ['About | Bridge Collective Opportunities', 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships.'],
   '/services': ['Media & Marketing Services | Bridge Collective Opportunities', 'Partner with Bridge Collective Opportunities to reach ambitious youth across Africa. Promote your scholarships, jobs and grants to thousands of qualified applicants.'],
   '/contact': ['Contact | Bridge Collective Opportunities', 'Get in touch with the Bridge Collective Opportunities team. We are here to help with your hiring and job search needs.'],
   '/cv-builder': ['Free CV Builder | Bridge Collective Opportunities', 'Create a professional CV online with our free CV builder. Stand out to employers and opportunity providers with a polished resume.'],
@@ -70,7 +70,7 @@ function buildPage(url, title, desc, image, extraSchema = '') {
     "name": "Bridge Collective Opportunities",
     "url": "${escaped(SITE_URL)}",
     "logo": "${escaped(SITE_URL)}/BCO.png",
-    "description": "Connecting youth to life-changing opportunities across Uganda and East Africa."
+    "description": "Bridge Collective is a leading platform that connects youths to various opportunities."
     ${extraSchema}
   }
   </script>
@@ -88,8 +88,8 @@ export default async function middleware(request) {
 
   const pathname = request.nextUrl?.pathname || new URL(request.url).pathname;
 
-  let pageTitle = 'Bridge Collective Opportunities (BCO) — Youth Jobs, Scholarships & Grants in Uganda';
-  let pageDesc = 'Bridge Collective Opportunities connects Ugandan & East African youth to top scholarships, jobs, grants, internships & fellowships. Apply free today!';
+  let pageTitle = 'Bridge Collective Opportunities (BCO) — Youth Jobs, Scholarships & Grants';
+  let pageDesc = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships. Apply free today!';
   let pageImage = SITE_URL + '/BCO.png';
   let extraSchema = '';
 
