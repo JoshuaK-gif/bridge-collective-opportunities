@@ -191,8 +191,8 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
       const catMatch = pathname.match(/^\/category\/([a-z-]+)$/i);
 
       let pageTitle = 'Bridge Collective Opportunities (BCO) — Youth Jobs, Scholarships & Grants';
-      let pageDesc = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships. Apply free today!';
-      let pageImage = siteUrl + '/BCO.png';
+      let pageDesc = 'Bridge Collective Opportunities connects Ugandan & East African youth to top scholarships, jobs, grants, internships & fellowships. Apply free today!';
+      let pageImage = 'https://res.cloudinary.com/et33rup2/image/upload/c_pad,w_1200,h_630,b_rgb:0f5e9e/v1786959015/BCO.png';
       let extraSchema = '';
 
       if (oppMatch) {
@@ -206,7 +206,7 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
             const cleanDesc = (opp.description || '').replace(/<[^>]*>/g, '').substring(0, 300);
             pageTitle = opp.title + ' | Bridge Collective Opportunities';
             pageDesc = cleanDesc || ('Apply for ' + opp.title + ' on Bridge Collective Opportunities.');
-            pageImage = opp.image_url ? (opp.image_url.startsWith('http') ? opp.image_url : siteUrl + opp.image_url) : siteUrl + '/BCO.png';
+            pageImage = opp.image_url ? (opp.image_url.startsWith('http') ? opp.image_url : siteUrl + opp.image_url) : 'https://res.cloudinary.com/et33rup2/image/upload/c_pad,w_1200,h_630,b_rgb:0f5e9e/v1786959015/BCO.png';
             extraSchema = ',\n    ' + JSON.stringify({
               '@type': 'Product',
               'name': opp.title,
@@ -231,7 +231,7 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
         pageDesc = 'Browse ' + displayName.toLowerCase() + ' opportunities for youth in Uganda and East Africa. Find ' + displayName.toLowerCase() + ' programs, apply online free.';
       } else if (pathname === '/about') {
         pageTitle = 'About | Bridge Collective Opportunities';
-        pageDesc = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships.';
+        pageDesc = 'Bridge Collective Opportunities connects Ugandan & East African youth to top scholarships, jobs, grants, internships & fellowships.';
       } else if (pathname === '/services') {
         pageTitle = 'Media & Marketing Services | Bridge Collective Opportunities';
         pageDesc = 'Partner with Bridge Collective Opportunities to reach ambitious youth across Africa. Promote your scholarships, jobs and grants to thousands of qualified applicants.';
@@ -287,7 +287,7 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
   <meta name="twitter:image" content="${pageImage}">
   <meta name="twitter:site" content="@bridgecollectiveug">
   <link rel="canonical" href="${siteUrl}${pathname}">
-  <link rel="icon" type="image/png" href="/BCO.png">
+  <link rel="icon" type="image/png" href="/favicon-32x32.png">
   <link rel="manifest" href="/manifest.json">
   <script type="application/ld+json">
   {
@@ -295,8 +295,8 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
     "@type": "Organization",
     "name": "Bridge Collective Opportunities",
     "url": "${siteUrl}",
-    "logo": "${siteUrl}/BCO.png",
-    "description": "Bridge Collective is a leading platform that connects youths to various opportunities.",
+    "logo": "https://res.cloudinary.com/et33rup2/image/upload/c_pad,w_1200,h_630,b_rgb:0f5e9e/v1786959015/BCO.png",
+    "description": "Bridge Collective Opportunities connects Ugandan & East African youth to top scholarships, jobs, grants, internships & fellowships.",
     "email": "bridgecollectiveopportunities@gmail.com"
     ${extraSchema}
   }
