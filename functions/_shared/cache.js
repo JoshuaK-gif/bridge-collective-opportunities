@@ -1,39 +1,62 @@
 /**
- * Cache shim for Nhost Functions.
+ * Persistent cache for Nhost Functions.
  *
- * Serverless invocations are isolated, so this in-memory cache only helps
- * within a single invocation — it is effectively a no-op across requests and
- * exists to keep ported route code compiling unchanged. If real caching is
- * wanted later, back this with Nhost's GraphQL engine / a KV store.
+ * Backed by the `response_cache` table in Postgres (see
+ * server/migrations/030_response_cache.sql) so cached payloads survive
+ * across serverless invocations. Every operation is best-effort: if the DB
+ * is unavailable a cache miss is treated as "no cache", never as an error.
  */
-const memCache = new Map();
-const memTtl = new Map();
+import { query } from './db.js';
 
 const cache = {
   async get(key) {
-    const entry = memCache.get(key);
-    if (!entry) return null;
-    if ((memTtl.get(key) || 0) < Date.now()) {
-      memCache.delete(key);
-      memTtl.delete(key);
+    try {
+      const result = await query(
+        'SELECT value FROM response_cache WHERE key = $1 AND expires_at > now()',
+        [key]
+      );
+      return result.rows.length ? result.rows[0].value : null;
+    } catch {
       return null;
     }
-    return entry;
   },
 
   async set(key, value, ttlSeconds = 60) {
-    memCache.set(key, value);
-    memTtl.set(key, Date.now() + ttlSeconds * 1000);
+    try {
+      await query(
+        `INSERT INTO response_cache (key, value, expires_at)
+         VALUES ($1, $2, now() + ($3 * interval '1 second'))
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at`,
+        [key, JSON.stringify(value), ttlSeconds]
+      );
+    } catch {
+      // best-effort — skip silently
+    }
   },
 
   async del(key) {
-    memCache.delete(key);
-    memTtl.delete(key);
+    try {
+      await query('DELETE FROM response_cache WHERE key = $1', [key]);
+    } catch {
+      // best-effort
+    }
+  },
+
+  /** Delete every key starting with `prefix` (e.g. 'opps:'). */
+  async delPrefix(prefix) {
+    try {
+      await query('DELETE FROM response_cache WHERE key LIKE $1', [`${prefix}%`]);
+    } catch {
+      // best-effort
+    }
   },
 
   async flush() {
-    memCache.clear();
-    memTtl.clear();
+    try {
+      await query('DELETE FROM response_cache');
+    } catch {
+      // best-effort
+    }
   },
 };
 

@@ -1,6 +1,8 @@
 #env
 .env
 .env.*
+# Nhost personal access token
+server/.pat
 
 # Logs
 /logs

@@ -240,10 +240,10 @@ export default function OpportunityDetail() {
                     {STATUSES.map((status) => {
                       const isActive = appStatus?.status === status;
                       const statusColors = {
-                        Applied: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
-                        Shortlisted: 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200',
-                        Accepted: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
-                        Rejected: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200',
+                        Applied: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 ring-blue-400',
+                        Shortlisted: 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200 ring-yellow-400',
+                        Accepted: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200 ring-green-400',
+                        Rejected: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200 ring-red-400',
                       };
                       return (
                         <button
@@ -251,7 +251,7 @@ export default function OpportunityDetail() {
                           onClick={() => setStatus(id, isActive ? null : status)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                             isActive
-                              ? `${statusColors[status]} ring-2 ring-offset-1 ring-${status === 'Applied' ? 'blue' : status === 'Shortlisted' ? 'yellow' : status === 'Accepted' ? 'green' : 'red'}-400`
+                              ? `${statusColors[status]} ring-2 ring-offset-1`
                               : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
                           }`}
                         >

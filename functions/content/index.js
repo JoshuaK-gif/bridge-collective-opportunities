@@ -33,10 +33,8 @@ import { validateUrl } from '../_shared/url-validator.js';
 import cache from '../_shared/cache.js';
 
 function invalidateListCache() {
-  cache.del('opps:list');
-  cache.del('opps:featured');
-  cache.del('opps:expiring');
-  cache.del('cats:list');
+  cache.delPrefix('opps:');
+  cache.delPrefix('cats:');
 }
 
 /* ---------------------------------- GET ---------------------------------- */

@@ -2,6 +2,8 @@ import { Sparkles, Wand2, Edit3, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import SEO from '@/components/SEO';
+import { useState, useEffect } from 'react';
+import { getFeatures } from '@/lib/features';
 
 const toolStyles = {
   blue: {
@@ -40,6 +42,16 @@ const tools = [
 ];
 
 export default function AIAssistant() {
+  const [features, setFeatures] = useState(null);
+
+  useEffect(() => {
+    getFeatures().then(setFeatures);
+  }, []);
+
+  const visibleTools = features?.grantAssistant === false
+    ? tools.filter((t) => t.to !== '/ai-assistant/check')
+    : tools;
+
   return (
     <>
       <SEO title="BCO Grant Assistant" description="AI-powered tools for grant applications — generate and polish with AI." />
@@ -57,7 +69,7 @@ export default function AIAssistant() {
           <p className="text-base text-gray-500 mb-8">Choose a tool below to get started.</p>
 
           <div className="grid gap-4">
-            {tools.map(t => {
+            {visibleTools.map(t => {
               const Icon = t.icon;
               const style = toolStyles[t.color] || toolStyles.blue;
               return (

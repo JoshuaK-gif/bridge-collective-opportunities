@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Tags, Activity, ArrowRight } from 'lucide-react';
+import { Briefcase, Activity, ArrowRight } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [opportunities, setOpportunities] = useState([]);
 
   useEffect(() => {
-    api.opportunities.list({ all: true }).then(setOpportunities);
+    api.opportunities.list({ all: true }).then(setOpportunities).catch(() => setOpportunities([]));
   }, []);
 
   const pending = opportunities.filter(o => o.status === 'pending');

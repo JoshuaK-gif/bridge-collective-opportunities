@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -204,12 +204,14 @@ export default function Navbar() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchValue) params.set('search', searchValue);
-    const cat = searchParams.get('category');
-    if (cat) params.set('category', cat);
-    navigate(`/?${params.toString()}`);
+    const q = searchValue.trim();
+    if (!q) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
   };
+
+  const visibleAiLinks = features?.grantAssistant === false
+    ? aiLinks.filter((l) => l.path !== '/ai-assistant/check')
+    : aiLinks;
 
   return (
     <header className={`sticky top-0 z-50 transition-shadow ${scrolled ? 'shadow-md bg-white dark:bg-gray-900' : 'bg-white dark:bg-gray-900'}`}>
@@ -298,7 +300,7 @@ export default function Navbar() {
                     <MobileAccordion
                       label="AI Assistant"
                       icon={Sparkles}
-                      items={aiLinks}
+                      items={visibleAiLinks}
                       location={location}
                       searchParams={searchParams}
                     />
@@ -579,7 +581,7 @@ export default function Navbar() {
             <DropdownMenu
               label="AI Assistant"
               icon={Sparkles}
-              items={aiLinks}
+              items={visibleAiLinks}
               location={location}
               isOpen={activeDropdown === 'AI Assistant'}
               onOpen={() => setActiveDropdown('AI Assistant')}

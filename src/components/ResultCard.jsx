@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { oppImageSrc } from '@/lib/images';
+import { categoryHref } from '@/lib/categories';
 import BookmarkButton from './BookmarkButton';
 import DeadlineBadge from './DeadlineBadge';
 import { useBookmarks } from '@/hooks/useBookmarks';
@@ -36,7 +37,6 @@ export default function ResultCard({ item }) {
   const tags = item.tags || (item.category ? [item.category] : []);
 
   const detailLink = `/opportunities/${item.id}`;
-  const authorLink = `/opportunities?author=${encodeURIComponent(item.author_name || 'Admin')}`;
 
   return (
     <article>
@@ -76,12 +76,9 @@ export default function ResultCard({ item }) {
       {/* 3. Meta line: Author | Date | Tags */}
       <div className="text-sm text-gray-500 mb-2 flex flex-wrap items-center gap-x-1">
         <span>Posted by </span>
-        <Link
-          to={authorLink}
-          className="text-gray-600 hover:underline"
-        >
+        <span className="text-gray-600">
           {item.author_name || 'Admin'}
-        </Link>
+        </span>
         <span className="text-gray-300">|</span>
         <span>{dateStr}</span>
         {tags.length > 0 && (
@@ -91,7 +88,7 @@ export default function ResultCard({ item }) {
               <span key={tag}>
                 {i > 0 && <span className="text-gray-400">, </span>}
                 <Link
-                  to={`/opportunities?category=${encodeURIComponent(tag)}`}
+                  to={categoryHref(tag)}
                   className="text-gray-600 hover:text-blue-600 hover:underline"
                 >
                   {tag}

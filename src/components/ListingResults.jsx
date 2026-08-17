@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { oppImageSrc, CATEGORY_STYLES } from '@/lib/images';
+import { categoryHref } from '@/lib/categories';
 
 const PAGE_SIZE = 15;
 
@@ -173,7 +174,7 @@ export default function ListingResults({ listings = [], query, category, loading
                     <>
                       <span className="mx-1.5">|</span>
                       <Link
-                        to={`/opportunities?category=${encodeURIComponent(item.category)}`}
+                        to={categoryHref(item.category)}
                         className="text-blue-600 hover:underline"
                       >
                         {item.category}

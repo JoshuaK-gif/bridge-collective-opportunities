@@ -22,6 +22,7 @@ export default function MyApplications() {
 
   const applications = getAllApplications();
   const appIds = Object.keys(applications);
+  const appKey = appIds.map((id) => `${id}:${applications[id]?.status ?? ''}`).join('|');
 
   useEffect(() => {
     if (appIds.length === 0) {
@@ -37,7 +38,7 @@ export default function MyApplications() {
       setOpportunities(results.filter(Boolean));
       setLoading(false);
     });
-  }, [appIds.length]);
+  }, [appKey]);
 
   const grouped = {
     Applied: opportunities.filter((o) => o.appStatus?.status === 'Applied'),

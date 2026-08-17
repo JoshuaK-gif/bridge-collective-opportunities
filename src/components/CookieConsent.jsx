@@ -24,7 +24,7 @@ export default function CookieConsent() {
           We use cookies to improve your experience. By continuing, you agree to our{' '}
           <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>{' '}
           and{' '}
-          <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
+          <Link to="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link>.
         </p>
         <div className="flex items-center gap-2 shrink-0">
           <button

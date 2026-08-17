@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, Lightbulb, Target, ArrowLeft, ExternalLink, FileText, Globe, Wand2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import { api } from '@/api/client';
+import { getFeatures } from '@/lib/features';
 
 export default function GenerateAssistant() {
   const navigate = useNavigate();
+  const [features, setFeatures] = useState(null);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [organization, setOrganization] = useState('');
@@ -16,6 +18,10 @@ export default function GenerateAssistant() {
   const [description, setDescription] = useState('');
   const [requirements, setRequirements] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
+
+  useEffect(() => {
+    getFeatures().then(setFeatures);
+  }, []);
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -216,11 +222,13 @@ export default function GenerateAssistant() {
                     }}>
                       Copy Draft
                     </Button>
+                    {features?.grantAssistant !== false && (
                     <Button size="sm" variant="outline" className="gap-1.5" onClick={() => {
                       navigate('/ai-assistant/check', { state: { draft: result.draft, title: title.trim() } });
                     }}>
                       <ShieldCheck className="w-3.5 h-3.5 text-green-600" /> Check with Funder Rules
                     </Button>
+                  )}
                   </div>
                 </div>
               </div>

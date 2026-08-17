@@ -32,8 +32,10 @@ export default function AdminOpportunities() {
   const [bulkStatus, setBulkStatus] = useState('');
   const [bulkPublishing, setBulkPublishing] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     api.opportunities.list({ category: categoryFilter || undefined, all: true }).then(data => {
       let filtered = data;
       if (statusFilter) {
@@ -42,6 +44,10 @@ export default function AdminOpportunities() {
       setOpportunities(filtered);
       setPage(1);
       setSelected(new Set());
+    }).catch(() => {
+      toast.error('Failed to load opportunities. Please try again.');
+      setOpportunities([]);
+      setLoading(false);
     });
     api.categories.list().then(data => setCategories(data)).catch(() => {});
   }, [categoryFilter]);
@@ -356,7 +362,7 @@ export default function AdminOpportunities() {
               {paged.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    {search || categoryFilter ? 'No matching opportunities' : 'No opportunities yet'}
+                    {loading ? 'Loading...' : search || categoryFilter ? 'No matching opportunities' : 'No opportunities yet'}
                   </TableCell>
                 </TableRow>
               )}
