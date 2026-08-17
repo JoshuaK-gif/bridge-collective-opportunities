@@ -1,0 +1,31 @@
+# Deploy the Nhost Functions to the cloud project on every push to master.
+#
+# Uses the official nhost-actions deploy action (no Nhost GitHub integration
+# required). Needs a Nhost Personal Access Token stored as a GitHub secret:
+#   Repo → Settings → Secrets and variables → Actions → New repository secret
+#   Name: NHOST_PAT
+#   Value: a PAT created in Nhost → (avatar) → Personal Access Tokens
+name: Deploy to Nhost
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: nhost-actions/install-nhost-cli@v1
+
+      - uses: nhost-actions/authenticate@v1
+        with:
+          pat: ${{ secrets.NHOST_PAT }}
+
+      - uses: nhost-actions/nhost-deploy@v1
+        with:
+          subdomain: ybgaidcwksqeuojraxoe
