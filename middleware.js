@@ -12,6 +12,7 @@
 
 const SITE_URL = process.env.SITE_URL || 'https://bridgecollectiveopport.org';
 const FUNCTIONS_URL = process.env.FUNCTIONS_URL || 'https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1';
+const BRAND_IMAGE = 'https://res.cloudinary.com/et33rup2/image/upload/c_pad,w_1200,h_630,b_rgb:0f5e9e/v1786959015/BCO.png';
 
 const CRAWLER_RE = /googlebot|bingbot|yandexbot|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|whatsapp|linkedinbot|slackbot|discordbot|telegrambot|applebot|semrush/i;
 
@@ -61,7 +62,7 @@ function buildPage(url, title, desc, image, extraSchema = '') {
   <meta name="twitter:description" content="${d}">
   <meta name="twitter:image" content="${i}">
   <link rel="canonical" href="${escaped(SITE_URL + url)}">
-  <link rel="icon" type="image/png" href="/BCO.png">
+  <link rel="icon" type="image/png" href="/favicon-32x32.png">
   <link rel="manifest" href="/manifest.json">
   <script type="application/ld+json">
   {
@@ -69,7 +70,7 @@ function buildPage(url, title, desc, image, extraSchema = '') {
     "@type": "Organization",
     "name": "Bridge Collective Opportunities",
     "url": "${escaped(SITE_URL)}",
-    "logo": "${escaped(SITE_URL)}/BCO.png",
+    "logo": "${BRAND_IMAGE}",
     "description": "Bridge Collective is a leading platform that connects youths to various opportunities."
     ${extraSchema}
   }
@@ -90,7 +91,7 @@ export default async function middleware(request) {
 
   let pageTitle = 'Bridge Collective Opportunities (BCO) — Youth Jobs, Scholarships & Grants';
   let pageDesc = 'Bridge Collective is a leading platform that connects youths to various opportunities — scholarships, grants, jobs, internships & fellowships. Apply free today!';
-  let pageImage = SITE_URL + '/BCO.png';
+  let pageImage = BRAND_IMAGE;
   let extraSchema = '';
 
   const oppMatch = pathname.match(/^\/opportunities\/([a-f0-9-]+)$/i);
@@ -104,7 +105,7 @@ export default async function middleware(request) {
         const cleanDesc = (opp.description || '').replace(/<[^>]*>/g, '').substring(0, 300);
         pageTitle = opp.title + ' | Bridge Collective Opportunities';
         pageDesc = cleanDesc || ('Apply for ' + opp.title + ' on Bridge Collective Opportunities.');
-        pageImage = opp.image_url ? (opp.image_url.startsWith('http') ? opp.image_url : SITE_URL + opp.image_url) : SITE_URL + '/BCO.png';
+        pageImage = opp.image_url ? (opp.image_url.startsWith('http') ? opp.image_url : SITE_URL + opp.image_url) : BRAND_IMAGE;
         extraSchema = ',\n    ' + JSON.stringify({
           '@type': 'Product',
           name: opp.title,
