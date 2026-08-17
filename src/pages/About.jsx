@@ -7,7 +7,7 @@ import AnimatedCounter from '@/components/AnimatedCounter';
 
 const defaultContent = {
   hero_title: 'About BCO',
-  hero_subtitle: 'Bridge Collective is a leading platform that connects youths to various opportunities.',
+  hero_subtitle: 'Bridge Collective Opportunities (BCO) is a global opportunity discovery platform that connects people with opportunities in education, employment, entrepreneurship, and personal development. We make it easier to discover, understand, and access jobs, scholarships, grants, fellowships, internships, competitions, and other opportunities from around the world.',
   stats: [
     { value: '10K+', label: 'Opportunities' },
     { value: '50K+', label: 'Active Users' },
@@ -65,7 +65,7 @@ export default function About() {
 
   return (
     <>
-      <SEO title="About" description="Bridge Collective is a leading platform that connects youths to various opportunities." />
+      <SEO title="About" description="Bridge Collective Opportunities (BCO) is a global opportunity discovery platform that connects people with opportunities in education, employment, entrepreneurship, and personal development. We make it easier to discover, understand, and access jobs, scholarships, grants, fellowships, internships, competitions, and other opportunities from around the world." />
       <AnimatedPage>
         {/* Hero */}
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-green-500 py-20">
