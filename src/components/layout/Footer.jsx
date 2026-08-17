@@ -38,7 +38,7 @@ export default function Footer() {
     <footer className="border-t bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 py-10 text-center">
         <div className="flex items-center justify-center gap-0 mb-2">
-          <img src="https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png" alt="BCO" className="h-20 md:h-28 w-auto" />
+          <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-20 md:h-28 w-auto" />
           <span className="font-bold text-[10px] md:text-xs leading-tight text-left text-accent">
             BRIDGE COLLECTIVE<br />OPPORTUNITIES
           </span>

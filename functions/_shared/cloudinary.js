@@ -6,7 +6,7 @@
  * for a signed upload (signature + timestamp), then POSTs the file straight to
  * Cloudinary. The signature restricts uploads to a single folder.
  */
-import { createHmac } from 'crypto';
+import { createHash } from 'crypto';
 
 export function getCloudinaryConfig() {
   return {
@@ -34,7 +34,9 @@ export function createUploadSignature({ folder, timestamp = Math.floor(Date.now(
 
   const sortedKeys = Object.keys(params).sort();
   const toSign = sortedKeys.map(k => `${k}=${params[k]}`).join('&');
-  const signature = createHmac('sha1', config.api_secret).update(toSign).digest('hex');
+  // Cloudinary: SHA1 of the sorted params string WITH the api_secret appended
+  // (NOT an HMAC). https://cloudinary.com/documentation/upload_images#generating_authentication_signatures
+  const signature = createHash('sha1').update(toSign + config.api_secret).digest('hex');
 
   return {
     cloud_name: config.cloud_name,

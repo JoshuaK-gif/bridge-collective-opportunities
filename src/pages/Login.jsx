@@ -38,7 +38,7 @@ export default function Login() {
         <Card className="border-0 shadow-xl">
           <CardHeader className="text-center pb-2">
             <div className="flex items-center justify-center gap-0 mb-4">
-              <img src="https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png" alt="BCO" className="h-20 w-auto" />
+              <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-20 w-auto" />
               <span className="font-bold text-xs leading-tight text-left">
                 BRIDGE COLLECTIVE<br />OPPORTUNITIES
               </span>

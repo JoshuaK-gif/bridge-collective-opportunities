@@ -1,4 +1,4 @@
-const CLOUD_NAME = 'dhkricnk2';
+const CLOUD_NAME = 'et33rup2';
 
 const SIZE_MAP = { small: 300, medium: 440, large: 800 };
 const DISPLAY_SCALE = { card: 1, sidebar: 0.36, thumbnail: 0.34, detail: 2 };

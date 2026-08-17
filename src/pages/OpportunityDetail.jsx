@@ -103,7 +103,7 @@ export default function OpportunityDetail() {
       'value': `bridge-${opp.id}`
     },
     'url': `https://bridgecollectiveopport.org/opportunities/${opp.id}`,
-    'image': imageUrl || 'https://res.cloudinary.com/dhkricnk2/image/upload/v1784383073/BCO.png',
+    'image': imageUrl || 'https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png',
     'provider': {
       '@type': 'Organization',
       'name': opp.organization || 'Bridge Collective Opportunities',
