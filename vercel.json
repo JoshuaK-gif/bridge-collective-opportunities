@@ -5,7 +5,7 @@
   "framework": "vite",
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "has": [{ "type": "host", "value": "bridgecollectiveopport.org" }],
       "destination": "https://www.bridgecollectiveopport.org/:path*",
       "permanent": true
