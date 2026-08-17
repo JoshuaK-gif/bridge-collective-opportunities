@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 
-Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
+Sitemap: https://www.bridgecollectiveopport.org/api/sitemap.xml

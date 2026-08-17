@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import CVPreview from '@/components/CVPreview';
 import { loadCV, saveCV, clearCV, newId } from '@/lib/cvStore';
+import { loadCvFonts } from '@/lib/cvFonts';
 
 const SECTION_LABELS = {
   summary: 'Professional Summary',
@@ -334,6 +335,9 @@ export default function CVBuilder() {
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // CV template fonts load on demand (not on every page of the site)
+  useEffect(() => { loadCvFonts(); }, []);
 
   useEffect(() => { saveCV(cv); }, [cv]);
 

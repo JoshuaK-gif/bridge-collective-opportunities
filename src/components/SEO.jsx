@@ -2,10 +2,10 @@ import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 
 const SITE_NAME = 'Bridge Collective Opportunities (BCO)';
-const SITE_URL = 'https://bridgecollectiveopport.org';
+const SITE_URL = 'https://www.bridgecollectiveopport.org';
 const DEFAULT_DESC = 'Discover life-changing scholarships, grants, jobs, internships, fellowships, training and volunteer opportunities for youth in Uganda and East Africa. Apply today!';
-const DEFAULT_IMAGE = 'https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png';
-const TWITTER_HANDLE = '@bridgejobs_ug';
+const DEFAULT_IMAGE = 'https://res.cloudinary.com/et33rup2/image/upload/c_pad,w_1200,h_630,b_rgb:0f5e9e/v1786959015/BCO.png';
+const TWITTER_HANDLE = '@bridgecollectiveug';
 const LOCALE = 'en_US';
 
 export default function SEO({
