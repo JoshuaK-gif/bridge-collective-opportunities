@@ -9,7 +9,7 @@ export default function RelatedOpportunities({ currentId, category }) {
 
   useEffect(() => {
     setLoading(true);
-    api.request(`/related/${currentId}`)
+    api.opportunities.related(currentId)
       .then(setItems)
       .catch(() => {})
       .finally(() => setLoading(false));

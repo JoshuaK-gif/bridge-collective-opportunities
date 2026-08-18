@@ -258,6 +258,7 @@ export const api = {
     bulkPublish: (ids) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'bulk-publish', ids }) }),
     cloneFromUrl: (url) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'clone-from-url', url }) }),
     checkDuplicates: (params) => request(`/content${qs({ resource: 'check-duplicates', ...params })}`),
+    related: (id) => request(`/content${qs({ resource: 'related', id })}`),
     submit: (data) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'submit', ...data }) }),
   },
   reminders: {
