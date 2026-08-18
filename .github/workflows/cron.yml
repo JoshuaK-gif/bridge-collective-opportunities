@@ -27,22 +27,31 @@ jobs:
       - name: auto-publish + scheduled-publish (every 5 min)
         if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sS -f -X POST \
+          echo "DIAG: NHOST_FUNCTIONS_URL set=$([ -n \"$NHOST_FUNCTIONS_URL\" ] && echo yes || echo no) len=${#NHOST_FUNCTIONS_URL}"
+          echo "DIAG: CRON_SECRET set=$([ -n \"$CRON_SECRET\" ] && echo yes || echo no) len=${#CRON_SECRET}"
+          echo "--- auto-publish ---"
+          curl -sS -X POST \
             -H "Content-Type: application/json" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=auto-publish" || true
-          curl -sS -f -X POST \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -w "\nHTTP %{http_code}\n" \
+            "${NHOST_FUNCTIONS_URL}/cron?job=auto-publish" || echo "curl exit $?"
+          echo "--- scheduled-publish ---"
+          curl -sS -X POST \
             -H "Content-Type: application/json" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=scheduled-publish"
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -w "\nHTTP %{http_code}\n" \
+            "${NHOST_FUNCTIONS_URL}/cron?job=scheduled-publish" || echo "curl exit $?"
 
       - name: reminders (hourly)
         if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sS -f -X POST \
+          echo "DIAG: NHOST_FUNCTIONS_URL set=$([ -n \"$NHOST_FUNCTIONS_URL\" ] && echo yes || echo no) len=${#NHOST_FUNCTIONS_URL}"
+          echo "DIAG: CRON_SECRET set=$([ -n \"$CRON_SECRET\" ] && echo yes || echo no) len=${#CRON_SECRET}"
+          curl -sS -X POST \
             -H "Content-Type: application/json" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NHOST_FUNCTIONS_URL }}/cron?job=reminders"
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -w "\nHTTP %{http_code}\n" \
+            "${NHOST_FUNCTIONS_URL}/cron?job=reminders" || echo "curl exit $?"
 
       - name: expired-cleanup (daily)
         if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
