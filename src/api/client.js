@@ -129,6 +129,7 @@ function disabled(feature) {
 
 export const api = {
   request: (path, options) => request(path, options),
+  home: () => request(`/content${qs({ resource: 'home' })}`),
   auth: {
     me: async () => {
       const token = getToken();

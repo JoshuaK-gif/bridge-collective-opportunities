@@ -30,59 +30,47 @@ const websiteSchema = {
 };
 export default function Home() {
   const [searchParams] = useSearchParams();
-  const [allOpportunities, setAllOpportunities] = useState([]);
-  const [featured, setFeatured] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [curatedLists, setCuratedLists] = useState([]);
-  const [expiringSoon, setExpiringSoon] = useState([]);
+  const [homeData, setHomeData] = useState(null);
+  const [homeLoading, setHomeLoading] = useState(true);
   const [showExpiring, setShowExpiring] = useState(false);
-  const [featuredLoading, setFeaturedLoading] = useState(true);
-  const [listsLoading, setListsLoading] = useState(true);
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const activeCategory = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
+
+  const featured = homeData?.featured || [];
+  const allOpportunities = homeData?.opportunities || [];
+  const categories = homeData?.categories || [];
+  const curatedLists = homeData?.curatedLists || [];
+  const expiringSoon = homeData?.expiringSoon || [];
+  const loading = homeLoading;
+  const featuredLoading = homeLoading;
+  const listsLoading = homeLoading;
+
   useEffect(() => {
     let active = true;
-    api.opportunities.list({ featured: true })
-      .then(v => { if (active) setFeatured(v); })
+    setHomeLoading(true);
+    api.home()
+      .then(d => { if (active) setHomeData(d); })
       .catch(() => {})
-      .finally(() => { if (active) setFeaturedLoading(false); });
+      .finally(() => { if (active) setHomeLoading(false); });
     return () => { active = false; };
   }, []);
+
+  // Preload the LCP hero image as soon as featured data arrives
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    Promise.allSettled([
-      api.opportunities.list(),
-      api.categories.list(),
-    ]).then(([ar, cr]) => {
-      if (!active) return;
-      if (ar.status === 'fulfilled') setAllOpportunities(ar.value);
-      if (cr.status === 'fulfilled') setCategories(cr.value);
-      setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
-  useEffect(() => {
-    let active = true;
-    setListsLoading(true);
-    api.lists.list()
-      .then(async (lists) => {
-        const fullLists = await Promise.all(lists.map(list => api.lists.get(list.id)));
-        if (active) setCuratedLists(fullLists.filter(l => l.items && l.items.length > 0));
-      })
-      .catch(() => {})
-      .finally(() => { if (active) setListsLoading(false); });
-    return () => { active = false; };
-  }, []);
-  useEffect(() => {
-    let active = true;
-    api.opportunities.list({ expiringSoon: true, expiringWithin: 7 })
-      .then(v => { if (active) setExpiringSoon(v); })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
+    const first = homeData?.featured?.[0];
+    const raw = first?.image_url;
+    if (!raw) return;
+    const src = raw.includes('res.cloudinary.com')
+      ? raw.replace('/image/upload/', '/image/upload/q_auto,f_auto,w_800,c_fill/')
+      : raw;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+    return () => link.remove();
+  }, [homeData]);
   const getCatOpps = (name) => allOpportunities.filter(o => o.category === name).slice(0, 5);
   const CATEGORY_SLUG = { Scholarship: 'scholarships', Grant: 'grants', Job: 'jobs', Internship: 'internships', Fellowship: 'fellowships', Training: 'training', Volunteer: 'volunteer' };
   const getCategoryMeta = (catName) => {

@@ -92,7 +92,7 @@ export default function HeroCarousel({ items = [] }) {
                 decoding="async"
                 onLoad={() => {
                   setLoaded(prev => ({ ...prev, [main.id]: true }));
-                  preloadImage(items[(current + 1) % items.length]?.image_url);
+                  preloadImage(getOptimizedSrc(items[(current + 1) % items.length]?.image_url, 800));
                 }}
                 className="absolute inset-0 w-full h-full object-cover animate-fade-in group-hover:scale-105 transition-transform duration-700 ease-in-out"
                 style={{ willChange: 'transform, opacity' }}

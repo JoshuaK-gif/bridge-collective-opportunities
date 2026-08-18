@@ -1,12 +1,10 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { Toaster } from 'sonner'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/lib/AuthContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { Loader2 } from 'lucide-react';
 
-const queryClient = new QueryClient();
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PageNotFound from './lib/PageNotFound';
@@ -142,11 +140,9 @@ function AppContent() {
 function App() {
   return (
     <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppContent />
     </Router>
-    </QueryClientProvider>
     </HelmetProvider>
   );
 }

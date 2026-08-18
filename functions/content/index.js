@@ -7,6 +7,7 @@
  * clone-from-url AI extraction) are disabled with a clear 501.
  *
  * GET  /v1/content?resource=opportunities&category&search&trending&featured&all&expiring_soon&expiring_within
+ * GET  /v1/content?resource=home          (single call: featured + opportunities + categories + expiringSoon + curatedLists)
  * GET  /v1/content?resource=opportunity&id=
  * GET  /v1/content?resource=check-duplicates&title&link&exclude
  * GET  /v1/content?resource=categories
@@ -99,6 +100,43 @@ async function handleGet(req, res) {
       cache.set(cacheKey, result.rows, 60);
     }
     return res.json(result.rows);
+  }
+
+  if (resource === 'home') {
+    const cached = await cache.get('home');
+    if (cached) return res.json(cached);
+
+    const [featuredR, oppsR, catsR, expiringR, listsR] = await Promise.all([
+      query("SELECT * FROM opportunities WHERE status = 'active' AND featured_order IS NOT NULL ORDER BY featured_order ASC"),
+      query("SELECT * FROM opportunities WHERE status = 'active' ORDER BY created_date DESC"),
+      query('SELECT * FROM categories ORDER BY name ASC'),
+      query("SELECT * FROM opportunities WHERE status = 'active' AND deadline != '' AND deadline IS NOT NULL AND TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE AND TO_DATE(deadline, 'YYYY-MM-DD') <= CURRENT_DATE + interval '7 days' ORDER BY TO_DATE(deadline, 'YYYY-MM-DD') ASC"),
+      query('SELECT * FROM lists ORDER BY sort_order ASC, created_date DESC'),
+    ]);
+
+    const curatedLists = [];
+    for (const list of listsR.rows) {
+      if (curatedLists.length >= 3) break;
+      const itemsR = await query(
+        `SELECT o.*, li.id AS list_item_id, li.sort_order AS list_sort_order
+         FROM list_items li
+         JOIN opportunities o ON o.id = li.opportunity_id
+         WHERE li.list_id = $1
+         ORDER BY li.sort_order ASC, o.created_date DESC`,
+        [list.id]
+      );
+      if (itemsR.rows.length) curatedLists.push({ ...list, items: itemsR.rows });
+    }
+
+    const payload = {
+      featured: featuredR.rows,
+      opportunities: oppsR.rows,
+      categories: catsR.rows,
+      expiringSoon: expiringR.rows,
+      curatedLists,
+    };
+    cache.set('home', payload, 60);
+    return res.json(payload);
   }
 
   if (resource === 'opportunity') {
