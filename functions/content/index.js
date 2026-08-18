@@ -33,9 +33,53 @@ import { publishToSocial } from '../_shared/social.js';
 import { validateUrl } from '../_shared/url-validator.js';
 import cache from '../_shared/cache.js';
 
+const OPP_LIST_COLS = 'id, title, category, deadline, description, image_url, image_crop, image_size, image_public_id, trending, featured_order, created_date, updated_date';
+
+let homeMemoryCache = { payload: null, expires: 0 };
+const HOME_TTL_MS = 5 * 60 * 1000;
+
 function invalidateListCache() {
   cache.delPrefix('opps:');
   cache.delPrefix('cats:');
+  homeMemoryCache = { payload: null, expires: 0 };
+}
+
+async function fetchHomePayload() {
+  const sql = `
+WITH featured AS (
+  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND featured_order IS NOT NULL ORDER BY featured_order ASC
+),
+opps AS (
+  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' ORDER BY created_date DESC
+),
+cats AS (
+  SELECT * FROM categories ORDER BY name ASC
+),
+expiring AS (
+  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND deadline != '' AND deadline IS NOT NULL
+    AND TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE AND TO_DATE(deadline, 'YYYY-MM-DD') <= CURRENT_DATE + interval '7 days'
+  ORDER BY TO_DATE(deadline, 'YYYY-MM-DD') ASC
+),
+lists AS (
+  SELECT id, name, slug, description, sort_order FROM lists ORDER BY sort_order ASC, created_date DESC
+),
+items AS (
+  SELECT li.list_id, li.sort_order AS list_sort_order, o.id, o.title, o.category, o.deadline, o.description, o.image_url, o.image_crop, o.image_size, o.image_public_id, o.trending, o.created_date, o.updated_date
+  FROM list_items li JOIN opportunities o ON o.id = li.opportunity_id
+  WHERE li.list_id IN (SELECT id FROM lists) AND o.status = 'active'
+)
+SELECT json_build_object(
+  'featured', (SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json) FROM featured f),
+  'opportunities', (SELECT COALESCE(json_agg(row_to_json(o)), '[]'::json) FROM opps o),
+  'categories', (SELECT COALESCE(json_agg(row_to_json(c)), '[]'::json) FROM cats c),
+  'expiringSoon', (SELECT COALESCE(json_agg(row_to_json(e)), '[]'::json) FROM expiring e),
+  'curatedLists', (SELECT COALESCE(json_agg(json_build_object(
+      'id', l.id, 'name', l.name, 'slug', l.slug, 'description', l.description, 'sort_order', l.sort_order,
+      'items', (SELECT COALESCE(json_agg(row_to_json(i) ORDER BY i.list_sort_order ASC, i.created_date DESC), '[]'::json) FROM items i WHERE i.list_id = l.id)
+  )), '[]'::json) FROM lists l)
+) AS payload`;
+  const result = await query(sql);
+  return result.rows[0].payload;
 }
 
 /* ---------------------------------- GET ---------------------------------- */
@@ -53,7 +97,7 @@ async function handleGet(req, res) {
       if (cached) return res.json(cached);
     }
 
-    let sql = 'SELECT * FROM opportunities';
+    let sql = `SELECT ${all === 'true' ? '*' : OPP_LIST_COLS} FROM opportunities`;
     const conditions = [];
     const params = [];
     let idx = 1;
@@ -103,39 +147,11 @@ async function handleGet(req, res) {
   }
 
   if (resource === 'home') {
-    const cached = await cache.get('home');
-    if (cached) return res.json(cached);
-
-    const [featuredR, oppsR, catsR, expiringR, listsR] = await Promise.all([
-      query("SELECT * FROM opportunities WHERE status = 'active' AND featured_order IS NOT NULL ORDER BY featured_order ASC"),
-      query("SELECT * FROM opportunities WHERE status = 'active' ORDER BY created_date DESC"),
-      query('SELECT * FROM categories ORDER BY name ASC'),
-      query("SELECT * FROM opportunities WHERE status = 'active' AND deadline != '' AND deadline IS NOT NULL AND TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE AND TO_DATE(deadline, 'YYYY-MM-DD') <= CURRENT_DATE + interval '7 days' ORDER BY TO_DATE(deadline, 'YYYY-MM-DD') ASC"),
-      query('SELECT * FROM lists ORDER BY sort_order ASC, created_date DESC'),
-    ]);
-
-    const curatedLists = [];
-    for (const list of listsR.rows) {
-      if (curatedLists.length >= 3) break;
-      const itemsR = await query(
-        `SELECT o.*, li.id AS list_item_id, li.sort_order AS list_sort_order
-         FROM list_items li
-         JOIN opportunities o ON o.id = li.opportunity_id
-         WHERE li.list_id = $1
-         ORDER BY li.sort_order ASC, o.created_date DESC`,
-        [list.id]
-      );
-      if (itemsR.rows.length) curatedLists.push({ ...list, items: itemsR.rows });
+    if (homeMemoryCache.payload && Date.now() < homeMemoryCache.expires) {
+      return res.json(homeMemoryCache.payload);
     }
-
-    const payload = {
-      featured: featuredR.rows,
-      opportunities: oppsR.rows,
-      categories: catsR.rows,
-      expiringSoon: expiringR.rows,
-      curatedLists,
-    };
-    cache.set('home', payload, 60);
+    const payload = await fetchHomePayload();
+    homeMemoryCache = { payload, expires: Date.now() + HOME_TTL_MS };
     return res.json(payload);
   }
 
