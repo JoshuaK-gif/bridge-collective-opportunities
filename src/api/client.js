@@ -35,7 +35,7 @@ async function refreshSession() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
   try {
-    const res = await fetch(`${NHOST_AUTH_URL}/token/refresh`, {
+    const res = await fetch(`${NHOST_AUTH_URL}/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
