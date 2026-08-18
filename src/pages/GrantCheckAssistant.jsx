@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ShieldCheck, AlertTriangle, CheckCircle2, XCircle,
-  FileText, FileDown, Download, Loader2, Sparkles, Wand2, Landmark,
+  FileText, FileDown, Loader2, Wand2, Landmark,
   ClipboardPaste, RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

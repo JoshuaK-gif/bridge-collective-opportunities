@@ -74,7 +74,7 @@ export default function About() {
           <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-300/20 rounded-full blur-3xl" />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
             <div className="flex items-center justify-center gap-0 mb-6">
-              <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-32 md:h-48 w-auto drop-shadow-lg" />
+              <img src="https://res.cloudinary.com/et33rup2/image/upload/w_384,f_auto,q_auto/v1786959015/BCO.png" alt="BCO" className="h-32 md:h-48 w-auto drop-shadow-lg" />
               <span className="font-bold text-sm sm:text-base md:text-lg leading-tight text-white drop-shadow-sm text-left">
                 BRIDGE COLLECTIVE<br />OPPORTUNITIES
               </span>

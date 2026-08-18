@@ -2,7 +2,6 @@ import { lazy, Suspense, useState, useEffect } from 'react';
 import { Toaster } from 'sonner'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from '@/lib/AuthContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { Loader2 } from 'lucide-react';
@@ -80,8 +79,7 @@ function AppContent() {
       <ScrollToTop />
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
+          <Routes location={location} key={location.pathname}>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -133,7 +131,6 @@ function AppContent() {
                 </Route>
               </Route>            <Route path="*" element={<PageNotFound />} />
           </Routes>
-          </AnimatePresence>
         </Suspense>
       </ErrorBoundary>
       <Toaster />

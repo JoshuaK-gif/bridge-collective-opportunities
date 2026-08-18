@@ -252,7 +252,7 @@ export default function Navbar() {
                 <SheetHeader className="p-4 border-b flex flex-row items-center justify-between">
                   <SheetTitle className="text-left">
                     <Link to="/" className="flex items-center gap-0">
-                      <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-16 md:h-20 w-auto" />
+                      <img src="https://res.cloudinary.com/et33rup2/image/upload/w_256,f_auto,q_auto/v1786959015/BCO.png" alt="BCO" className="h-16 md:h-20 w-auto" />
                       <span className="font-bold text-[10px] md:text-xs leading-tight text-accent">
                         BRIDGE COLLECTIVE<br />OPPORTUNITIES
                       </span>
@@ -379,7 +379,7 @@ export default function Navbar() {
             </Sheet>
 
             <Link to="/" className="flex items-center gap-0 shrink-0 min-w-0">
-              <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-12 md:h-20 w-auto" />
+              <img src="https://res.cloudinary.com/et33rup2/image/upload/w_256,f_auto,q_auto/v1786959015/BCO.png" alt="BCO" className="h-12 md:h-20 w-auto" />
               <span className="hidden sm:block font-bold text-[9px] md:text-xs leading-tight text-accent">
                 BRIDGE COLLECTIVE<br />OPPORTUNITIES
               </span>

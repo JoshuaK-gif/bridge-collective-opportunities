@@ -1,4 +1,4 @@
-const CACHE = 'bridge-v7';
+const CACHE = 'bridge-v8';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -37,7 +37,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first with cache fallback + offline page
+function offlineResponse() {
+  return new Response(
+    '<!doctype html><html><head><title>Offline</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;text-align:center;padding:40px;background:#eef0fa}h1{color:#0f5e9e}p{color:#666}a{color:#0f5e9e}</style></head><body><h1>🔌 You\'re Offline</h1><p>Check your connection and try again.</p><a href="/">Go Home</a></body></html>',
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
+
+// Fetch: navigation = stale-while-revalidate (instant shell, background refresh);
+// other GETs = network-first with cache fallback + offline page
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -45,6 +53,24 @@ self.addEventListener('fetch', (event) => {
   // Skip API calls and analytics - let them go to network always
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/') || url.hostname.includes('google')) {
+    return;
+  }
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        const network = fetch(event.request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+          })
+          .catch(() => cached || offlineResponse());
+        return cached || network;
+      })
+    );
     return;
   }
 
@@ -63,10 +89,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // Offline: try cache first, then show offline fallback
         return caches.match(event.request).then((cached) => {
-          return cached || new Response(
-            '<!doctype html><html><head><title>Offline</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;text-align:center;padding:40px;background:#eef0fa}h1{color:#0f5e9e}p{color:#666}a{color:#0f5e9e}</style></head><body><h1>🔌 You\'re Offline</h1><p>Check your connection and try again.</p><a href="/">Go Home</a></body></html>',
-            { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-          );
+          return cached || offlineResponse();
         });
       })
   );

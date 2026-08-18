@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/api/client';
+import { oppImageSrc } from '@/lib/images';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Timer } from 'lucide-react';
 import SEO from '@/components/SEO';
@@ -36,28 +37,51 @@ export default function Home() {
   const [curatedLists, setCuratedLists] = useState([]);
   const [expiringSoon, setExpiringSoon] = useState([]);
   const [showExpiring, setShowExpiring] = useState(false);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [listsLoading, setListsLoading] = useState(true);
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const activeCategory = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
   useEffect(() => {
+    let active = true;
+    api.opportunities.list({ featured: true })
+      .then(v => { if (active) setFeatured(v); })
+      .catch(() => {})
+      .finally(() => { if (active) setFeaturedLoading(false); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    let active = true;
     setLoading(true);
     Promise.allSettled([
-      api.opportunities.list({ featured: true }),
       api.opportunities.list(),
       api.categories.list(),
-      api.lists.list().then(async (lists) => {
-        const fullLists = await Promise.all(lists.map(list => api.lists.get(list.id)));
-        return fullLists.filter(l => l.items && l.items.length > 0);
-      }),
-      api.opportunities.list({ expiringSoon: true, expiringWithin: 7 })
-    ]).then(([fr, ar, cr, lr, er]) => {
-      if (fr.status === 'fulfilled') setFeatured(fr.value);
+    ]).then(([ar, cr]) => {
+      if (!active) return;
       if (ar.status === 'fulfilled') setAllOpportunities(ar.value);
       if (cr.status === 'fulfilled') setCategories(cr.value);
-      if (lr.status === 'fulfilled') setCuratedLists(lr.value);
-      if (er.status === 'fulfilled') setExpiringSoon(er.value);
       setLoading(false);
     });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    setListsLoading(true);
+    api.lists.list()
+      .then(async (lists) => {
+        const fullLists = await Promise.all(lists.map(list => api.lists.get(list.id)));
+        if (active) setCuratedLists(fullLists.filter(l => l.items && l.items.length > 0));
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setListsLoading(false); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    api.opportunities.list({ expiringSoon: true, expiringWithin: 7 })
+      .then(v => { if (active) setExpiringSoon(v); })
+      .catch(() => {});
+    return () => { active = false; };
   }, []);
   const getCatOpps = (name) => allOpportunities.filter(o => o.category === name).slice(0, 5);
   const CATEGORY_SLUG = { Scholarship: 'scholarships', Grant: 'grants', Job: 'jobs', Internship: 'internships', Fellowship: 'fellowships', Training: 'training', Volunteer: 'volunteer' };
@@ -78,8 +102,8 @@ export default function Home() {
       <div className="bg-[#eef0fa] min-h-screen">
         {!isFiltered && (
           <>
-            {loading ? <HeroSkeleton /> : featured.length > 0 && <HeroCarousel items={featured} />}
-            {loading ? <FeaturedListsSkeleton /> : curatedLists.length > 0 && (
+            {featuredLoading ? <HeroSkeleton /> : featured.length > 0 && <HeroCarousel items={featured} />}
+            {listsLoading ? <FeaturedListsSkeleton /> : curatedLists.length > 0 && (
               <section className="bg-white border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-4 py-6">
                   <div className="flex items-center gap-3 mb-5">
@@ -97,7 +121,7 @@ export default function Home() {
                           {list.items.slice(0, 4).map((item) => (
                             <Link key={item.id} to={`/opportunities/${item.id}`} className="flex items-start gap-3 p-3 hover:bg-gray-50 transition-colors group">
                               <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
-                                {item.image_url ? <img src={item.image_url} alt="" className="w-full h-full object-cover" /> : (
+                                {item.image_url ? <img src={oppImageSrc(item, 'thumbnail')} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" /> : (
                                   <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                                 )}
                               </div>
@@ -141,7 +165,7 @@ export default function Home() {
                           className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all relative"
                         >
                           <div className="relative aspect-[4/3] sm:aspect-[16/10] bg-gray-100 overflow-hidden">
-                            <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={oppImageSrc(item, 'card')} alt={item.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                             <div className="absolute top-1 sm:top-2 left-1 sm:left-2">
                               <DeadlineBadge deadline={item.deadline} />
                             </div>

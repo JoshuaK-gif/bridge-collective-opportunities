@@ -5,6 +5,35 @@ import App from '@/App.jsx'
 import { api } from '@/api/client'
 import '@/index.css'
 
+// Self-hosted fonts — latin subsets only, weights actually used across the site
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/inter/latin-800.css';
+import '@fontsource/plus-jakarta-sans/latin-400.css';
+import '@fontsource/plus-jakarta-sans/latin-500.css';
+import '@fontsource/plus-jakarta-sans/latin-600.css';
+import '@fontsource/plus-jakarta-sans/latin-700.css';
+import '@fontsource/plus-jakarta-sans/latin-800.css';
+
+import inter400Url from '@fontsource/inter/files/inter-latin-400-normal.woff2?url';
+import inter600Url from '@fontsource/inter/files/inter-latin-600-normal.woff2?url';
+import pjs700Url from '@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2?url';
+
+function preloadFont(url) {
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'font';
+  link.type = 'font/woff2';
+  link.crossOrigin = 'anonymous';
+  link.href = url;
+  document.head.appendChild(link);
+}
+preloadFont(inter400Url);
+preloadFont(inter600Url);
+preloadFont(pjs700Url);
+
 const isNative = typeof window !== 'undefined' && window.Capacitor !== undefined;
 
 function initGA(gaId) {

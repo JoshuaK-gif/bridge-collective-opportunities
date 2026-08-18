@@ -34,7 +34,7 @@ export default function AdminLayout() {
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between bg-white border-b px-4 h-14">
         <Link to="/" className="flex items-center gap-0">
-          <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-16 md:h-20 w-auto" />
+          <img src="https://res.cloudinary.com/et33rup2/image/upload/w_256,f_auto,q_auto/v1786959015/BCO.png" alt="BCO" className="h-16 md:h-20 w-auto" />
           <span className="font-bold text-[10px] leading-tight">
             BRIDGE COLLECTIVE<br />OPPORTUNITIES
           </span>
@@ -57,7 +57,7 @@ export default function AdminLayout() {
       `}>
         <div className="hidden md:flex items-center justify-between mb-6">
           <Link to="/" className="flex items-center gap-0">
-            <img src="https://res.cloudinary.com/et33rup2/image/upload/v1786959015/BCO.png" alt="BCO" className="h-20 w-auto" />
+            <img src="https://res.cloudinary.com/et33rup2/image/upload/w_256,f_auto,q_auto/v1786959015/BCO.png" alt="BCO" className="h-20 w-auto" />
             <span className="font-bold text-[10px] leading-tight">
               BRIDGE COLLECTIVE<br />OPPORTUNITIES
             </span>

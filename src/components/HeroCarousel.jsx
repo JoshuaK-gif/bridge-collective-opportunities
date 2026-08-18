@@ -87,7 +87,7 @@ export default function HeroCarousel({ items = [] }) {
                 key={'curr-' + slideKey}
                 src={getOptimizedSrc(main.image_url, 800)}
                 alt={main.title}
-                fetchpriority={current === 0 ? 'high' : 'low'}
+                fetchPriority={current === 0 ? 'high' : 'low'}
                 loading={current === 0 ? 'eager' : 'lazy'}
                 decoding="async"
                 onLoad={() => {

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import BookmarkButton from './BookmarkButton';
 import DeadlineBadge from './DeadlineBadge';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { oppImageSrc } from '@/lib/images';
 
 export default function CategoryColumn({ title, borderColor, bgColor, items = [], viewAllHref }) {
   const { isBookmarked, toggleBookmark } = useBookmarks();
@@ -25,8 +26,10 @@ export default function CategoryColumn({ title, borderColor, bgColor, items = []
           <Link to={`/opportunities/${featured.id}`} className="group block">
             <div className="relative aspect-[16/9] rounded-lg overflow-hidden mb-3 bg-gray-100">
               <img
-                src={featured.image_url}
+                src={oppImageSrc(featured, 'card')}
                 alt={featured.title}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/90 text-white">
@@ -68,8 +71,10 @@ export default function CategoryColumn({ title, borderColor, bgColor, items = []
           >
             <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-100 relative">
               <img
-                src={item.image_url}
+                src={oppImageSrc(item, 'thumbnail')}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             </div>

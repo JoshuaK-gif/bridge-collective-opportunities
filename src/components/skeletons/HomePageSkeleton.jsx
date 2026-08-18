@@ -2,8 +2,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function HeroSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <Skeleton className="w-full h-[300px] md:h-[400px] rounded-xl" />
+    <div className="max-w-6xl mx-auto px-4 py-4 lg:py-5">
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
+        <div className="relative flex-1">
+          <Skeleton className="w-full aspect-[16/9] rounded-xl" />
+        </div>
+        <div className="hidden lg:flex flex-row lg:flex-col gap-3 w-full lg:w-64">
+          <Skeleton className="flex-1 lg:flex-none h-24 rounded-xl" />
+          <Skeleton className="flex-1 lg:flex-none h-24 rounded-xl" />
+        </div>
+      </div>
     </div>
   );
 }
