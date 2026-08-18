@@ -1,6 +1,6 @@
 import { query } from './db.js';
 import logger from './logger.js';
-import { sendEmail, getSmtpConfig, buildEmailHeader } from './email.js';
+import { sendEmail, getSmtpConfig, buildEmailHeader, stripHtml } from './email.js';
 
 function escapeHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -17,7 +17,7 @@ function buildNewsletterHtml(opportunities) {
             </td>` : ''}
             <td style="vertical-align:top;">
               <a href="https://bridgecollectiveopport.org/opportunities/${escapeHtml(o.id)}" style="font-size:15px;font-weight:700;color:#065f46;text-decoration:none;line-height:1.3;">${escapeHtml(o.title)}</a>
-              <p style="margin:4px 0 0;font-size:13px;color:#555;line-height:1.4;">${escapeHtml((o.description || '').slice(0, 150))}...</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#555;line-height:1.4;">${escapeHtml(stripHtml(o.description).slice(0, 150))}...</p>
               <span style="display:inline-block;margin-top:6px;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#d1fae5;color:#065f46;">${escapeHtml(o.category || 'Opportunity')}</span>
             </td>
           </tr>

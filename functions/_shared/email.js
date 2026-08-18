@@ -11,6 +11,11 @@ export async function getSmtpConfig() {
 
 export const SITE_LOGO_URL = 'https://res.cloudinary.com/et33rup2/image/upload/w_256,f_auto,q_auto/v1786959015/BCO.png';
 
+/** Strip HTML tags to plain text (descriptions are stored as rich HTML). */
+export function stripHtml(str) {
+  return (str || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 /** Branded email header: white logo band + green subtitle band (table row markup). */
 export function buildEmailHeader(subtitle) {
   return `
@@ -145,7 +150,7 @@ export async function notifyNewOpportunity(opportunity) {
       </td></tr>
       <tr><td style="padding:24px 32px;">
         <h2 style="margin:0 0 12px;font-size:20px;color:#065f46;line-height:1.3;">${escapeHtml(opportunity.title)}</h2>
-        <p style="margin:0 0 16px;font-size:14px;color:#555;line-height:1.6;">${escapeHtml((opportunity.description || '').slice(0, 300))}</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#555;line-height:1.6;">${escapeHtml(stripHtml(opportunity.description).slice(0, 300))}</p>
         ${opportunity.category ? `<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;background:#d1fae5;color:#065f46;margin-bottom:16px;">${escapeHtml(opportunity.category)}</span>` : ''}
         ${opportunity.deadline ? `<p style="margin:0 0 16px;font-size:13px;color:#dc2626;font-weight:600;">⏰ Deadline: ${escapeHtml(opportunity.deadline)}</p>` : ''}
         <br/>
@@ -163,7 +168,7 @@ export async function notifyNewOpportunity(opportunity) {
       to: sub.email,
       subject: `New: ${opportunity.title}`,
       html,
-      text: `${opportunity.title}\n\n${(opportunity.description || '').slice(0, 300)}\n\n${oppUrl}`,
+      text: `${opportunity.title}\n\n${stripHtml(opportunity.description).slice(0, 300)}\n\n${oppUrl}`,
     });
 
     if (result.success) {
