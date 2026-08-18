@@ -47,7 +47,7 @@ router.post('/', async (req, res, next) => {
     if (reminders.length > 100) reminders = reminders.slice(-100);
 
     await pool.query(
-      "UPDATE site_settings SET value = $1, updated_at = now() WHERE key = 'reminders'",
+      "INSERT INTO site_settings (key, value, updated_at) VALUES ('reminders', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
       [JSON.stringify(reminders)]
     );
 

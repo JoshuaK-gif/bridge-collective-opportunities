@@ -104,7 +104,7 @@ export async function sendNewsletter({ batchSize = 50, offset = 0 } = {}) {
 
   if (sent > 0) {
     await query(
-      "UPDATE site_settings SET value = $1, updated_at = now() WHERE key = 'last_newsletter_sent'",
+      "INSERT INTO site_settings (key, value, updated_at) VALUES ('last_newsletter_sent', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
       [JSON.stringify({ sent_at: new Date().toISOString(), count: sent, failed })]
     );
   }
