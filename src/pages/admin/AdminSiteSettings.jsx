@@ -14,7 +14,7 @@ const defaultPackages = [
   { name: 'Annual Partnership', price: '$5,000', period: ' / Year', color: 'from-amber-500 to-orange-600', features: ['Ongoing promotion throughout the year', 'Multiple campaigns', 'Priority support and placement', 'Continuous brand visibility'] },
 ];
 
-const defaultSmtp = { host: '', port: '587', secure: false, user: '', pass: '', from_email: '', from_name: 'Bridge Collective' };
+const defaultSmtp = { host: '', port: '587', secure: false, user: '', pass: '', api_key: '', from_email: '', from_name: 'Bridge Collective' };
 
 export default function AdminSiteSettings() {
   const [stats, setStats] = useState(defaultStats);
@@ -38,7 +38,7 @@ export default function AdminSiteSettings() {
     api.settings.getAll().then(all => {
       if (all.stats) setStats(all.stats);
       if (Array.isArray(all.packages)) setPackages(all.packages);
-      if (all.smtp_config && all.smtp_config.host) setSmtp(all.smtp_config);
+      if (all.smtp_config && (all.smtp_config.host || all.smtp_config.api_key)) setSmtp(all.smtp_config);
       if (all.openai_config) setAiConfig(all.openai_config);
       if (all.ga_measurement_id) setGaId(all.ga_measurement_id);
     }).catch(() => {});
@@ -206,7 +206,20 @@ export default function AdminSiteSettings() {
           <h3 className="font-semibold text-sm">SMTP Configuration</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">SMTP Host</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Brevo API Key</label>
+              <Input type="password" value={smtp.api_key} onChange={e => setSmtp(f => ({ ...f, api_key: e.target.value }))} placeholder="xkeysib-..." />
+              <p className="text-[11px] text-muted-foreground mt-1">If set, emails send via the Brevo REST API (no SMTP/IP whitelist needed).</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">From Email</label>
+              <Input value={smtp.from_email} onChange={e => setSmtp(f => ({ ...f, from_email: e.target.value }))} placeholder="noreply@bridgecollectiveopport.org" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">From Name</label>
+              <Input value={smtp.from_name} onChange={e => setSmtp(f => ({ ...f, from_name: e.target.value }))} placeholder="Bridge Collective" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">SMTP Host (optional)</label>
               <Input value={smtp.host} onChange={e => setSmtp(f => ({ ...f, host: e.target.value }))} placeholder="smtp.gmail.com" />
             </div>
             <div>
@@ -220,14 +233,6 @@ export default function AdminSiteSettings() {
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Password</label>
               <Input type="password" value={smtp.pass} onChange={e => setSmtp(f => ({ ...f, pass: e.target.value }))} placeholder="App password" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">From Email</label>
-              <Input value={smtp.from_email} onChange={e => setSmtp(f => ({ ...f, from_email: e.target.value }))} placeholder="noreply@bridgecollectiveopport.org" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">From Name</label>
-              <Input value={smtp.from_name} onChange={e => setSmtp(f => ({ ...f, from_name: e.target.value }))} placeholder="Bridge Collective" />
             </div>
           </div>
           <div className="flex items-center gap-2">

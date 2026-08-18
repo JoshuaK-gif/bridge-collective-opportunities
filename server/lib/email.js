@@ -9,6 +9,35 @@ export async function getSmtpConfig() {
   return typeof val === 'string' ? JSON.parse(val) : val;
 }
 
+/** Send via the Brevo REST API when an api_key is configured (no IP whitelisting needed). */
+async function sendViaBrevoApi(config, { to, subject, html, text }) {
+  const senderEmail = config.from_email || config.user;
+  if (!senderEmail) throw new Error('Brevo API: from_email is required');
+  const payload = {
+    sender: { name: config.from_name || 'Bridge Collective', email: senderEmail },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+  if (text) payload.textContent = text;
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': config.api_key,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  const bodyText = await res.text();
+  if (!res.ok) {
+    let detail = bodyText;
+    try { detail = JSON.parse(bodyText).message || bodyText; } catch {}
+    throw new Error(`Brevo API ${res.status}: ${detail}`);
+  }
+  return { success: true, messageId: JSON.parse(bodyText)?.messageId };
+}
+
 function buildTransport(config) {
   if (!config?.host) return null;
   const hasAuth = config.user && config.pass;
@@ -27,6 +56,15 @@ let transportConfigKey = '';
 export async function sendEmail({ to, subject, html, text }) {
   const config = await getSmtpConfig();
   if (!config) return { success: false, reason: 'SMTP not configured' };
+
+  if (config.api_key) {
+    try {
+      return await sendViaBrevoApi(config, { to, subject, html, text });
+    } catch (err) {
+      logger.error({ err: err.message }, 'Email send failed (Brevo API)');
+      return { success: false, reason: err.message };
+    }
+  }
 
   const configKey = JSON.stringify(config);
   if (configKey !== transportConfigKey || !transportCache) {
@@ -133,6 +171,14 @@ export async function notifyNewOpportunity(opportunity) {
 }
 
 export async function sendTestEmail(config, to) {
+  if (config?.api_key) {
+    try {
+      return await sendViaBrevoApi(config, { to, subject: 'Test email from Bridge Collective', html: '<h1>Test Email</h1><p>Your Brevo API configuration is working correctly.</p>' });
+    } catch (err) {
+      return { success: false, reason: err.message };
+    }
+  }
+
   const transporter = buildTransport(config);
   if (!transporter) return { success: false, reason: 'Invalid SMTP config' };
 
