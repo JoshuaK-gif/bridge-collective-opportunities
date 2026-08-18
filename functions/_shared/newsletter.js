@@ -1,6 +1,6 @@
 import { query } from './db.js';
 import logger from './logger.js';
-import { sendEmail, getSmtpConfig } from './email.js';
+import { sendEmail, getSmtpConfig, buildEmailHeader } from './email.js';
 
 function escapeHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -33,10 +33,7 @@ function buildNewsletterHtml(opportunities) {
 <body style="margin:0;padding:0;background:#f0faf0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 16px;">
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
-      <tr><td style="padding:36px 32px 24px;background:linear-gradient(135deg,#059669,#10b981);">
-        <h1 style="margin:0;font-size:18px;color:#fff;font-weight:800;letter-spacing:1px;">BRIDGE COLLECTIVE<br/>OPPORTUNITIES (BCO)</h1>
-        <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,.9);font-weight:500;">Daily Opportunities Update</p>
-      </td></tr>
+      ${buildEmailHeader('Daily Opportunities Update')}
       <tr><td style="padding:20px 32px 8px;font-size:13px;color:#6b7280;">Latest opportunities curated for you</td></tr>
       <tr><td style="padding:0 32px;">
         <table width="100%" cellpadding="0" cellspacing="0">${itemsHtml}</table>

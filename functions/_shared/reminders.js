@@ -1,6 +1,6 @@
 import { query } from './db.js';
 import logger from './logger.js';
-import { sendEmail, getSmtpConfig } from './email.js';
+import { sendEmail, getSmtpConfig, SITE_LOGO_URL } from './email.js';
 
 function escapeHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -77,8 +77,15 @@ export async function processReminders() {
           <html>
           <head><meta charset="utf-8"></head>
           <body style="font-family:-apple-system,sans-serif;background:#f4f4f6;padding:24px;">
-            <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:24px;">
-              <h2 style="margin:0 0 8px;font-size:18px;">Deadline Reminder</h2>
+            <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
+              <div style="padding:28px 24px 20px;background:#fff;text-align:center;">
+                <img src="${SITE_LOGO_URL}" alt="Bridge Collective Opportunities" width="150" style="width:150px;height:auto;" />
+              </div>
+              <div style="padding:16px 24px 20px;background:linear-gradient(135deg,#059669,#10b981);text-align:center;">
+                <p style="margin:0;font-size:15px;color:#fff;font-weight:700;">Deadline Reminder</p>
+              </div>
+              <div style="padding:24px;">
+              <h2 style="margin:0 0 8px;font-size:18px;color:#065f46;">Deadline Reminder</h2>
               <p style="color:#555;margin:0 0 16px;font-size:14px;">
                 The opportunity <strong>"${escapeHtml(r.opportunityTitle)}"</strong> is closing soon!
               </p>
@@ -93,6 +100,7 @@ export async function processReminders() {
               <p style="color:#999;font-size:12px;margin-top:24px;">
                 You set this reminder on Bridge Collective Opportunities.
               </p>
+              </div>
             </div>
           </body>
           </html>

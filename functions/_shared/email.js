@@ -9,6 +9,19 @@ export async function getSmtpConfig() {
   return typeof val === 'string' ? JSON.parse(val) : val;
 }
 
+export const SITE_LOGO_URL = 'https://res.cloudinary.com/et33rup2/image/upload/w_256,f_auto,q_auto/v1786959015/BCO.png';
+
+/** Branded email header: white logo band + green subtitle band (table row markup). */
+export function buildEmailHeader(subtitle) {
+  return `
+      <tr><td style="padding:28px 32px 20px;background:#fff;text-align:center;">
+        <img src="${SITE_LOGO_URL}" alt="Bridge Collective Opportunities" width="170" style="width:170px;height:auto;" />
+      </td></tr>
+      <tr><td style="padding:18px 32px 24px;background:linear-gradient(135deg,#059669,#10b981);text-align:center;">
+        <p style="margin:0;font-size:15px;color:#fff;font-weight:700;letter-spacing:0.5px;">${subtitle}</p>
+      </td></tr>`;
+}
+
 /** Send via the Brevo REST API when an api_key is configured (no IP whitelisting needed). */
 async function sendViaBrevoApi(config, { to, subject, html, text }) {
   const senderEmail = config.from_email || config.user;
@@ -126,10 +139,7 @@ export async function notifyNewOpportunity(opportunity) {
 <body style="margin:0;padding:0;background:#f0faf0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 16px;">
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
-      <tr><td style="padding:36px 32px 24px;background:linear-gradient(135deg,#059669,#10b981);">
-        <h1 style="margin:0;font-size:18px;color:#fff;font-weight:800;letter-spacing:1px;">BRIDGE COLLECTIVE<br/>OPPORTUNITIES (BCO)</h1>
-        <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,.9);font-weight:500;">New Opportunity Available</p>
-      </td></tr>
+      ${buildEmailHeader('New Opportunity Available')}
       <tr><td style="padding:0;">
         ${imageHtml}
       </td></tr>
