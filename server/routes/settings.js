@@ -52,4 +52,15 @@ router.put('/:key', authenticate, async (req, res, next) => {
   }
 });
 
+router.delete('/:key', authenticate, async (req, res, next) => {
+  try {
+    if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
+    await pool.query('DELETE FROM site_settings WHERE key = $1', [req.params.key]);
+    logger.info({ key: req.params.key }, 'Setting deleted');
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

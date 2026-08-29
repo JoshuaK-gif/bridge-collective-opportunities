@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Save, Plus, Trash2, GripVertical, Trash } from 'lucide-react';
 
 const ICON_OPTIONS = [
   'FileText', 'Target', 'Eye', 'ListChecks', 'CheckCircle2',
@@ -121,13 +121,29 @@ export default function AdminCvTips() {
     return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-4 border-primary/20 border-t-primary rounded-full animate-spin" /></div>;
   }
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete CV Tips from the database?')) return;
+    try {
+      await api.settings.delete('cv_tips');
+      toast.success('CV Tips deleted from database');
+      setData(defaultData);
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold font-heading">CV Tips Editor</h1>
-        <Button size="sm" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4 mr-1" /> {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Trash className="w-4 h-4 mr-1" /> Delete from DB
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Save className="w-4 h-4 mr-1" /> {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
       {/* Page Meta */}

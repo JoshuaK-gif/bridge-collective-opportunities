@@ -193,6 +193,7 @@ export const api = {
     getAll: () => request(`/admin${qs({ resource: 'settings' })}`),
     get: (key) => request(`/admin${qs({ resource: 'setting', key })}`),
     update: (key, value) => request('/admin', { method: 'POST', body: JSON.stringify({ resource: 'setting', action: 'update', key, value }) }),
+    delete: (key) => request(`/settings/${key}`, { method: 'DELETE' }),
   },
   subscribers: {
     subscribe: (email, source = '') => request('/admin', {
