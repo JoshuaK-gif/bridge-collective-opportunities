@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Lightbulb, CheckCircle2, AlertTriangle, Star, FileText, Target, Eye, ListChecks, Users, Globe } from 'lucide-react';
 import SEO from '@/components/SEO';
-import { api } from '@/api/client';
 
 const iconMap = {
   FileText, Target, Eye, ListChecks, CheckCircle2,
@@ -24,67 +22,38 @@ const bgMap = {
   Lightbulb: 'bg-amber-50', Users: 'bg-indigo-50', Globe: 'bg-sky-50',
 };
 
-const defaults = {
-  page_title: 'CV Writing Tips',
-  page_subtitle: 'Expert advice to help you create a CV that stands out to employers and opportunity providers.',
-  tips: [
-    { icon: 'FileText', title: 'Keep It One Page', desc: 'For most youth opportunities, a one-page CV is ideal. Recruiters spend an average of 6 seconds scanning a CV. Make every word count.' },
-    { icon: 'Target', title: 'Tailor for Each Opportunity', desc: 'Never send the same CV everywhere. Adjust your summary and skills to match what each specific opportunity asks for. Use keywords from the job description.' },
-    { icon: 'Eye', title: 'Use a Clean, Professional Design', desc: 'Use consistent fonts, clear section headings, and plenty of white space. Avoid fancy graphics or colors that distract from your content.' },
-    { icon: 'ListChecks', title: 'Highlight Achievements, Not Duties', desc: 'Instead of "Responsible for social media", write "Grew Instagram following by 200% in 3 months." Use numbers and specific results.' },
-    { icon: 'CheckCircle2', title: 'Include a Professional Summary', desc: 'A 2-3 sentence summary at the top of your CV tells recruiters who you are and what you\'re looking for. Make it compelling and specific.' },
-    { icon: 'AlertTriangle', title: 'Avoid Common Mistakes', desc: 'Check for typos, use a professional email address (not partyboy123@gmail.com), save as PDF, and never lie on your CV.' },
-  ],
-  dos: [
-    'Use action verbs (managed, developed, led, created)',
-    'Quantify your achievements with numbers',
-    'Keep formatting consistent throughout',
-    'Include relevant keywords from the opportunity',
-    'List skills that are actually relevant',
-    'Proofread at least twice',
-    'Save and send as PDF',
-    'Use a clear file name (John_Doe_CV.pdf)',
-  ],
-  donts: [
-    'Use generic objectives like "seeking a challenging position"',
-    'Include irrelevant work experience',
-    'Use unprofessional email addresses',
-    'Add references unless requested',
-    'Include your photo (not standard in most countries)',
-    'Use overly complex formatting or tables',
-    'Lie or exaggerate your experience',
-    'Send the same CV to every opportunity',
-  ],
-};
+const page_title = 'CV Tips: How to Build an Application That Gets Noticed';
+const page_subtitle = 'A strong CV is often the difference between an application that gets read and one that gets skipped. Whether you are applying for a job, an internship, a scholarship, or a fellowship, these guidelines will help you present yourself clearly and professionally.';
+const tips = [
+  { icon: 'FileText', title: 'Start With a Clean, Consistent Structure', desc: 'Recruiters and selection panels often review dozens of applications in a single sitting. Make it easy for them: Use clear section headings (Personal Details, Summary, Education, Experience, Skills, Achievements, References). Keep formatting consistent with one font, one size for body text, one style for headings. Stick to 1\u20132 pages. Save and submit as a PDF.' },
+  { icon: 'Target', title: 'Open With a Strong Summary', desc: 'A 2\u20133 sentence summary at the top tells the reader who you are and what you bring before they reach your experience section. Focus on your field, your strongest skill, and what you are looking for.' },
+  { icon: 'ListChecks', title: 'Lead With Achievements, Not Just Duties', desc: 'Listing what a role involved is less convincing than showing what you achieved in it. Where possible, quantify your impact. If you do not have numbers, describe the outcome: what changed because you did the work.' },
+  { icon: 'Eye', title: 'Tailor Your CV to Each Opportunity', desc: 'A generic CV sent to every opportunity is easy to spot and easy to reject. Re-read the opportunity description, reorder or rephrase your experience so the most relevant items come first, and match keywords where genuinely true.' },
+  { icon: 'CheckCircle2', title: 'Keep Language Simple and Professional', desc: 'Use active verbs like led, built, coordinated, designed, analyzed. Avoid jargon the reader might not know. Proofread carefully and ask someone else to read it before you submit.' },
+  { icon: 'AlertTriangle', title: 'Common Mistakes to Avoid', desc: 'Do not include a photo, age, or marital status unless specifically requested. Do not list every task from every role instead of the most relevant ones. Do not leave unexplained gaps without a brief note. Do not use an unprofessional email address. Do not forget to update contact details.' },
+];
+const dos = [
+  'Use action verbs (led, built, coordinated, designed, analyzed)',
+  'Quantify your achievements with numbers',
+  'Keep formatting consistent throughout',
+  'Include relevant keywords from the opportunity',
+  'Highlight achievements relevant to this specific opportunity',
+  'Include up-to-date contact information',
+  'Save and send as a clearly named PDF (e.g. FirstName_LastName_CV.pdf)',
+  'Proofread at least twice before submitting',
+];
+const donts = [
+  'Include a photo, age, or marital status unless specifically requested',
+  'List every task from every role instead of the most relevant ones',
+  'Leave unexplained gaps without a brief note',
+  'Use an unprofessional email address',
+  'Forget to update contact details',
+  'Lie or exaggerate your experience',
+  'Send the same CV to every opportunity',
+  'Use overly complex formatting or tables',
+];
 
 export default function CVTips() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    api.settings.get('cv_tips').then(res => {
-      if (res?.value) {
-        setData(prev => ({
-          ...defaults,
-          ...res.value,
-          tips: res.value.tips?.length ? res.value.tips : defaults.tips,
-          dos: res.value.dos?.length ? res.value.dos : defaults.dos,
-          donts: res.value.donts?.length ? res.value.donts : defaults.donts,
-        }));
-      } else {
-        setData(defaults);
-      }
-    }).catch(() => setData(defaults));
-  }, []);
-
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-6 h-6 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  const { page_title, page_subtitle, tips, dos, donts } = data;
 
   return (
     <>
