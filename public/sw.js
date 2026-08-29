@@ -1,4 +1,4 @@
-const CACHE = 'bridge-v10';
+const CACHE = 'bridge-v11';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
