@@ -5,7 +5,7 @@ import { AnimatedPage } from '../components/shared/AnimatedPage';
 import { api } from '@/api/client';
 
 const defaultContent = {
-  hero_title: 'About BCO',
+  hero_title: 'Who We Are',
   hero_subtitle: 'Bridge Collective Opportunities (BCO) is a global opportunity discovery platform that connects people with opportunities in education, employment, entrepreneurship, and personal development',
   mission_title: 'Bridging the gap between talent and opportunity',
   mission_text: 'Bridge Collective Opportunities (BCO) was founded with a simple yet powerful goal: to bridge the gap between young people and life-changing opportunities. We believe that accessing opportunities should be transparent, accessible, and empowering.',
