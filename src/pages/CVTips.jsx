@@ -67,7 +67,7 @@ export default function CVTips() {
 
             <div className="flex items-center gap-3 mb-2">
               <Lightbulb className="w-6 h-6 text-amber-500" />
-              <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{page_title}</h1>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{page_title}</h1>
             </div>
             <p className="text-lg text-gray-500 mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>{page_subtitle}</p>
 
