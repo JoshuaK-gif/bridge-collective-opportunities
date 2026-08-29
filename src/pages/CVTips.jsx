@@ -67,9 +67,9 @@ export default function CVTips() {
 
             <div className="flex items-center gap-3 mb-2">
               <Lightbulb className="w-6 h-6 text-amber-500" />
-              <h1 className="text-2xl font-bold text-gray-900">{page_title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{page_title}</h1>
             </div>
-            <p className="text-sm text-gray-500 mb-6">{page_subtitle}</p>
+            <p className="text-base text-gray-500 mb-6">{page_subtitle}</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               {tips.map((tip, i) => {
@@ -83,8 +83,8 @@ export default function CVTips() {
                         <Icon className={`w-5 h-5 ${color}`} />
                       </div>
                       <div>
-                        <h3 className="font-bold text-sm text-gray-900">{tip.title}</h3>
-                        <p className="text-xs text-gray-600 mt-1 leading-relaxed">{tip.desc}</p>
+                        <h3 className="font-bold text-base text-gray-900">{tip.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">{tip.desc}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -94,12 +94,12 @@ export default function CVTips() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                <h2 className="font-bold text-sm flex items-center gap-2 mb-4 text-green-700">
+                <h2 className="font-bold text-base flex items-center gap-2 mb-4 text-green-700">
                   <CheckCircle2 className="w-4 h-4" /> Do
                 </h2>
                 <ul className="space-y-2.5">
                   {dos.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                    <li key={i} className="flex items-start gap-2 text-base text-gray-700">
                       <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                       {item}
                     </li>
@@ -107,12 +107,12 @@ export default function CVTips() {
                 </ul>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                <h2 className="font-bold text-sm flex items-center gap-2 mb-4 text-red-700">
+                <h2 className="font-bold text-base flex items-center gap-2 mb-4 text-red-700">
                   <AlertTriangle className="w-4 h-4" /> Don't
                 </h2>
                 <ul className="space-y-2.5">
                   {donts.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                    <li key={i} className="flex items-start gap-2 text-base text-gray-700">
                       <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                       {item}
                     </li>
@@ -123,8 +123,8 @@ export default function CVTips() {
 
             <div className="mt-8 text-center bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl p-8 border border-primary/20">
               <Star className="w-8 h-8 text-primary mx-auto mb-3" />
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Ready to Build Your CV?</h2>
-              <p className="text-sm text-gray-600 mb-4">Use our free CV builder to create a professional CV in minutes.</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Ready to Build Your CV?</h2>
+              <p className="text-base text-gray-600 mb-4">Use our free CV builder to create a professional CV in minutes.</p>
               <Link to="/cv-builder" className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
                 <FileText className="w-4 h-4" /> Build Your CV Now
               </Link>
