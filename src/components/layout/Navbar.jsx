@@ -78,7 +78,6 @@ const userLinks = [
 
 const cvLinks = [
   { label: 'CV Builder', icon: FileText, path: '/cv-builder' },
-  { label: 'CV Review', icon: Search, path: '/cv-review' },
   { label: 'CV Tips', icon: Lightbulb, path: '/cv-tips' },
 ];
 
