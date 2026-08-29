@@ -208,10 +208,6 @@ export default function Navbar() {
     navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
-  const visibleAiLinks = features?.grantAssistant === false
-    ? aiLinks.filter((l) => l.path !== '/ai-assistant/check')
-    : aiLinks;
-
   return (
     <header className={`sticky top-0 z-50 transition-shadow ${scrolled ? 'shadow-md bg-white dark:bg-gray-900' : 'bg-white dark:bg-gray-900'}`}>
       {/* Top bar */}
@@ -296,13 +292,18 @@ export default function Navbar() {
                   <hr className="my-1 border-gray-100 dark:border-gray-700" />
 
                   {features?.ai !== false && (
-                    <MobileAccordion
-                      label="AI Assistant"
-                      icon={Sparkles}
-                      items={visibleAiLinks}
-                      location={location}
-                      searchParams={searchParams}
-                    />
+                    <SheetClose asChild>
+                      <Link
+                        to="/ai-assistant/generate"
+                        className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                          location.pathname.startsWith('/ai-assistant')
+                            ? 'text-primary bg-primary/10'
+                            : 'text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10'
+                        }`}
+                      >
+                        <Sparkles className="w-5 h-5" /> AI Assistant
+                      </Link>
+                    </SheetClose>
                   )}
 
                   {pageLinks.map(({ label, icon: Icon, path }) => (
@@ -577,15 +578,16 @@ export default function Navbar() {
             onClose={() => setActiveDropdown(prev => prev === 'Resume / CV' ? null : prev)}
           />
           {features?.ai !== false && (
-            <DropdownMenu
-              label="AI Assistant"
-              icon={Sparkles}
-              items={visibleAiLinks}
-              location={location}
-              isOpen={activeDropdown === 'AI Assistant'}
-              onOpen={() => setActiveDropdown('AI Assistant')}
-              onClose={() => setActiveDropdown(prev => prev === 'AI Assistant' ? null : prev)}
-            />
+            <Link
+              to="/ai-assistant/generate"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 ${
+                location.pathname.startsWith('/ai-assistant')
+                  ? 'text-primary bg-primary/5'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> AI Assistant
+            </Link>
           )}
 
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
