@@ -3,17 +3,10 @@ import { Building2, Users, Target } from 'lucide-react';
 import SEO from '../components/shared/SEO';
 import { AnimatedPage } from '../components/shared/AnimatedPage';
 import { api } from '@/api/client';
-import AnimatedCounter from '@/components/AnimatedCounter';
 
 const defaultContent = {
   hero_title: 'About BCO',
   hero_subtitle: 'Bridge Collective Opportunities (BCO) is a global opportunity discovery platform that connects people with opportunities in education, employment, entrepreneurship, and personal development',
-  stats: [
-    { value: '10K+', label: 'Opportunities' },
-    { value: '50K+', label: 'Active Users' },
-    { value: '100+', label: 'Partner Orgs' },
-    { value: '95%', label: 'Satisfaction' },
-  ],
   mission_title: 'Bridging the gap between talent and opportunity',
   mission_text: 'Bridge Collective Opportunities (BCO) was founded with a simple yet powerful goal: to bridge the gap between young people and life-changing opportunities. We believe that accessing opportunities should be transparent, accessible, and empowering.',
   mission_text2: 'Our platform provides access to scholarships, grants, internships, fellowships, jobs, training, and volunteering opportunities — ensuring that every young person can find their next big step.',
@@ -34,13 +27,6 @@ const defaultContent = {
   cta_title: 'Ready to find your next opportunity?',
   cta_text: 'Join thousands of young people already discovering life-changing opportunities on BCO.',
 };
-
-const stats = [
-  { value: '0', label: 'Opportunities', color: 'from-blue-500 to-blue-600' },
-  { value: '0', label: 'Active Users', color: 'from-green-500 to-green-600' },
-  { value: '0', label: 'Partner Orgs', color: 'from-orange-500 to-orange-600' },
-  { value: '0', label: 'Satisfaction', color: 'from-blue-500 to-green-500' },
-];
 
 const valueColors = [
   { color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
@@ -85,20 +71,6 @@ export default function About() {
             <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto">
               {c.hero_subtitle}
             </p>
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="relative -mt-10 z-10 max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {c.stats.map((s, i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 text-center hover:shadow-xl transition-shadow">
-                <div className={`text-3xl sm:text-4xl font-black bg-gradient-to-r ${stats[i]?.color || 'from-blue-500 to-blue-600'} bg-clip-text text-transparent`}>
-                  <AnimatedCounter value={s.value} />
-                </div>
-                <p className="text-sm text-gray-500 mt-1 font-medium">{s.label}</p>
-              </div>
-            ))}
           </div>
         </section>
 

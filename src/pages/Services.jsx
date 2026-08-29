@@ -4,17 +4,10 @@ import { Globe, Megaphone, Mail, BarChart3, Target, Users, Star, ChevronRight } 
 import { api } from '@/api/client';
 import SEO from '@/components/SEO';
 import { AnimatedPage } from '@/components/shared/AnimatedPage';
-import AnimatedCounter from '@/components/AnimatedCounter';
 
 const defaultContent = {
   hero_title: 'Our Media & Marketing Services',
   hero_subtitle: 'A global platform connecting young people to life-changing opportunities. Partner with us to reach millions of ambitious youth worldwide.',
-  stats: [
-    { label: 'Monthly Visitors', value: '100K+', icon: 'Globe' },
-    { label: 'Social Followers', value: '50K+', icon: 'Users' },
-    { label: 'Newsletter Subs', value: '20K+', icon: 'Mail' },
-    { label: 'Opportunities Listed', value: '500+', icon: 'Target' },
-  ],
   benefits: [
     { title: 'Engaged Audience', desc: 'Direct access to students, graduates, and young professionals actively seeking opportunities.' },
     { title: 'Targeted Reach', desc: 'Reach the right audience — youth actively looking for education and career opportunities.' },
@@ -30,8 +23,6 @@ const defaultContent = {
   cta_text: 'Interested in collaborating, promoting opportunities, or working with us?',
 };
 
-const iconMap = { Globe, Megaphone, Mail, BarChart3, Target, Users, Star };
-
 const serviceColors = [
   { color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
   { color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-200' },
@@ -43,13 +34,6 @@ const benefitColors = [
   { color: 'text-blue-600', bg: 'bg-blue-100' },
   { color: 'text-green-600', bg: 'bg-green-100' },
   { color: 'text-orange-600', bg: 'bg-orange-100' },
-];
-
-const statColors = [
-  { color: 'text-blue-600', bg: 'bg-blue-100' },
-  { color: 'text-green-600', bg: 'bg-green-100' },
-  { color: 'text-orange-600', bg: 'bg-orange-100' },
-  { color: 'text-blue-600', bg: 'bg-blue-100' },
 ];
 
 export default function Services() {
@@ -66,8 +50,6 @@ export default function Services() {
 
   const c = loaded ? content : defaultContent;
   const pkg = loaded && packages.length > 0 ? packages : [];
-
-  const getIcon = (name) => iconMap[name] || Globe;
 
   return (
     <>
@@ -90,25 +72,6 @@ export default function Services() {
               {c.hero_title}
             </h1>
             <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto">{c.hero_subtitle}</p>
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="relative -mt-10 z-10 max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {c.stats.map((s, i) => {
-              const Icon = getIcon(s.icon);
-              const sc = statColors[i % statColors.length];
-              return (
-                <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1">
-                  <div className={`w-12 h-12 rounded-xl ${sc.bg} flex items-center justify-center mx-auto mb-3 ${sc.color}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <AnimatedCounter value={s.value} className="text-2xl sm:text-3xl font-black text-gray-900" />
-                  <p className="text-sm text-gray-500 mt-1 font-medium">{s.label}</p>
-                </div>
-              );
-            })}
           </div>
         </section>
 
