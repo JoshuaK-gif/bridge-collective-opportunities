@@ -19,10 +19,7 @@ const defaultContent = {
     { title: 'Community Driven', desc: 'Built by youth, for youth — your success is our mission.' },
   ],
   timeline: [
-    { year: '2020', title: 'Founded', desc: 'BCO was launched to bridge the opportunity gap.' },
-    { year: '2021', title: '1,000 Opportunities', desc: 'Reached our first major milestone.' },
-    { year: '2023', title: '50K Users', desc: 'A growing community of motivated youth.' },
-    { year: '2024', title: 'Global Expansion', desc: 'Extended reach across Africa and beyond.' },
+    { year: '2026', title: 'Founded', desc: 'BCO was launched to bridge the opportunity gap.' },
   ],
   cta_title: 'Ready to find your next opportunity?',
   cta_text: 'Join thousands of young people already discovering life-changing opportunities on BCO.',
@@ -139,7 +136,7 @@ export default function About() {
               How we <span className="text-orange-600">grew</span>
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="flex justify-center gap-6">
             {c.timeline.map((m, i) => (
               <div key={i} className="relative bg-white border border-gray-100 rounded-2xl p-6 text-center hover:shadow-lg transition-all">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center mx-auto mb-4 text-white font-black text-lg">
