@@ -8,19 +8,18 @@
 let cachedFeatures = null;
 let inflight = null;
 
-const DEFAULTS = { ai: true, grantAssistant: true, pdf: true };
+const DEFAULTS = { ai: false, grantAssistant: false, pdf: false };
 
 export function getFeatures() {
   if (cachedFeatures) return Promise.resolve(cachedFeatures);
   if (!inflight) {
-    inflight = fetch('/api/health')
+    inflight = fetch('/api/health', { signal: AbortSignal.timeout(3000) })
       .then(res => (res.ok ? res.json() : {}))
       .then(data => {
         cachedFeatures = { ...DEFAULTS, ...(data.features || {}) };
         return cachedFeatures;
       })
       .catch(() => {
-        // If health can't be reached, assume full features (dev/localhost).
         cachedFeatures = { ...DEFAULTS };
         return cachedFeatures;
       })

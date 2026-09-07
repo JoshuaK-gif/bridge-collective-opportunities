@@ -29,7 +29,6 @@ const STATIC_META = {
   '/cv-builder': ['Free CV Builder | Bridge Collective Opportunities', 'Create a professional CV online with our free CV builder. Stand out to employers and opportunity providers with a polished resume.'],
   '/cv-tips': ['CV Writing Tips | Bridge Collective Opportunities', 'Learn how to write a standout CV that gets you noticed by employers and opportunity providers. Expert tips and examples.'],
   '/cv-review': ['AI CV Review | Bridge Collective Opportunities', 'Upload your CV and get instant AI-powered feedback. Improve your resume with our free CV review tool.'],
-  '/ai-assistant': ['AI Grant Assistant | Bridge Collective Opportunities', 'Get AI-powered application tips, write grants, and polish your applications with our AI assistant.'],
   '/privacy-policy': ['Privacy Policy | Bridge Collective Opportunities', 'Read the Bridge Collective Opportunities privacy policy. Learn how we protect your personal data.'],
   '/terms-of-service': ['Terms of Service | Bridge Collective Opportunities', 'Read the Bridge Collective Opportunities terms of service and conditions of use.'],
   '/saved': ['Saved Opportunities | Bridge Collective Opportunities', 'View your bookmarked opportunities on Bridge Collective Opportunities.'],
@@ -81,6 +80,8 @@ function buildPage(url, title, desc, image, extraSchema = '') {
 </body>
 </html>`;
 }
+
+export const config = { runtime: 'nodejs' };
 
 export default async function middleware(request) {
   const ua = (request.headers.get('user-agent') || '').toLowerCase();
