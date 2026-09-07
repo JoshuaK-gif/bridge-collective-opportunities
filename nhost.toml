@@ -1,0 +1,7 @@
+[[global.environment]]
+name = 'DATABASE_URL'
+value = 'postgres://postgres:GWE2YYjqu6AP4NJN@mdblpcjvmdeiuagleisn.db.eu-central-1.nhost.run:5432/mdblpcjvmdeiuagleisn?sslmode=require'
+
+[[global.environment]]
+name = 'DB_SSL'
+value = 'false'
