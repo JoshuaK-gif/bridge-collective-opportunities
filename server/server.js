@@ -235,9 +235,6 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
       } else if (pathname === '/cv-review') {
         pageTitle = 'AI CV Review | Bridge Collective Opportunities';
         pageDesc = 'Upload your CV and get instant AI-powered feedback. Improve your resume with our free CV review tool.';
-      } else if (pathname === '/ai-assistant') {
-        pageTitle = 'AI Grant Assistant | Bridge Collective Opportunities';
-        pageDesc = 'Get AI-powered application tips, write grants, and polish your applications with our AI assistant.';
       } else if (pathname === '/privacy-policy') {
         pageTitle = 'Privacy Policy | Bridge Collective Opportunities';
         pageDesc = 'Read the Bridge Collective Opportunities privacy policy. Learn how we protect your personal data.';

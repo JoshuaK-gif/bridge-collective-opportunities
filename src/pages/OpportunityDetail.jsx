@@ -6,7 +6,7 @@ import { oppImageSrc, CATEGORY_STYLES } from '@/lib/images';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ExternalLink, Calendar, Share2, CheckCircle2, Bell, Mail, Sparkles, Lightbulb, Target } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Share2, CheckCircle2, Bell, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 import RelatedOpportunities from '@/components/RelatedOpportunities';
@@ -69,8 +69,6 @@ export default function OpportunityDetail() {
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSent, setReminderSent] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [aiTips, setAiTips] = useState(null);
-  const [loadingTips, setLoadingTips] = useState(false);
 
   if (!opp) {
     return (
@@ -264,88 +262,6 @@ export default function OpportunityDetail() {
                     <p className="text-xs text-gray-600 mt-2">
                       Marked as <strong>{appStatus.status}</strong> on {new Date(appStatus.updatedAt).toLocaleDateString()}
                     </p>
-                  )}
-                </div>
-
-                {/* AI Application Assistant */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold flex items-center gap-2 text-purple-700">
-                      <Sparkles className="w-4 h-4" /> AI Application Assistant
-                    </h3>
-                    {!aiTips && (
-                      <button
-                        onClick={async () => {
-                          setLoadingTips(true);
-                          try {
-                            const result = await api.ai.applicationAssist({
-                              title: opp.title,
-                              category: opp.category,
-                              description: opp.description,
-                              deadline: opp.deadline,
-                              organization: opp.organization,
-                            });
-                            setAiTips(result);
-                            if (!result.tips?.length) toast.error('AI unavailable');
-                          } catch (err) {
-                            toast.error(err?.message || 'Failed to get tips');
-                          } finally {
-                            setLoadingTips(false);
-                          }
-                        }}
-                        disabled={loadingTips}
-                        className="px-3 py-1.5 btn-fill text-white text-xs font-medium flex items-center gap-1.5"
-                      >
-                        <Sparkles className={`w-3.5 h-3.5 ${loadingTips ? 'animate-spin' : ''}`} />
-                        {loadingTips ? 'Analyzing...' : 'Get Tips'}
-                      </button>
-                    )}
-                    {aiTips && (
-                      <button
-                        onClick={() => setAiTips(null)}
-                        className="text-xs text-purple-600 hover:text-purple-800 font-medium"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-
-                  {loadingTips && (
-                    <div className="flex items-center gap-2 text-xs text-purple-600">
-                      <div className="w-4 h-4 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin" />
-                      Analyzing opportunity...
-                    </div>
-                  )}
-
-                  {aiTips && aiTips.tips?.length > 0 && (
-                    <div className="space-y-3">
-                      <ul className="space-y-2">
-                        {aiTips.tips.map((tip, i) => (
-                          <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
-                            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                              <Lightbulb className="w-3 h-3" />
-                            </span>
-                            {tip}
-                          </li>
-                        ))}
-                      </ul>
-                      {aiTips.keyAdvice && (
-                        <div className="bg-white/60 rounded-lg p-3 border border-purple-100">
-                          <p className="text-xs font-semibold text-purple-700 flex items-center gap-1 mb-1">
-                            <Target className="w-3 h-3" /> Key Advice
-                          </p>
-                          <p className="text-xs text-gray-600">{aiTips.keyAdvice}</p>
-                        </div>
-                      )}
-                      {aiTips.suggestedApproach && (
-                        <div className="bg-white/60 rounded-lg p-3 border border-purple-100">
-                          <p className="text-xs font-semibold text-purple-700 flex items-center gap-1 mb-1">
-                            <Target className="w-3 h-3" /> Suggested Approach
-                          </p>
-                          <p className="text-xs text-gray-600">{aiTips.suggestedApproach}</p>
-                        </div>
-                      )}
-                    </div>
                   )}
                 </div>
 

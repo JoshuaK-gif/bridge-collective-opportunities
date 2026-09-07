@@ -274,24 +274,6 @@ export const api = {
   cv: {
     downloadPdf: disabled('PDF download'),
   },
-  ai: {
-    atsScan: disabled('AI ATS scan'),
-    cvFeedback: disabled('AI CV feedback'),
-    generateSummary: disabled('AI summary generation'),
-    suggestSkills: disabled('AI skill suggestions'),
-    rewrite: disabled('AI rewrite'),
-    applicationAssist: disabled('AI application assist'),
-    grantWrite: disabled('AI grant writing'),
-    grantPolish: disabled('AI grant polishing'),
-    grantGenerate: disabled('AI grant generation'),
-    extractFromUrl: disabled('AI URL extraction'),
-  },
-  grantkit: {
-    packs: disabled('GrantKit'),
-    sections: disabled('GrantKit'),
-    check: disabled('GrantKit'),
-    build: disabled('GrantKit'),
-  },
   templates: {
     list: () => request(`/collections${qs({ resource: 'templates' })}`),
     get: (id) => request(`/collections${qs({ resource: 'template', id })}`),

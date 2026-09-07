@@ -23,7 +23,6 @@ router.get('/', async (req, res) => {
       { loc: '/cv-builder', priority: '0.6', changefreq: 'monthly', lastmod: today },
       { loc: '/cv-tips', priority: '0.6', changefreq: 'monthly', lastmod: today },
       { loc: '/cv-review', priority: '0.6', changefreq: 'monthly', lastmod: today },
-      { loc: '/ai-assistant', priority: '0.6', changefreq: 'monthly', lastmod: today },
       { loc: '/privacy-policy', priority: '0.3', changefreq: 'yearly', lastmod: today },
       { loc: '/terms-of-service', priority: '0.3', changefreq: 'yearly', lastmod: today },
       { loc: '/saved', priority: '0.3', changefreq: 'yearly', lastmod: today },
