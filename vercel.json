@@ -13,10 +13,6 @@
       "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/seo?type=rss"
     },
     {
-      "source": "/api/:path*",
-      "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
