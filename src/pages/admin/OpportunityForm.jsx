@@ -49,7 +49,6 @@ export default function OpportunityForm() {
 
   const [form, setForm] = useState({ title: '', description: '', link: '', image_url: '', image_public_id: '', image_crop: null, image_size: 'medium', category: '', deadline: '', status: 'active', publish_at: '', template_name: '', structured_data: null });
   const [loading, setLoading] = useState(false);
-  const [enriching, setEnriching] = useState(false);
   const [saveAsDraft, setSaveAsDraft] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [cloneUrl, setCloneUrl] = useState('');
@@ -57,28 +56,6 @@ export default function OpportunityForm() {
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   const [categories, setCategories] = useState([]);
-  const [duplicates, setDuplicates] = useState([]);
-  const [checkingDups, setCheckingDups] = useState(false);
-  const dupTimer = useRef(null);
-
-  const handleEnrich = async () => {
-    if (!isEdit || !form.title) return;
-    setEnriching(true);
-    try {
-      const result = await api.opportunities.enrich(id);
-      setForm(prev => ({
-        ...prev,
-        title: result.title || prev.title,
-        description: result.description || prev.description,
-      }));
-      const kw = (result.keywords || []).slice(0, 5).join(', ');
-      toast('✨ AI description generated!' + (kw ? ` Keywords: ${kw}` : ''));
-    } catch (err) {
-      toast('AI enrichment failed: ' + (err.data?.error || err.message));
-    } finally {
-      setEnriching(false);
-    }
-  };
 
   const handleCloneUrl = async () => {
     if (!cloneUrl.trim()) return;
@@ -326,22 +303,6 @@ export default function OpportunityForm() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Description</Label>
-                {isEdit && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEnrich}
-                    disabled={enriching || !form.title}
-                    className="text-xs gap-1.5"
-                  >
-                    {enriching ? (
-                      <><span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Generating...</>
-                    ) : (
-                      <><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg> Generate Full Description</>
-                    )}
-                  </Button>
-                )}
               </div>
               <ReactQuill
                 value={form.description}

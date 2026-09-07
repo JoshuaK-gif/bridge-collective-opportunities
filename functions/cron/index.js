@@ -6,7 +6,6 @@
  *   expired-cleanup    — delete active opportunities past deadline (daily)
  *   newsletter         — send daily newsletter (batched)           (daily 20:00)
  *   reminders          — deadline reminder emails                  (hourly)
- *   auto-publish       — DISABLED: requires AI (rewrite/image/enrich)
  *
  * Triggered by .github/workflows/cron.yml or Nhost cron triggers.
  */
@@ -63,11 +62,6 @@ export default handle(async (req, res) => {
       const result = await processReminders();
       return res.json({ job, ...result });
     }
-    case 'auto-publish':
-      return res.status(501).json({
-        job,
-        error: 'auto-publish requires AI (rewrite + image generation + enrichment) and is disabled on the Nhost free-tier backend. See MIGRATION.md.',
-      });
     default:
       return res.status(404).json({ error: `Unknown job: ${job}` });
   }

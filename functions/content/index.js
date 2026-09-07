@@ -3,8 +3,7 @@
  *
  * Nhost Functions use static routes, so resources are addressed with query
  * params (GET) or { resource, action } bodies (POST). All SQL is ported
- * verbatim from the Express routes; AI-dependent endpoints (enrich,
- * clone-from-url AI extraction) are disabled with a clear 501.
+ * verbatim from the Express routes.
  *
  * GET  /v1/content?resource=opportunities&category&search&trending&featured&all&expiring_soon&expiring_within
  * GET  /v1/content?resource=home          (single call: featured + opportunities + categories + expiringSoon + curatedLists)
@@ -17,7 +16,7 @@
  * GET  /v1/content?resource=related&id=
  * GET  /v1/content?resource=unsubscribe&email&id
  *
- * POST /v1/content  { resource: 'opportunity', action: 'create'|'update'|'delete'|'duplicate'|'bulk-delete'|'bulk-update'|'bulk-publish'|'submit'|'clone-from-url', ... }
+ * POST /v1/content  { resource: 'opportunity', action: 'create'|'update'|'delete'|'duplicate'|'bulk-delete'|'bulk-update'|'submit'|'clone-from-url', ... }
  * POST /v1/content  { resource: 'category', action: 'create'|'update'|'delete', ... }
  * POST /v1/content  { resource: 'news', action: 'create'|'update'|'delete', ... }
  */
@@ -456,7 +455,7 @@ async function handleOpportunityAction(body, user, req, res) {
   }
 
   if (action === 'enrich') {
-    return res.status(501).json({ error: 'AI enrichment is disabled on the Nhost free-tier backend. See MIGRATION.md.' });
+    return res.status(501).json({ error: 'AI enrichment has been removed.' });
   }
 
   throw new AppError(404, `Unknown opportunity action: ${action}`);
