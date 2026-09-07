@@ -11,6 +11,10 @@
     {
       "source": "/api/rss.xml",
       "destination": "/api/seo?type=rss"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
