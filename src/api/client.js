@@ -4,7 +4,7 @@ const API_URL = '/api';
 // https://<subdomain>.auth.<region>.nhost.run/v1
 const NHOST_AUTH_URL =
   import.meta.env?.VITE_NHOST_AUTH_URL ||
-  'https://ybgaidcwksqeuojraxoe.auth.ap-southeast-1.nhost.run/v1';
+  'https://mdblpcjvmdeiuagleisn.auth.eu-central-1.nhost.run/v1';
 
 function getToken() {
   return localStorage.getItem('bridge_jobs_token');

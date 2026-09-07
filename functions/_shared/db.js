@@ -13,11 +13,12 @@ let pool = null;
 
 export function getPool() {
   if (!pool) {
-    if (!process.env.DATABASE_URL) {
+    const dbUrl = process.env.DATABASE_URL || process.env.NHOST_DATABASE_URL;
+    if (!dbUrl) {
       throw new Error('DATABASE_URL is not set — add the Nhost Postgres connection string as an env var');
     }
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: dbUrl,
       max: parseInt(process.env.DB_POOL_MAX, 10) || 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,

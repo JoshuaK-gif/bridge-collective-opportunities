@@ -6,15 +6,15 @@
   "rewrites": [
     {
       "source": "/api/sitemap.xml",
-      "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/seo?type=sitemap"
+      "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/seo?type=sitemap"
     },
     {
       "source": "/api/rss.xml",
-      "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/seo?type=rss"
+      "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/seo?type=rss"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1/:path*"
+      "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/:path*"
     },
     {
       "source": "/(.*)",
