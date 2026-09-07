@@ -13,7 +13,7 @@
       "destination": "/api/seo?type=rss"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|assets/|.*\\.).*)",
       "destination": "/index.html"
     }
   ]
