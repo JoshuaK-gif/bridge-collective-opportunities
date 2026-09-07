@@ -5,12 +5,9 @@ import pool from '../lib/db.js';
 import logger from '../lib/logger.js';
 import { authenticate } from '../auth.js';
 import { AppError } from '../lib/errors.js';
-import { publishToSocial } from '../lib/social.js';
 import { validate, opportunitySchema } from '../lib/validate.js';
 import { logAudit } from '../lib/audit.js';
-import { enrichOpportunity } from '../lib/enrich.js';
 import { notifyNewOpportunity } from '../lib/email.js';
-import { validateUrl } from '../lib/url-validator.js';
 import cache from '../lib/cache.js';
 
 const router = Router();
@@ -310,33 +307,6 @@ router.post('/bulk/update', authenticate, async (req, res, next) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// AI Enrichment — Generate full structured description for an opportunity
-// Uses shared enrichment utility from lib/enrich.js
-// ---------------------------------------------------------------------------
-router.post('/:id/enrich', authenticate, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-
-    const result = await enrichOpportunity(req.params.id);
-    if (!result) throw new AppError(502, 'AI enrichment failed — the AI returned an unparseable response. Try again.');
-
-    logAudit({ userId: req.user.id, action: 'enrich', entityType: 'opportunity', entityId: req.params.id, ipAddress: req.ip });
-    logger.info({ opportunityId: req.params.id }, 'Opportunity enriched with AI description');
-
-    res.json({
-      success: true,
-      opportunityId: req.params.id,
-      title: result.title,
-      description: result.description,
-      structured_data: result.structured_data,
-      keywords: result.keywords,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
@@ -368,109 +338,6 @@ router.post('/:id/duplicate', authenticate, async (req, res, next) => {
     );
     logAudit({ userId: req.user.id, action: 'duplicate', entityType: 'opportunity', entityId: newId, ipAddress: req.ip });
     res.status(201).json({ id: newId, success: true });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Bulk publish drafts from scraped_posts
-// ---------------------------------------------------------------------------
-router.post('/bulk/publish', authenticate, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-    const { ids } = req.body;
-    if (!Array.isArray(ids) || !ids.length) throw new AppError(400, 'ids array is required');
-
-    const draftResult = await pool.query("SELECT * FROM scraped_posts WHERE id = ANY($1::uuid[]) AND status = 'draft'", [ids]);
-    let published = 0;
-    for (const d of draftResult.rows) {
-      const title = d.edited_title || d.source_title || '';
-      const description = d.edited_description || d.summary || '';
-      const category = d.edited_category || d.source_category || 'Scholarship';
-      const imageUrl = d.edited_image_url || d.image_url || '';
-      const deadline = d.edited_deadline || d.deadline || null;
-      const applyUrl = d.edited_apply_url || d.apply_url || d.source_url;
-      const oppId = uuidv4();
-      const structuredData = d.structured_data || {};
-      await pool.query(
-        `INSERT INTO opportunities (id, title, description, link, image_url, category, deadline, status, created_by, created_date, updated_date, structured_data)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'active',$8,now(),now(),$9)`,
-        [oppId, title, description, applyUrl, imageUrl, category, deadline, req.user.id, JSON.stringify(structuredData)]
-      );
-      await pool.query(
-        `UPDATE scraped_posts SET rewritten_title = $1, rewritten_description = $2, opportunity_id = $3, posted_to_website = true, posted_date = now(), status = 'published'
-         WHERE id = $4`,
-        [title, description, oppId, d.id]
-      );
-      notifyNewOpportunity({ id: oppId, title, description, image_url: imageUrl, category, deadline }).catch(err => {
-        logger.error({ opportunityId: oppId, err: err.message }, 'Bulk publish notification failed');
-      });
-      published++;
-    }
-    logAudit({ userId: req.user.id, action: 'bulk_publish', entityType: 'scraped_posts', metadata: { count: published }, ipAddress: req.ip });
-    res.json({ success: true, published });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Clone from URL — fetch a URL, AI-extract opportunity data, return as pre-fill
-// ---------------------------------------------------------------------------
-router.post('/clone-from-url', authenticate, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-    const { url } = req.body;
-    if (!url) throw new AppError(400, 'URL is required');
-
-    const validation = validateUrl(url);
-    if (!validation.valid) throw new AppError(400, validation.error);
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'BridgeJobs/1.0 (Opportunity Aggregator)' },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new AppError(400, `Failed to fetch URL: ${response.status}`);
-    const html = await response.text();
-
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const descMatch = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i);
-    const extractedTitle = (titleMatch?.[1] || '').trim();
-    const extractedDesc = (descMatch?.[1] || '').trim();
-
-    const cleanText = html
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 3000);
-
-    const prompt = `Extract opportunity details from this webpage content. Return ONLY valid JSON with these fields: title, description (2-3 sentence summary), category, deadline (in YYYY-MM-DD format if found), link (the apply URL if found), organization, location, funding. If a field is not found, use empty string. Do NOT fabricate.
-    
-Webpage content: "${cleanText.slice(0, 2000)}"`;
-
-    const aiConfig = await (await import('../lib/enrich.js')).getAiConfig();
-    let extracted = {};
-    try {
-      const aiContent = await (await import('../lib/enrich.js')).callEnrichAI(prompt, aiConfig);
-      extracted = (await import('../lib/enrich.js')).safeParseEnrich(aiContent);
-    } catch {
-      // fallback to basic extraction
-    }
-
-    res.json({
-      title: extracted.title || extractedTitle,
-      description: extracted.description || extractedDesc,
-      category: extracted.category || 'Scholarship',
-      deadline: extracted.deadline || '',
-      link: extracted.link || url,
-      organization: extracted.organization || '',
-      location: extracted.location || '',
-      funding: extracted.funding || '',
-    });
   } catch (err) {
     next(err);
   }

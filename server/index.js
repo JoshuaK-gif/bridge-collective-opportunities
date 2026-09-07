@@ -7,23 +7,11 @@ import { validateEnv } from './lib/env.js';
 import pool from './lib/db.js';
 import { runMigrations } from './lib/migrate.js';
 import { seed } from './data.js';
-import { autoPublish } from './scripts/auto-publish.js';
-import { sendNewsletter } from './scripts/send-newsletter.js';
 
 async function startServer() {
   const { createApp } = await import('./server.js');
   const { httpServer } = createApp();
   const PORT = process.env.PORT || 3000;
-
-  cron.schedule('*/2 * * * *', async () => {
-    logger.info('Cron: running auto-publish check');
-    try {
-      await autoPublish();
-    } catch (err) {
-      logger.error({ err }, 'Cron auto-publish failed');
-    }
-  });
-  logger.info('Auto-publish cron scheduled (every 2 min)');
 
   // Auto-delete past-deadline opportunities — runs daily at midnight
   cron.schedule('0 0 * * *', async () => {
@@ -55,62 +43,6 @@ async function startServer() {
     }
   });
   logger.info('Scheduled publishing cron (every minute)');
-
-  // Daily newsletter at 8:00 PM
-  cron.schedule('0 20 * * *', async () => {
-    logger.info('Cron: running daily newsletter');
-    try {
-      await sendNewsletter();
-    } catch (err) {
-      logger.error({ err }, 'Cron newsletter failed');
-    }
-  });
-  logger.info('Daily newsletter cron scheduled (8:00 PM)');
-
-  // Deadline reminder emails every hour
-  cron.schedule('0 * * * *', async () => {
-    logger.info('Cron: processing deadline reminders');
-    try {
-      const { default: pool } = await import('./lib/db.js');
-      const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'reminders'");
-      if (existing.rows.length) {
-        const reminders = existing.rows[0].value;
-        if (Array.isArray(reminders) && reminders.length > 0) {
-          const { getSmtpConfig, sendEmail } = await import('./lib/email.js');
-          const config = await getSmtpConfig();
-          if (config?.host) {
-            const now = new Date();
-            let updated = [...reminders];
-            let processed = 0;
-            for (let i = 0; i < updated.length; i++) {
-              const r = updated[i];
-              const deadlineDate = new Date(r.deadline + 'T00:00:00');
-              const diffMs = deadlineDate.getTime() - now.getTime();
-              const diffDays = diffMs / (1000 * 60 * 60 * 24);
-              if (diffDays < -7) { updated.splice(i, 1); i--; continue; }
-              if (r.sent) continue;
-              if (diffDays <= 2 && diffDays >= 0) {
-                const result = await sendEmail({
-                  to: r.email,
-                  subject: `Reminder: "${r.opportunityTitle}" deadline is approaching!`,
-                  html: `<div style="font-family:sans-serif;padding:24px;max-width:480px;margin:0 auto;"><h2>Deadline Reminder</h2><p>The opportunity "<strong>${r.opportunityTitle}</strong>" closes <strong>${r.deadline}</strong>!</p><a href="https://bridgecollectiveopport.org/opportunities/${r.opportunityId}" style="display:inline-block;background:#667eea;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">View Opportunity</a></div>`,
-                });
-                if (result.success) {
-                  updated[i] = { ...r, sent: true, sentAt: now.toISOString() };
-                  processed++;
-                }
-              }
-            }
-            await pool.query("UPDATE site_settings SET value = $1 WHERE key = 'reminders'", [JSON.stringify(updated)]);
-            logger.info({ processed }, 'Reminder emails processed');
-          }
-        }
-      }
-    } catch (err) {
-      logger.error({ err }, 'Cron reminders failed');
-    }
-  });
-  logger.info('Deadline reminder cron scheduled (every hour)');
 
   function shutdown(signal) {
     logger.info({ signal }, 'Shutting down');
@@ -156,54 +88,6 @@ try {
   }
 } catch (e) {
   logger.warn({ err: e.message }, 'Could not verify users table');
-}
-// Fix AI config if it references a model that no longer exists on the provider
-try {
-  const cfgResult = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
-  if (cfgResult.rows.length) {
-    const val = cfgResult.rows[0].value;
-    const cfg = typeof val === 'string' ? JSON.parse(val) : val;
-    const safeModels = { openrouter: 'openai/gpt-4o-mini', openai: 'gpt-4o-mini', opencodezen: 'deepseek-v4-flash-free', gemini: 'gemini-2.0-flash' };
-    if (cfg?.provider && safeModels[cfg.provider] && cfg.model !== safeModels[cfg.provider]) {
-      cfg.model = safeModels[cfg.provider];
-      await pool.query(
-        "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
-        [JSON.stringify(cfg)]
-      );
-      logger.info({ provider: cfg.provider, model: cfg.model }, 'AI config model auto-corrected');
-    }
-  }
-} catch (e) {
-  logger.warn({ err: e.message }, 'Could not auto-correct AI config');
-}
-// Ensure scraper_ai_config defaults to OpenCode Zen free if not set
-try {
-  const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'scraper_ai_config'");
-  if (!existing.rows.length) {
-    const defaultZen = { provider: 'opencodezen', model: 'deepseek-v4-flash-free', api_key: '', enabled: true };
-    await pool.query(
-      "INSERT INTO site_settings (key, value, updated_at) VALUES ('scraper_ai_config', $1, now()) ON CONFLICT (key) DO NOTHING",
-      [JSON.stringify(defaultZen)]
-    );
-    logger.info('Scraper AI config seeded with OpenCode Zen free');
-  }
-} catch (e) {
-  logger.warn({ err: e.message }, 'Could not seed scraper AI config');
-}
-
-// Ensure AI config defaults to OpenCode Zen free (deepseek-v4-flash-free)
-try {
-  const existingCfg = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
-  if (!existingCfg.rows.length) {
-    const zenCfg = { api_key: '', provider: 'opencodezen', model: 'deepseek-v4-flash-free', enabled: true };
-    await pool.query(
-      "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
-      [JSON.stringify(zenCfg)]
-    );
-    logger.info('AI config seeded with OpenCode Zen free');
-  }
-} catch (e) {
-  logger.warn({ err: e.message }, 'Could not seed AI config');
 }
 logger.info('Database ready');
 await startServer();
