@@ -6,11 +6,11 @@
   "rewrites": [
     {
       "source": "/api/sitemap.xml",
-      "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/seo?type=sitemap"
+      "destination": "/api/seo?type=sitemap"
     },
     {
       "source": "/api/rss.xml",
-      "destination": "https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1/seo?type=rss"
+      "destination": "/api/seo?type=rss"
     },
     {
       "source": "/(.*)",
