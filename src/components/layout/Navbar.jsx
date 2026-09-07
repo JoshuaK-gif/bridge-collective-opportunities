@@ -32,6 +32,7 @@ import {
   Bell,
   CheckCircle2,
   Heart,
+  FileText,
   ChevronDown,
   ChevronRight,
 
@@ -299,6 +300,18 @@ export default function Navbar() {
 
                   <hr className="my-1 border-gray-100 dark:border-gray-700" />
 
+                  {/* Resume Builder - mobile */}
+                  <SheetClose asChild>
+                    <a
+                      href="https://bco-resume-builder-ieiy.vercel.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10"
+                    >
+                      <FileText className="w-5 h-5" /> Resume Builder
+                    </a>
+                  </SheetClose>
+
                   {/* Post Opp - mobile */}
                   <SheetClose asChild>
                     <Link
@@ -389,6 +402,16 @@ export default function Navbar() {
             >
               <Send className="w-3 h-3" /> Post Opp
             </Link>
+
+            {/* Resume Builder - desktop */}
+            <a
+              href="https://bco-resume-builder-ieiy.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-primary border border-primary hover:bg-primary/5 transition-colors shrink-0"
+            >
+              <FileText className="w-3 h-3" /> Resume Builder
+            </a>
 
             {/* Search bar (desktop) */}
             <form onSubmit={handleSearch} className="hidden md:flex relative w-40 lg:w-56 xl:w-64">
@@ -528,6 +551,15 @@ export default function Navbar() {
             onClose={() => setActiveDropdown(prev => prev === 'Opportunities' ? null : prev)}
           />
 
+
+          <a
+            href="https://bco-resume-builder-ieiy.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10"
+          >
+            <FileText className="w-3.5 h-3.5" /> Resume Builder
+          </a>
 
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 
