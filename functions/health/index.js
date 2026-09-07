@@ -10,12 +10,17 @@ import { handle } from '../_shared/errors.js';
 
 export default handle(async (req, res) => {
   const checks = { status: 'ok', features: { ai: false, grantAssistant: false, pdf: false } };
+  const hasDbUrl = !!process.env.DATABASE_URL;
+  const hasNhostDbUrl = !!process.env.NHOST_DATABASE_URL;
+  checks.debug = { hasDbUrl, hasNhostDbUrl };
   try {
     await query('SELECT 1');
     checks.db = 'connected';
-  } catch {
+  } catch (err) {
     checks.db = 'disconnected';
     checks.status = 'degraded';
+    checks.dbError = err?.message || String(err);
+    checks.dbCode = err?.code || null;
   }
   res.status(checks.status === 'ok' ? 200 : 503).json(checks);
 });

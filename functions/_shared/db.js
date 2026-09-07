@@ -17,12 +17,14 @@ export function getPool() {
     if (!dbUrl) {
       throw new Error('DATABASE_URL is not set — add the Nhost Postgres connection string as an env var');
     }
+    const sslConfig = process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false };
+    console.log('[db] connecting with ssl:', JSON.stringify(sslConfig));
     pool = new Pool({
       connectionString: dbUrl,
       max: parseInt(process.env.DB_POOL_MAX, 10) || 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-      ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
+      ssl: sslConfig,
     });
     pool.on('error', (err) => {
       console.error('[db] unexpected pool error', err);
