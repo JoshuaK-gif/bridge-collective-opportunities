@@ -3,7 +3,6 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import BackToTop from './BackToTop';
-import AssistanceButton from '@/components/shared/AssistanceButton';
 
 export default function PublicLayout() {
   const handleSearchTap = () => {
@@ -23,7 +22,6 @@ export default function PublicLayout() {
       <Footer />
       <BottomNav onSearchTap={handleSearchTap} />
       <BackToTop />
-      <AssistanceButton />
     </div>
   );
 }
