@@ -28,10 +28,7 @@ const MyApplications = lazy(() => import('@/pages/MyApplications'));
 const CVBuilder = lazy(() => import('@/pages/CVBuilder'));
 const CVReview = lazy(() => import('@/pages/CVReview'));
 const CVTips = lazy(() => import('@/pages/CVTips'));
-const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
-const GenerateAssistant = lazy(() => import('@/pages/GenerateAssistant'));
-const PolishAssistant = lazy(() => import('@/pages/PolishAssistant'));
-const GrantCheckAssistant = lazy(() => import('@/pages/GrantCheckAssistant'));
+
 const ServerError = lazy(() => import('@/pages/ServerError'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
@@ -94,16 +91,7 @@ function AppContent() {
                 <Route path="/cv-builder" element={<CVBuilder />} />
                 <Route path="/cv-review" element={<CVReview />} />
                 <Route path="/cv-tips" element={<CVTips />} />
-                {features?.ai !== false && (
-                  <>
-                    <Route path="/ai-assistant" element={<AIAssistant />} />
-                    <Route path="/ai-assistant/generate" element={<GenerateAssistant />} />
-                    <Route path="/ai-assistant/polish" element={<PolishAssistant />} />
-                  </>
-                )}
-                {features?.grantAssistant !== false && (
-                  <Route path="/ai-assistant/check" element={<GrantCheckAssistant />} />
-                )}
+
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/500" element={<ServerError />} />

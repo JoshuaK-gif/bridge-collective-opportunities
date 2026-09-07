@@ -36,10 +36,7 @@ import {
   Lightbulb,
   ChevronDown,
   ChevronRight,
-  Sparkles,
-  Wand2,
-  Edit3,
-  ShieldCheck,
+
   Send,
   Sun,
   Moon,
@@ -47,7 +44,7 @@ import {
 import { toast } from 'sonner';
 import { api } from '@/api/client';
 import { useTheme } from 'next-themes';
-import { getFeatures } from '@/lib/features';
+
 
 const navCategories = [
   { label: 'Scholarships', icon: BookOpen, path: '/category/scholarships' },
@@ -65,11 +62,7 @@ const pageLinks = [
   { label: 'Contact', icon: Mail, path: '/contact' },
 ];
 
-const aiLinks = [
-  { label: 'Generate', icon: Wand2, path: '/ai-assistant/generate' },
-  { label: 'Funder Check', icon: ShieldCheck, path: '/ai-assistant/check' },
-  { label: 'Polish', icon: Edit3, path: '/ai-assistant/polish' },
-];
+
 
 const userLinks = [
   { label: 'Saved', icon: Heart, path: '/saved' },
@@ -182,11 +175,6 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [subEmail, setSubEmail] = useState('');
   const [subscribing, setSubscribing] = useState(false);
-  const [features, setFeatures] = useState(null);
-
-  useEffect(() => {
-    getFeatures().then(setFeatures);
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -290,21 +278,6 @@ export default function Navbar() {
                   />
 
                   <hr className="my-1 border-gray-100 dark:border-gray-700" />
-
-                  {features?.ai !== false && (
-                    <SheetClose asChild>
-                      <Link
-                        to="/ai-assistant/generate"
-                        className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                          location.pathname.startsWith('/ai-assistant')
-                            ? 'text-primary bg-primary/10'
-                            : 'text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10'
-                        }`}
-                      >
-                        <Sparkles className="w-5 h-5" /> AI Assistant
-                      </Link>
-                    </SheetClose>
-                  )}
 
                   {pageLinks.map(({ label, icon: Icon, path }) => (
                     <SheetClose asChild key={label}>
@@ -577,18 +550,7 @@ export default function Navbar() {
             onOpen={() => setActiveDropdown('Resume / CV')}
             onClose={() => setActiveDropdown(prev => prev === 'Resume / CV' ? null : prev)}
           />
-          {features?.ai !== false && (
-            <Link
-              to="/ai-assistant/generate"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 ${
-                location.pathname.startsWith('/ai-assistant')
-                  ? 'text-primary bg-primary/5'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> AI Assistant
-            </Link>
-          )}
+
 
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 
