@@ -32,8 +32,6 @@ import {
   Bell,
   CheckCircle2,
   Heart,
-  FileText,
-  Lightbulb,
   ChevronDown,
   ChevronRight,
 
@@ -67,11 +65,6 @@ const pageLinks = [
 const userLinks = [
   { label: 'Saved', icon: Heart, path: '/saved' },
   { label: 'My Apps', icon: CheckCircle2, path: '/my-applications' },
-];
-
-const cvLinks = [
-  { label: 'CV Builder', icon: FileText, path: '/cv-builder' },
-  { label: 'CV Tips', icon: Lightbulb, path: '/cv-tips' },
 ];
 
 // --- Desktop Dropdown (pure CSS group-hover — no JS timers needed) ---
@@ -266,13 +259,6 @@ export default function Navbar() {
                     label="Opportunities"
                     icon={Briefcase}
                     items={navCategories}
-                    location={location}
-                    searchParams={searchParams}
-                  />
-                  <MobileAccordion
-                    label="Resume / CV"
-                    icon={FileText}
-                    items={cvLinks}
                     location={location}
                     searchParams={searchParams}
                   />
@@ -540,15 +526,6 @@ export default function Navbar() {
             isOpen={activeDropdown === 'Opportunities'}
             onOpen={() => setActiveDropdown('Opportunities')}
             onClose={() => setActiveDropdown(prev => prev === 'Opportunities' ? null : prev)}
-          />
-          <DropdownMenu
-            label="Resume / CV"
-            icon={FileText}
-            items={cvLinks}
-            location={location}
-            isOpen={activeDropdown === 'Resume / CV'}
-            onOpen={() => setActiveDropdown('Resume / CV')}
-            onClose={() => setActiveDropdown(prev => prev === 'Resume / CV' ? null : prev)}
           />
 
 

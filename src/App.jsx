@@ -25,9 +25,6 @@ const SearchResults = lazy(() => import('@/pages/SearchResults'));
 const Login = lazy(() => import('@/pages/Login'));
 const SavedOpportunities = lazy(() => import('@/pages/SavedOpportunities'));
 const MyApplications = lazy(() => import('@/pages/MyApplications'));
-const CVBuilder = lazy(() => import('@/pages/CVBuilder'));
-const CVReview = lazy(() => import('@/pages/CVReview'));
-const CVTips = lazy(() => import('@/pages/CVTips'));
 
 const ServerError = lazy(() => import('@/pages/ServerError'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
@@ -50,7 +47,6 @@ const AdminNews = lazy(() => import('@/pages/admin/AdminNews'));
 const OpportunityForm = lazy(() => import('@/pages/admin/OpportunityForm'));
 const AdminTemplates = lazy(() => import('@/pages/admin/AdminTemplates'));
 const AIExtractFromUrl = lazy(() => import('@/pages/admin/AIExtractFromUrl'));
-const AdminCvTips = lazy(() => import('@/pages/admin/AdminCvTips'));
 
 // Loading spinner for lazy-loaded routes
 function PageLoader() {
@@ -88,9 +84,6 @@ function AppContent() {
                 <Route path="/submit-opportunity" element={<SubmitOpportunity />} />
                 <Route path="/saved" element={<SavedOpportunities />} />
                 <Route path="/my-applications" element={<MyApplications />} />
-                <Route path="/cv-builder" element={<CVBuilder />} />
-                <Route path="/cv-review" element={<CVReview />} />
-                <Route path="/cv-tips" element={<CVTips />} />
 
               </Route>
               <Route path="/login" element={<Login />} />
@@ -113,7 +106,6 @@ function AppContent() {
                   <Route path="news" element={<AdminNews />} />
                   <Route path="templates" element={<AdminTemplates />} />
                   <Route path="ai-extract" element={<AIExtractFromUrl />} />
-                  <Route path="cv-tips" element={<AdminCvTips />} />
                 </Route>
               </Route>            <Route path="*" element={<PageNotFound />} />
           </Routes>

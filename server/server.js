@@ -25,9 +25,6 @@ import sitemapRoutes from './routes/sitemap.js';
 import feedRoutes from './routes/feed.js';
 import relatedRoutes from './routes/related.js';
 import newsRoutes from './routes/news.js';
-import resumeRoutes from './routes/resume.js';
-import resumesRoutes from './routes/resumes.js';
-import cvPdfRoutes from './routes/cv-pdf.js';
 import templateRoutes from './routes/templates.js';
 
 let Sentry = null;
@@ -120,9 +117,6 @@ export function createApp() {
   app.use('/api/rss.xml', feedRoutes);
   app.use('/api/related', relatedRoutes);
   app.use('/api/news', newsRoutes);
-  app.use('/api/resume', resumeRoutes);
-  app.use('/api/resumes', resumesRoutes);
-  app.use('/api', cvPdfRoutes);
   app.use('/api/templates', templateRoutes);
 
   app.get('/robots.txt', (req, res) => {
@@ -226,15 +220,6 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
       } else if (pathname === '/contact') {
         pageTitle = 'Contact | Bridge Collective Opportunities';
         pageDesc = 'Get in touch with the Bridge Collective Opportunities team. We are here to help with your hiring and job search needs.';
-      } else if (pathname === '/cv-builder') {
-        pageTitle = 'Free CV Builder | Bridge Collective Opportunities';
-        pageDesc = 'Create a professional CV online with our free CV builder. Stand out to employers and opportunity providers with a polished resume.';
-      } else if (pathname === '/cv-tips') {
-        pageTitle = 'CV Writing Tips | Bridge Collective Opportunities';
-        pageDesc = 'Learn how to write a standout CV that gets you noticed by employers and opportunity providers. Expert tips and examples.';
-      } else if (pathname === '/cv-review') {
-        pageTitle = 'AI CV Review | Bridge Collective Opportunities';
-        pageDesc = 'Upload your CV and get instant AI-powered feedback. Improve your resume with our free CV review tool.';
       } else if (pathname === '/privacy-policy') {
         pageTitle = 'Privacy Policy | Bridge Collective Opportunities';
         pageDesc = 'Read the Bridge Collective Opportunities privacy policy. Learn how we protect your personal data.';

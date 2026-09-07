@@ -1,12 +1,11 @@
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { Home, Search, Heart, Sparkles, FileText } from 'lucide-react';
+import { Home, Search, Heart, Sparkles } from 'lucide-react';
 
 const tabs = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Search', icon: Search, path: '/?search=' },
   { label: 'Saved', icon: Heart, path: '/saved' },
   { label: 'Assist', icon: Sparkles, href: 'https://bridge-collective-intelligence.vercel.app/' },
-  { label: 'CV', icon: FileText, path: '/cv-builder' },
 ];
 
 export default function BottomNav({ onSearchTap }) {

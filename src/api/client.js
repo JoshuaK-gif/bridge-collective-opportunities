@@ -266,14 +266,6 @@ export const api = {
   reminders: {
     create: (data) => request('/outreach', { method: 'POST', body: JSON.stringify({ resource: 'reminder', action: 'create', ...data }) }),
   },
-  resumes: {
-    save: (data, token) => request('/collections', { method: 'POST', body: JSON.stringify({ resource: 'resume', action: 'save', data, token }) }),
-    load: (token) => request(`/collections${qs({ resource: 'resume', token })}`),
-    delete: (token) => request('/collections', { method: 'POST', body: JSON.stringify({ resource: 'resume', action: 'delete', token }) }),
-  },
-  cv: {
-    downloadPdf: disabled('PDF download'),
-  },
   templates: {
     list: () => request(`/collections${qs({ resource: 'templates' })}`),
     get: (id) => request(`/collections${qs({ resource: 'template', id })}`),

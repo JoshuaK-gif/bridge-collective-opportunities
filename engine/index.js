@@ -29,7 +29,6 @@ import {
   runStatus,
   buildProject,
 } from './lib/grantkit.js';
-import { generateCvPdf } from './lib/cv-pdf.js';
 
 const app = express();
 app.use(cors());
@@ -158,23 +157,6 @@ app.post('/build', requireEngine, async (req, res, next) => {
     next(err);
   } finally {
     if (dir) fs.rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-app.post('/cv/pdf', async (req, res, next) => {
-  try {
-    const cv = req.body;
-    if (!cv || (!cv.firstName && !cv.lastName)) {
-      return res.status(400).json({ error: 'CV data is required' });
-    }
-    const pdf = await generateCvPdf(cv);
-    const filename = `${cv.firstName || 'CV'}_${cv.lastName || 'Bridge'}.pdf`;
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', pdf.length);
-    res.send(pdf);
-  } catch (err) {
-    next(err);
   }
 });
 
