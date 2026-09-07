@@ -552,15 +552,6 @@ export default function Navbar() {
           />
 
 
-          <a
-            href="https://bco-resume-builder-ieiy.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10"
-          >
-            <FileText className="w-3.5 h-3.5" /> Resume Builder
-          </a>
-
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 
           {pageLinks.map(({ label, icon: Icon, path }) => (
