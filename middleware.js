@@ -1,14 +1,31 @@
 /**
  * Vercel Routing Middleware — crawler SEO prerender.
  *
- * Port of the crawler branch in the old server/server.js. Runs on Vercel's Edge
- * before static assets are served. Only fires for known crawler user-agents;
- * everything else is served normally (returns undefined → continue).
+ * Port of the crawler branch in the old server/server.js. Only fires for known
+ * crawler user-agents; everything else is served normally (returns undefined →
+ * continue). Uses Node.js runtime (Edge is deprecated).
  *
  * Env (set on Vercel):
  *   FUNCTIONS_URL  — e.g. https://<sub>.functions.<region>.nhost.run/v1 (falls back to placeholder)
  *   SITE_URL       — e.g. https://bridgecollectiveopport.org
  */
+export const config = {
+  runtime: 'nodejs',
+  matcher: [
+    '/about',
+    '/services',
+    '/contact',
+    '/cv-builder',
+    '/cv-review',
+    '/ai-assistant',
+    '/privacy-policy',
+    '/terms-of-service',
+    '/saved',
+    '/my-applications',
+    '/opportunities/:id*',
+    '/category/:slug*',
+  ],
+};
 
 const SITE_URL = process.env.SITE_URL || 'https://bridgecollectiveopport.org';
 const FUNCTIONS_URL = process.env.FUNCTIONS_URL || 'https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1';
@@ -27,7 +44,6 @@ const STATIC_META = {
   '/services': ['Media & Marketing Services | Bridge Collective Opportunities', 'Partner with Bridge Collective Opportunities to reach ambitious youth across Africa. Promote your scholarships, jobs and grants to thousands of qualified applicants.'],
   '/contact': ['Contact | Bridge Collective Opportunities', 'Get in touch with the Bridge Collective Opportunities team. We are here to help with your hiring and job search needs.'],
   '/cv-builder': ['Free CV Builder | Bridge Collective Opportunities', 'Create a professional CV online with our free CV builder. Stand out to employers and opportunity providers with a polished resume.'],
-  '/cv-tips': ['CV Writing Tips | Bridge Collective Opportunities', 'Learn how to write a standout CV that gets you noticed by employers and opportunity providers. Expert tips and examples.'],
   '/cv-review': ['AI CV Review | Bridge Collective Opportunities', 'Upload your CV and get instant AI-powered feedback. Improve your resume with our free CV review tool.'],
   '/ai-assistant': ['AI Grant Assistant | Bridge Collective Opportunities', 'Get AI-powered application tips, write grants, and polish your applications with our AI assistant.'],
   '/privacy-policy': ['Privacy Policy | Bridge Collective Opportunities', 'Read the Bridge Collective Opportunities privacy policy. Learn how we protect your personal data.'],

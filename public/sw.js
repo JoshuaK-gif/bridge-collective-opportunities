@@ -1,4 +1,4 @@
-const CACHE = 'bridge-v11';
+const CACHE = 'bridge-v12';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -44,8 +44,8 @@ function offlineResponse() {
   );
 }
 
-// Fetch: navigation = stale-while-revalidate (instant shell, background refresh);
-// other GETs = network-first with cache fallback + offline page
+// Fetch: navigation = network-first (SPA shell always from server, avoids stale
+// HTML after deploys); other GETs = network-first with cache fallback + offline
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -58,18 +58,19 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const network = fetch(event.request)
-          .then((response) => {
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE).then((cache) => cache.put(event.request, clone));
-            }
-            return response;
-          })
-          .catch(() => cached || offlineResponse());
-        return cached || network;
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return cached || offlineResponse();
+          });
+        })
     );
     return;
   }
