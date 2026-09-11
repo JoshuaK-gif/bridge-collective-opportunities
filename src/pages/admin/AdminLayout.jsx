@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, BookOpen, Menu, X, FileText, Newspaper, Copy } from 'lucide-react';
+import { LayoutDashboard, List, Tags, Mail, Settings, Users, LogOut, BookOpen, Menu, X, Newspaper, Copy } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -16,7 +16,6 @@ export default function AdminLayout() {
     { label: 'Categories', path: '/admin-bridgejobs/categories', icon: Tags },
     { label: 'Messages', path: '/admin-bridgejobs/messages', icon: Mail },
     { label: 'Site Settings', path: '/admin-bridgejobs/settings', icon: Settings },
-    { label: 'Pages', path: '/admin-bridgejobs/pages', icon: FileText },
     { label: 'News', path: '/admin-bridgejobs/news', icon: Newspaper },
     { label: 'Templates', path: '/admin-bridgejobs/templates', icon: Copy },
     // { label: 'AI Extractor', path: '/admin-bridgejobs/ai-extract', icon: Sparkles },

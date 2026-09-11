@@ -44,7 +44,6 @@ const AdminMessages = lazy(() => import('@/pages/admin/AdminMessages'));
 const AdminSiteSettings = lazy(() => import('@/pages/admin/AdminSiteSettings'));
 const AdminSubscribers = lazy(() => import('@/pages/admin/AdminSubscribers'));
 const AdminLists = lazy(() => import('@/pages/admin/AdminLists'));
-const AdminPages = lazy(() => import('@/pages/admin/AdminPages'));
 const AdminNews = lazy(() => import('@/pages/admin/AdminNews'));
 const OpportunityForm = lazy(() => import('@/pages/admin/OpportunityForm'));
 const AdminTemplates = lazy(() => import('@/pages/admin/AdminTemplates'));
@@ -112,7 +111,6 @@ function AppContent() {
                   <Route path="settings" element={<AdminSiteSettings />} />
                   <Route path="subscribers" element={<AdminSubscribers />} />
                   <Route path="lists" element={<AdminLists />} />
-                  <Route path="pages" element={<AdminPages />} />
                   <Route path="news" element={<AdminNews />} />
                   <Route path="templates" element={<AdminTemplates />} />
                   <Route path="ai-extract" element={<AIExtractFromUrl />} />
