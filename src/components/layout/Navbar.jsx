@@ -304,21 +304,6 @@ export default function Navbar() {
 
                   <hr className="my-1 border-gray-100 dark:border-gray-700" />
 
-                  {features?.ai !== false && (
-                    <SheetClose asChild>
-                      <Link
-                        to="/ai-assistant/generate"
-                        className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                          location.pathname.startsWith('/ai-assistant')
-                            ? 'text-primary bg-primary/10'
-                            : 'text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10'
-                        }`}
-                      >
-                        <Sparkles className="w-5 h-5" /> AI Assistant
-                      </Link>
-                    </SheetClose>
-                  )}
-
                   {pageLinks.map(({ label, icon: Icon, path }) => (
                     <SheetClose asChild key={label}>
                       <Link
@@ -599,18 +584,6 @@ export default function Navbar() {
           >
             <FileText className="w-3.5 h-3.5" /> Resume / CV
           </a>
-          {features?.ai !== false && (
-            <Link
-              to="/ai-assistant/generate"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 ${
-                location.pathname.startsWith('/ai-assistant')
-                  ? 'text-primary bg-primary/5'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> AI Assistant
-            </Link>
-          )}
 
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 
