@@ -7,7 +7,7 @@ const tabs = [
   { label: 'Courses', icon: GraduationCap, href: 'https://bcocourses.vercel.app/' },
   { label: 'Saved', icon: Heart, path: '/saved' },
   { label: 'My Apps', icon: CheckCircle2, path: '/my-applications' },
-  { label: 'CV', icon: FileText, path: '/cv-builder' },
+  { label: 'CV', icon: FileText, href: 'https://bco-resume-builder-ieiy.vercel.app/' },
 ];
 
 export default function BottomNav({ onSearchTap }) {

@@ -76,10 +76,7 @@ const userLinks = [
   { label: 'My Apps', icon: CheckCircle2, path: '/my-applications' },
 ];
 
-const cvLinks = [
-  { label: 'CV Builder', icon: FileText, path: '/cv-builder' },
-  { label: 'CV Tips', icon: Lightbulb, path: '/cv-tips' },
-];
+const cvLinks = [];
 
 // --- Desktop Dropdown (pure CSS group-hover — no JS timers needed) ---
 function DropdownMenu({ label, icon: Icon, items, location }) {
@@ -281,13 +278,17 @@ export default function Navbar() {
                     location={location}
                     searchParams={searchParams}
                   />
-                  <MobileAccordion
-                    label="Resume / CV"
-                    icon={FileText}
-                    items={cvLinks}
-                    location={location}
-                    searchParams={searchParams}
-                  />
+                  {/* Resume / CV - mobile */}
+                  <SheetClose asChild>
+                    <a
+                      href="https://bco-resume-builder-ieiy.vercel.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10"
+                    >
+                      <FileText className="w-5 h-5" /> Resume / CV
+                    </a>
+                  </SheetClose>
 
                   {/* Courses - mobile */}
                   <SheetClose asChild>
@@ -590,15 +591,14 @@ export default function Navbar() {
             onOpen={() => setActiveDropdown('Opportunities')}
             onClose={() => setActiveDropdown(prev => prev === 'Opportunities' ? null : prev)}
           />
-          <DropdownMenu
-            label="Resume / CV"
-            icon={FileText}
-            items={cvLinks}
-            location={location}
-            isOpen={activeDropdown === 'Resume / CV'}
-            onOpen={() => setActiveDropdown('Resume / CV')}
-            onClose={() => setActiveDropdown(prev => prev === 'Resume / CV' ? null : prev)}
-          />
+          <a
+            href="https://bco-resume-builder-ieiy.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10"
+          >
+            <FileText className="w-3.5 h-3.5" /> Resume / CV
+          </a>
           {features?.ai !== false && (
             <Link
               to="/ai-assistant/generate"
