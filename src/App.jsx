@@ -27,7 +27,6 @@ const SavedOpportunities = lazy(() => import('@/pages/SavedOpportunities'));
 const MyApplications = lazy(() => import('@/pages/MyApplications'));
 const CVBuilder = lazy(() => import('@/pages/CVBuilder'));
 const CVReview = lazy(() => import('@/pages/CVReview'));
-const CVTips = lazy(() => import('@/pages/CVTips'));
 const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
 const GenerateAssistant = lazy(() => import('@/pages/GenerateAssistant'));
 const PolishAssistant = lazy(() => import('@/pages/PolishAssistant'));
@@ -44,16 +43,12 @@ const AdminCategories = lazy(() => import('@/pages/admin/AdminCategories'));
 const AdminMessages = lazy(() => import('@/pages/admin/AdminMessages'));
 const AdminSiteSettings = lazy(() => import('@/pages/admin/AdminSiteSettings'));
 const AdminSubscribers = lazy(() => import('@/pages/admin/AdminSubscribers'));
-const AdminScraper = lazy(() => import('@/pages/admin/AdminScraper'));
-const AdminScraperConfig = lazy(() => import('@/pages/admin/AdminScraperConfig'));
-const AdminDraftEditor = lazy(() => import('@/pages/admin/AdminDraftEditor'));
 const AdminLists = lazy(() => import('@/pages/admin/AdminLists'));
 const AdminPages = lazy(() => import('@/pages/admin/AdminPages'));
 const AdminNews = lazy(() => import('@/pages/admin/AdminNews'));
 const OpportunityForm = lazy(() => import('@/pages/admin/OpportunityForm'));
 const AdminTemplates = lazy(() => import('@/pages/admin/AdminTemplates'));
 const AIExtractFromUrl = lazy(() => import('@/pages/admin/AIExtractFromUrl'));
-const AdminCvTips = lazy(() => import('@/pages/admin/AdminCvTips'));
 
 // Loading spinner for lazy-loaded routes
 function PageLoader() {
@@ -93,7 +88,6 @@ function AppContent() {
                 <Route path="/my-applications" element={<MyApplications />} />
                 <Route path="/cv-builder" element={<CVBuilder />} />
                 <Route path="/cv-review" element={<CVReview />} />
-                <Route path="/cv-tips" element={<CVTips />} />
                 {features?.ai !== false && (
                   <>
                     <Route path="/ai-assistant" element={<AIAssistant />} />
@@ -117,15 +111,11 @@ function AppContent() {
                   <Route path="messages" element={<AdminMessages />} />
                   <Route path="settings" element={<AdminSiteSettings />} />
                   <Route path="subscribers" element={<AdminSubscribers />} />
-                  <Route path="scraper" element={<AdminScraper />} />
-                  <Route path="scraper/config" element={<AdminScraperConfig />} />
-                  <Route path="scraper/drafts/:id" element={<AdminDraftEditor />} />
                   <Route path="lists" element={<AdminLists />} />
                   <Route path="pages" element={<AdminPages />} />
                   <Route path="news" element={<AdminNews />} />
                   <Route path="templates" element={<AdminTemplates />} />
                   <Route path="ai-extract" element={<AIExtractFromUrl />} />
-                  <Route path="cv-tips" element={<AdminCvTips />} />
                 </Route>
               </Route>            <Route path="*" element={<PageNotFound />} />
           </Routes>
