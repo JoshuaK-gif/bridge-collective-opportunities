@@ -289,6 +289,18 @@ export default function Navbar() {
                     searchParams={searchParams}
                   />
 
+                  {/* Courses - mobile */}
+                  <SheetClose asChild>
+                    <a
+                      href="https://bcocourses.vercel.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10"
+                    >
+                      <GraduationCap className="w-5 h-5" /> Courses
+                    </a>
+                  </SheetClose>
+
                   <hr className="my-1 border-gray-100 dark:border-gray-700" />
 
                   {features?.ai !== false && (
@@ -430,6 +442,16 @@ export default function Navbar() {
             >
               <Send className="w-3 h-3" /> Post Opp
             </Link>
+
+            {/* Courses - desktop */}
+            <a
+              href="https://bcocourses.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-emerald-600 border border-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
+            >
+              <GraduationCap className="w-3 h-3" /> Courses
+            </a>
 
             {/* Search bar (desktop) */}
             <form onSubmit={handleSearch} className="hidden md:flex relative w-40 lg:w-56 xl:w-64">
