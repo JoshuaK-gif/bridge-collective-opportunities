@@ -19,21 +19,12 @@ export function getPool() {
     }
 
     try {
-      const url = new URL(connStr);
-      _pool = new Pool({
-        host: url.hostname,
-        port: parseInt(url.port, 10) || 5432,
-        database: url.pathname.replace(/^\//, ''),
-        user: url.username,
-        password: decodeURIComponent(url.password),
-        ssl: { rejectUnauthorized: false },
-      });
-    } catch (e) {
-      console.error('DB parse error, trying raw connectionString:', e.message);
       _pool = new Pool({
         connectionString: connStr,
-        ssl: { rejectUnauthorized: false },
       });
+    } catch (e) {
+      console.error('DB init error:', e.message);
+      throw e;
     }
   }
   return _pool;
