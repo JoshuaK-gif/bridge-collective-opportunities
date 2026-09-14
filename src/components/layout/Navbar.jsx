@@ -35,7 +35,6 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-  Sparkles,
   Send,
   Sun,
   Moon,
@@ -432,16 +431,6 @@ export default function Navbar() {
               className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-emerald-600 border border-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
             >
               <GraduationCap className="w-3 h-3" /> Courses
-            </a>
-
-            {/* Assist - desktop */}
-            <a
-              href="https://bridge-collective-intelligence.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-accent border border-accent hover:bg-accent/5 transition-colors shrink-0"
-            >
-              <Sparkles className="w-3 h-3" /> Assist
             </a>
 
             {/* Search bar (desktop) */}
