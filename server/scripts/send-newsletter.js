@@ -75,9 +75,9 @@ export async function sendNewsletter() {
   let failed = 0;
 
   for (const sub of subscribers.rows) {
-    const unsubscribeUrl = `https://bridgejobs.ug/unsubscribe?email=${encodeURIComponent(sub.email)}&id=${sub.id}`;
+    const unsubscribeUrl = `https://bridgecollectiveopport.org/unsubscribe?email=${encodeURIComponent(sub.email)}&id=${sub.id}`;
     const html = buildNewsletterHtml(opps, unsubscribeUrl);
-    const text = opps.map(o => `- ${o.title}: https://bridgejobs.ug/opportunities/${o.id}`).join('\n');
+    const text = opps.map(o => `- ${o.title}: https://bridgecollectiveopport.org/opportunities/${o.id}`).join('\n');
 
     const result = await sendEmail({
       to: sub.email,

@@ -16,6 +16,7 @@
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
+    "test:api": "node --experimental-test-module-mocks --test api/_tests/notify.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -63,9 +64,12 @@
     "framer-motion": "^11.16.4",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
+    "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.475.0",
     "next-themes": "^0.4.4",
+    "nodemailer": "^9.0.1",
+    "pg": "^8.23.0",
     "react": "^18.2.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.2.0",

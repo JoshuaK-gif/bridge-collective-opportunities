@@ -15,17 +15,6 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const router = Router();
 
-// Rate limiter for public CV photo uploads (20 per hour per IP)
-const cvPhotoLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 20,
-  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || 'unknown',
-  message: { error: 'Upload limit reached. Try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-});
-
 // Rate limiter for public opportunity image uploads (10 per hour per IP)
 const opportunityImageLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -60,31 +49,6 @@ router.post('/opportunity-image', opportunityImageLimiter, upload.single('file')
     res.json({ url: result.secure_url, public_id: result.public_id, width: result.width, height: result.height });
   } catch (err) {
     logger.error({ err, message: err.message }, 'Opportunity image upload failed');
-    res.status(500).json({ error: 'Upload failed. Try again.' });
-  }
-});
-
-// Public CV photo upload — no auth required, rate limited
-router.post('/cv-photo', cvPhotoLimiter, upload.single('file'), async (req, res, next) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'No file provided' });
-    if (req.file.size > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File too large. Max 2MB.' });
-    }
-    if (!ALLOWED_MIME_TYPES.includes(req.file.mimetype)) {
-      return res.status(400).json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' });
-    }
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: 'bridge-cv-photos', resource_type: 'image', transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto', fetch_format: 'auto' }] },
-        (err, result) => { if (err) reject(err); else resolve(result); }
-      );
-      stream.end(req.file.buffer);
-    });
-    logger.info({ publicId: result.public_id }, 'CV photo uploaded');
-    res.json({ url: result.secure_url, public_id: result.public_id });
-  } catch (err) {
-    logger.error({ err, message: err.message }, 'CV photo upload failed');
     res.status(500).json({ error: 'Upload failed. Try again.' });
   }
 });

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, TrendingUp, Star, Search, ChevronLeft, ChevronRight, Check, X, Copy, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { notifySummary } from '@/utils';
 
 const PAGE_SIZE = 15;
 
@@ -95,7 +96,7 @@ export default function AdminOpportunities() {
     if (selected.size === 0) return;
     try {
       const res = await api.opportunities.bulkUpdate([...selected], data);
-      toast.success(`${res.updated} opportunities updated`);
+      toast.success(`${res.updated} opportunities updated`, { description: notifySummary(res?.notification) });
       setOpportunities(prev => prev.map(o => selected.has(o.id) ? { ...o, ...data } : o));
       setSelected(new Set());
     } catch (err) {
@@ -169,7 +170,7 @@ export default function AdminOpportunities() {
     setBulkPublishing(true);
     try {
       const res = await api.opportunities.bulkPublish(draftIds);
-      toast.success(`${res.published} drafts published`);
+      toast.success(`${res.published} drafts published`, { description: notifySummary(res?.notification) });
       const data = await api.opportunities.list({ all: true });
       setOpportunities(data);
       setSelected(new Set());

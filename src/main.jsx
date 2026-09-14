@@ -10,12 +10,10 @@ import '@fontsource/inter/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/latin-700.css';
-import '@fontsource/inter/latin-800.css';
 import '@fontsource/plus-jakarta-sans/latin-400.css';
 import '@fontsource/plus-jakarta-sans/latin-500.css';
 import '@fontsource/plus-jakarta-sans/latin-600.css';
 import '@fontsource/plus-jakarta-sans/latin-700.css';
-import '@fontsource/plus-jakarta-sans/latin-800.css';
 
 import inter400Url from '@fontsource/inter/files/inter-latin-400-normal.woff2?url';
 import inter600Url from '@fontsource/inter/files/inter-latin-600-normal.woff2?url';

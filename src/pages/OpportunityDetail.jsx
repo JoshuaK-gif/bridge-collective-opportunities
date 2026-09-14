@@ -57,18 +57,39 @@ function sanitizeHtml(html) {
 export default function OpportunityDetail() {
   const { id } = useParams();
   const [opp, setOpp] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { getStatus, setStatus, STATUSES } = useApplicationTracker();
 
   useEffect(() => {
-    api.opportunities.get(id).then(setOpp);
+    let active = true;
+    setLoadError(false);
+    setOpp(null);
+    api.opportunities.get(id)
+      .then(d => { if (active) setOpp(d); })
+      .catch(() => { if (active) setLoadError(true); });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    return () => { active = false; };
   }, [id]);
 
   const appStatus = getStatus(id);
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSent, setReminderSent] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Opportunity not found</h1>
+          <p className="text-gray-600 mb-6">This opportunity may have expired or been removed.</p>
+          <Button asChild>
+            <Link to="/">Browse all opportunities</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!opp) {
     return (

@@ -34,6 +34,9 @@ import cache from '../_shared/cache.js';
 
 const OPP_LIST_COLS = 'id, title, category, deadline, description, image_url, image_crop, image_size, image_public_id, trending, featured_order, created_date, updated_date';
 
+// Exclude opportunities whose deadline has passed (auto-delete safety net)
+const NOT_EXPIRED = `(deadline = '' OR deadline IS NULL OR deadline !~ '^\\d{4}-\\d{2}-\\d{2}$' OR TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE)`;
+
 let homeMemoryCache = { payload: null, expires: 0 };
 const HOME_TTL_MS = 5 * 60 * 1000;
 
@@ -46,16 +49,16 @@ function invalidateListCache() {
 async function fetchHomePayload() {
   const sql = `
 WITH featured AS (
-  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND featured_order IS NOT NULL ORDER BY featured_order ASC
+  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND ${NOT_EXPIRED} AND featured_order IS NOT NULL ORDER BY featured_order ASC
 ),
 opps AS (
-  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' ORDER BY created_date DESC
+  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND ${NOT_EXPIRED} ORDER BY created_date DESC
 ),
 cats AS (
   SELECT * FROM categories ORDER BY name ASC
 ),
 expiring AS (
-  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND deadline != '' AND deadline IS NOT NULL
+  SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND ${NOT_EXPIRED} AND deadline != '' AND deadline IS NOT NULL
     AND TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE AND TO_DATE(deadline, 'YYYY-MM-DD') <= CURRENT_DATE + interval '7 days'
   ORDER BY TO_DATE(deadline, 'YYYY-MM-DD') ASC
 ),
@@ -65,7 +68,7 @@ lists AS (
 items AS (
   SELECT li.list_id, li.sort_order AS list_sort_order, o.id, o.title, o.category, o.deadline, o.description, o.image_url, o.image_crop, o.image_size, o.image_public_id, o.trending, o.created_date, o.updated_date
   FROM list_items li JOIN opportunities o ON o.id = li.opportunity_id
-  WHERE li.list_id IN (SELECT id FROM lists) AND o.status = 'active'
+  WHERE li.list_id IN (SELECT id FROM lists) AND o.status = 'active' AND ${NOT_EXPIRED}
 )
 SELECT json_build_object(
   'featured', (SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json) FROM featured f),
@@ -104,6 +107,7 @@ async function handleGet(req, res) {
       conditions.push(`status = $${idx++}`);
       params.push('active');
     }
+    conditions.push(`${NOT_EXPIRED}`);
     if (category) {
       conditions.push(`category = $${idx++}`);
       params.push(category);
@@ -224,7 +228,7 @@ async function handleGet(req, res) {
     if (!opp.rows.length) return res.json([]);
     const { category, id } = opp.rows[0];
     const result = await query(
-      "SELECT id, title, image_url, category, deadline, created_date FROM opportunities WHERE category = $1 AND id != $2 AND status = 'active' ORDER BY created_date DESC LIMIT 4",
+      `SELECT id, title, image_url, category, deadline, created_date FROM opportunities WHERE category = $1 AND id != $2 AND status = 'active' AND ${NOT_EXPIRED} ORDER BY created_date DESC LIMIT 4`,
       [category, id]
     );
     return res.json(result.rows);

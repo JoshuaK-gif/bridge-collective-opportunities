@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { Toaster } from 'sonner'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/lib/AuthContext';
@@ -12,7 +12,6 @@ import CookieConsent from '@/components/CookieConsent';
 import PublicLayout from './components/layout/PublicLayout';
 import AdminRoute from '@/components/AdminRoute';
 import AdminLayout from './pages/admin/AdminLayout';
-import { getFeatures } from '@/lib/features';
 
 // Route-based code splitting — pages load on-demand
 const Home = lazy(() => import('@/pages/Home'));
@@ -55,11 +54,6 @@ function PageLoader() {
 
 function AppContent() {
   const location = useLocation();
-  const [features, setFeatures] = useState(null);
-
-  useEffect(() => {
-    getFeatures().then(setFeatures);
-  }, []);
 
   return (
     <AuthProvider>

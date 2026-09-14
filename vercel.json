@@ -5,6 +5,18 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/newsletter/status",
+      "destination": "/api/newsletter?action=status"
+    },
+    {
+      "source": "/api/newsletter/test",
+      "destination": "/api/newsletter?action=test"
+    },
+    {
+      "source": "/api/newsletter/send",
+      "destination": "/api/newsletter?action=send"
+    },
+    {
       "source": "/api/sitemap.xml",
       "destination": "/api/seo?type=sitemap"
     },

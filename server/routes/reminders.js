@@ -119,7 +119,7 @@ router.post('/process', async (req, res, next) => {
                   Deadline: <strong>${escapeHtml(r.deadline)}</strong><br/>
                   Time remaining: <strong>${Math.ceil(diffDays * 24)} hours</strong>
                 </p>
-                <a href="https://bridgejobs.ug/opportunities/${encodeURIComponent(r.opportunityId)}"
+                <a href="https://bridgecollectiveopport.org/opportunities/${encodeURIComponent(r.opportunityId)}"
                    style="display:inline-block;background:#667eea;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">
                   View Opportunity
                 </a>

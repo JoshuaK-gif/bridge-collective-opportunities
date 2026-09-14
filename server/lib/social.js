@@ -173,7 +173,7 @@ export async function postToInstagram(account, title, description, link, imageUr
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image_url: imageUrl || account.default_image_url || 'https://bridgejobs.ug/og-image.jpg',
+          image_url: imageUrl || account.default_image_url || 'https://bridgecollectiveopport.org/og-image.jpg',
           caption,
           access_token: account.access_token,
         }),

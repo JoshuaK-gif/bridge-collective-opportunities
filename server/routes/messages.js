@@ -53,7 +53,7 @@ router.post('/', contactLimiter, validate(messageSchema), async (req, res, next)
             <h3 style="margin-top:16px;">Message</h3>
             <p style="background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre-wrap;">${escapeHtml(message)}</p>
             <hr style="border:none;border-top:1px solid #eee;margin:16px 0;" />
-            <p style="font-size:12px;color:#999;">View in admin: <a href="https://bridgejobs.ug/admin-bridgejobs/messages">bridgejobs.ug/admin-bridgejobs/messages</a></p>
+            <p style="font-size:12px;color:#999;">View in admin: <a href="https://bridgecollectiveopport.org/admin-bridgejobs/messages">bridgecollectiveopport.org/admin-bridgejobs/messages</a></p>
           `,
         }).catch(err => logger.warn({ err: err.message }, 'Failed to notify admin of message'));
       }

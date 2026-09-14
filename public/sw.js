@@ -1,11 +1,11 @@
-const CACHE = 'bridge-v11';
+const CACHE = 'bridge-v13';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/favicon.ico?v=4',
-  '/favicon-32x32.png?v=4',
-  '/favicon-16x16.png?v=4',
-  '/apple-touch-icon.png',
+  '/favicon.ico?v=5',
+  '/favicon-32x32.png?v=5',
+  '/favicon-16x16.png?v=5',
+  '/apple-touch-icon.png?v=5',
   '/icons/icon-152x152.png',
   '/icons/icon-167x167.png',
   '/icons/icon-180x180.png',

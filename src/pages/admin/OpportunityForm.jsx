@@ -17,6 +17,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Upload, X, Crop, Download, Globe, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { notifySummary } from '@/utils';
 
 const QUILL_MODULES = {
   toolbar: [
@@ -124,6 +125,9 @@ export default function OpportunityForm() {
   const [aspect, setAspect] = useState(16 / 9);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [pendingImage, setPendingImage] = useState(null);
+  const [duplicates, setDuplicates] = useState([]);
+  const [checkingDups, setCheckingDups] = useState(false);
+  const dupTimer = useRef(null);
 
   useEffect(() => {
     api.categories.list().then(data => setCategories(data)).catch(() => {});
@@ -238,11 +242,11 @@ export default function OpportunityForm() {
         publish_at: form.publish_at || null,
       };
       if (isEdit) {
-        await api.opportunities.update(id, body);
-        toast('Opportunity updated');
+        const res = await api.opportunities.update(id, body);
+        toast('Opportunity updated', { description: notifySummary(res?.notification) });
       } else {
-        await api.opportunities.create(body);
-        toast('Opportunity created' + (saveAsDraft ? ' as draft' : ''));
+        const res = await api.opportunities.create(body);
+        toast('Opportunity created' + (saveAsDraft ? ' as draft' : ''), { description: notifySummary(res?.notification) });
       }
       navigate('/admin-bridgejobs/opportunities');
     } catch (err) {

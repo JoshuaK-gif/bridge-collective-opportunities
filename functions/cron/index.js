@@ -38,11 +38,12 @@ export default handle(async (req, res) => {
   if (!job) return res.status(400).json({ error: 'job is required' });
 
   switch (job) {
-    case 'scheduled-publish': {
+    case 'scheduled-publish':
+    case 'auto-publish': {
       const result = await query(
         "UPDATE opportunities SET status = 'active', updated_date = now() WHERE status = 'draft' AND publish_at IS NOT NULL AND publish_at <= now()"
       );
-      logger.info({ published: result.rowCount }, 'scheduled-publish done');
+      logger.info({ published: result.rowCount, job }, `${job} done`);
       return res.json({ job, published: result.rowCount });
     }
     case 'expired-cleanup': {

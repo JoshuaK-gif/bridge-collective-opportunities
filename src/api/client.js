@@ -120,13 +120,6 @@ async function uploadToCloudinary(file, folder = 'bridge-jobs') {
   };
 }
 
-/** AI / GrantKit / PDF features are not deployed on this backend. */
-function disabled(feature) {
-  return async () => {
-    throw new Error(`${feature} is not available on this deployment.`);
-  };
-}
-
 export const api = {
   request: (path, options) => request(path, options),
   home: () => request(`/content${qs({ resource: 'home' })}`),
@@ -173,7 +166,6 @@ export const api = {
   upload: {
     image: (file) => uploadToCloudinary(file, 'bridge-jobs'),
     opportunityImage: (file) => uploadToCloudinary(file, 'bridge-jobs'),
-    cvPhoto: (file) => uploadToCloudinary(file, 'cv-photos'),
   },
   categories: {
     list: () => request(`/content${qs({ resource: 'categories' })}`),
@@ -193,7 +185,6 @@ export const api = {
     getAll: () => request(`/admin${qs({ resource: 'settings' })}`),
     get: (key) => request(`/admin${qs({ resource: 'setting', key })}`),
     update: (key, value) => request('/admin', { method: 'POST', body: JSON.stringify({ resource: 'setting', action: 'update', key, value }) }),
-    delete: (key) => request(`/settings/${key}`, { method: 'DELETE' }),
   },
   subscribers: {
     subscribe: (email, source = '') => request('/admin', {

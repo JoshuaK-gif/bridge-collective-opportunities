@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '@/api/client';
 import { oppImageSrc } from '@/lib/images';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,19 +23,33 @@ const websiteSchema = {
     '@type': 'SearchAction',
     'target': {
       '@type': 'EntryPoint',
-      'urlTemplate': 'https://bridgecollectiveopport.org/?search={search_term_string}'
+      'urlTemplate': 'https://bridgecollectiveopport.org/search?q={search_term_string}'
     },
     'query-input': 'required name=search_term_string'
   }
 };
 export default function Home() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [homeData, setHomeData] = useState(null);
   const [homeLoading, setHomeLoading] = useState(true);
   const [showExpiring, setShowExpiring] = useState(false);
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const activeCategory = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
+
+  // Legacy URLs (?search=... / ?category=...) used to render a blank page —
+  // redirect them to the real search/category routes.
+  useEffect(() => {
+    if (searchQuery) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`, { replace: true });
+      return;
+    }
+    if (activeCategory) {
+      const slug = CATEGORY_SLUG[activeCategory] || activeCategory.toLowerCase();
+      navigate(`/category/${slug}`, { replace: true });
+    }
+  }, [searchQuery, activeCategory, navigate]);
 
   const featured = homeData?.featured || [];
   const allOpportunities = homeData?.opportunities || [];

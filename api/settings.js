@@ -1,26 +1,17 @@
-const NHOST_BASE = 'https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1';
+import { getPool, setCORS, parseQuery } from './_db.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  const url = new URL(req.url, `https://${req.headers.host}`);
-  const qs = url.search || '';
+  setCORS(res);
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
   try {
-    const response = await fetch(`${NHOST_BASE}/settings${qs}`, {
-      method: req.method,
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
+    const pool = getPool();
+    const result = await pool.query('SELECT key, value FROM site_settings');
+    const settings = {};
+    result.rows.forEach(r => { settings[r.key] = r.value; });
+    res.status(200).json(settings);
   } catch (error) {
-    console.error('Settings proxy error:', error);
-    res.status(500).json({ error: 'Settings request failed', message: error.message });
+    console.error('Settings API error:', error);
+    res.status(500).json({ error: error.message });
   }
 }

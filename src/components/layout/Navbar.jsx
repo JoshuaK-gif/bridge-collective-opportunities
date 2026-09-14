@@ -35,7 +35,7 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-
+  Sparkles,
   Send,
   Sun,
   Moon,
@@ -166,7 +166,6 @@ export default function Navbar() {
   const [searchValue, setSearchValue] = useState(searchParams.get('search') || '');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
   const [subEmail, setSubEmail] = useState('');
   const [subscribing, setSubscribing] = useState(false);
 
@@ -312,6 +311,18 @@ export default function Navbar() {
                     </a>
                   </SheetClose>
 
+                  {/* Courses - mobile */}
+                  <SheetClose asChild>
+                    <a
+                      href="https://bcocourses.vercel.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10"
+                    >
+                      <GraduationCap className="w-5 h-5" /> Courses
+                    </a>
+                  </SheetClose>
+
                   {/* Post Opp - mobile */}
                   <SheetClose asChild>
                     <Link
@@ -411,6 +422,26 @@ export default function Navbar() {
               className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-primary border border-primary hover:bg-primary/5 transition-colors shrink-0"
             >
               <FileText className="w-3 h-3" /> Resume Builder
+            </a>
+
+            {/* Courses - desktop */}
+            <a
+              href="https://bcocourses.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-emerald-600 border border-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
+            >
+              <GraduationCap className="w-3 h-3" /> Courses
+            </a>
+
+            {/* Assist - desktop */}
+            <a
+              href="https://bridge-collective-intelligence.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-accent border border-accent hover:bg-accent/5 transition-colors shrink-0"
+            >
+              <Sparkles className="w-3 h-3" /> Assist
             </a>
 
             {/* Search bar (desktop) */}
@@ -525,9 +556,8 @@ export default function Navbar() {
         </form>
       </div>
 
-      {/* Desktop nav with dropdowns — hover-activated, one at a time */}
-      <nav className="hidden md:block border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
-        onMouseLeave={() => setActiveDropdown(null)}>
+      {/* Desktop nav with dropdowns — hover-activated */}
+      <nav className="hidden md:block border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 h-11 flex items-center gap-1 flex-nowrap">
           {/* Home */}
           <Link
@@ -546,9 +576,6 @@ export default function Navbar() {
             icon={Briefcase}
             items={navCategories}
             location={location}
-            isOpen={activeDropdown === 'Opportunities'}
-            onOpen={() => setActiveDropdown('Opportunities')}
-            onClose={() => setActiveDropdown(prev => prev === 'Opportunities' ? null : prev)}
           />
 
 

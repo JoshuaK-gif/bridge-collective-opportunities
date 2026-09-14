@@ -15,6 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 import opportunityRoutes from './routes/opportunities.js';
 import uploadRoutes from './routes/upload.js';
 import messageRoutes from './routes/messages.js';
@@ -107,6 +108,7 @@ export function createApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/admin', adminRoutes);
   app.use('/api/opportunities', opportunityRoutes);
   app.use('/api/upload', uploadRoutes);
   app.use('/api/messages', messageRoutes);
