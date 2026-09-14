@@ -211,8 +211,3 @@ body {
   text-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
 
-/* Direction variant: fill from right to left */
-.btn-fill-right::after {
-  transform-origin: right center;
-}
-
