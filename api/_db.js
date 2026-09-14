@@ -4,19 +4,37 @@ let _pool;
 
 export function getPool() {
   if (!_pool) {
-    let connStr = process.env.DATABASE_URL || '';
-    // Ensure postgresql:// prefix for pg v8+
-    connStr = connStr.replace(/^postgres:\/\//, 'postgresql://');
-    // If the URL is empty or broken, try POSTGRES_URL as fallback
+    let connStr = (process.env.DATABASE_URL || '').trim();
     if (!connStr || !connStr.includes('@')) {
-      connStr = process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || '';
-      connStr = connStr.replace(/^postgres:\/\//, 'postgresql://');
+      connStr = (process.env.POSTGRES_URL || '').trim();
     }
-    console.log('DB connecting to:', connStr ? connStr.replace(/:[^:@]+@/, ':***@') : 'NO URL SET');
-    _pool = new Pool({
-      connectionString: connStr,
-      ssl: connStr.includes('localhost') ? false : { rejectUnauthorized: false },
-    });
+    if (!connStr || !connStr.includes('@')) {
+      connStr = (process.env.POSTGRES_PRISMA_URL || '').trim();
+    }
+    connStr = connStr.replace(/^postgres:\/\//, 'postgresql://');
+
+    if (!connStr) {
+      console.error('DATABASE_URL is not set');
+      throw new Error('DATABASE_URL is not set');
+    }
+
+    try {
+      const url = new URL(connStr);
+      _pool = new Pool({
+        host: url.hostname,
+        port: parseInt(url.port, 10) || 5432,
+        database: url.pathname.replace(/^\//, ''),
+        user: url.username,
+        password: decodeURIComponent(url.password),
+        ssl: { rejectUnauthorized: false },
+      });
+    } catch (e) {
+      console.error('DB parse error, trying raw connectionString:', e.message);
+      _pool = new Pool({
+        connectionString: connStr,
+        ssl: { rejectUnauthorized: false },
+      });
+    }
   }
   return _pool;
 }
