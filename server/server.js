@@ -14,6 +14,8 @@ import { correlationId } from './lib/correlation.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import contentRoutes from './routes/content.js';
+import collectionsRoutes from './routes/collections.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import opportunityRoutes from './routes/opportunities.js';
@@ -107,6 +109,8 @@ export function createApp() {
     next();
   });
 
+  app.use('/api/content', contentRoutes);
+  app.use('/api/collections', collectionsRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/opportunities', opportunityRoutes);

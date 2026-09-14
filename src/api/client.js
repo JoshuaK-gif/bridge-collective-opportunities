@@ -127,7 +127,7 @@ export const api = {
     me: async () => {
       const token = getToken();
       if (!token) throw new Error('Not authenticated');
-      return request(`/auth${qs({ action: 'me' })}`);
+      return request('/auth/me');
     },
     /** Sign in with Nhost Auth — returns the session. */
     login: async (email, password) => {

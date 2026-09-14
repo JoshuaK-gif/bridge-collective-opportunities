@@ -4,9 +4,18 @@ let _pool;
 
 export function getPool() {
   if (!_pool) {
+    let connStr = process.env.DATABASE_URL || '';
+    // Ensure postgresql:// prefix for pg v8+
+    connStr = connStr.replace(/^postgres:\/\//, 'postgresql://');
+    // If the URL is empty or broken, try POSTGRES_URL as fallback
+    if (!connStr || !connStr.includes('@')) {
+      connStr = process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || '';
+      connStr = connStr.replace(/^postgres:\/\//, 'postgresql://');
+    }
+    console.log('DB connecting to:', connStr ? connStr.replace(/:[^:@]+@/, ':***@') : 'NO URL SET');
     _pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      connectionString: connStr,
+      ssl: connStr.includes('localhost') ? false : { rejectUnauthorized: false },
     });
   }
   return _pool;

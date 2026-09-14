@@ -10,7 +10,7 @@ export async function seed() {
   const adminId = uuidv4();
   await pool.query(
     'INSERT INTO users (id, email, password, full_name, role, created_date) VALUES ($1,$2,$3,$4,$5,now())',
-    [adminId, 'kamulegeyajoshua534@gmail.com', hash, 'Admin', 'admin']
+    [adminId, 'bridgecollectiveopportunities@gmail.com', hash, 'Admin', 'admin']
   );
 
   const categoryImages = {
