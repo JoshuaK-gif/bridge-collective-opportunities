@@ -28,8 +28,8 @@ async function requireAdmin(req) {
     const decoded = jwt.decode(header.split(' ')[1], { complete: true });
     if (!decoded) return null;
     if (!jwksCache.keys || Date.now() > jwksCache.expires) {
-      const subdomain = process.env.NHOST_SUBDOMAIN || 'mdblpcjvmdeiuagleisn';
-      const region = process.env.NHOST_REGION || 'eu-central-1';
+      const subdomain = process.env.NHOST_SUBDOMAIN || 'ybgaidcwksqeuojraxoe';
+      const region = process.env.NHOST_REGION || 'ap-southeast-1';
       const resp = await fetch(`https://${subdomain}.auth.${region}.nhost.run/v1/.well-known/jwks.json`);
       if (resp.ok) { const d = await resp.json(); jwksCache = { keys: d.keys, expires: Date.now() + 3600000 }; }
     }

@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { Pool } from 'pg';
 
-const NHOST_BASE = 'https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1';
+const NHOST_BASE = 'https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

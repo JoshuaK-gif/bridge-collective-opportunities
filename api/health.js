@@ -1,4 +1,4 @@
-const NHOST_BASE = 'https://mdblpcjvmdeiuagleisn.functions.eu-central-1.nhost.run/v1';
+const NHOST_BASE = 'https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

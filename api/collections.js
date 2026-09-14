@@ -11,8 +11,8 @@ function publicKeyFromJwk(key) {
 let jwksCache = { keys: null, expires: 0 };
 
 async function verifyNhostToken(token) {
-  const subdomain = process.env.NHOST_SUBDOMAIN || 'mdblpcjvmdeiuagleisn';
-  const region = process.env.NHOST_REGION || 'eu-central-1';
+  const subdomain = process.env.NHOST_SUBDOMAIN || 'ybgaidcwksqeuojraxoe';
+  const region = process.env.NHOST_REGION || 'ap-southeast-1';
   const decoded = jwt.decode(token, { complete: true });
   if (!decoded) throw new Error('Invalid token');
   if (!jwksCache.keys || Date.now() > jwksCache.expires) {
