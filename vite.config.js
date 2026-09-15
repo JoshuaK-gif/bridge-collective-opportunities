@@ -31,14 +31,13 @@ export default defineConfig(({ command }) => ({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           // Animation library — only used on some pages
           'vendor-framer': ['framer-motion'],
-          // Data & state management
-          'vendor-query': ['@tanstack/react-query'],
           // UI icons — used across many pages
           'vendor-icons': ['lucide-react'],
         },
       },
     },
-    // Raise warning limit for PDF vendor chunk (loaded only on CV page)
+    // The largest chunk is the lazily-loaded opportunity editor, so the limit is
+    // raised rather than splitting it further.
     chunkSizeWarningLimit: 600,
   },
 }))

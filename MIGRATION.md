@@ -1,3 +1,9 @@
+> **Superseded (Sept 2026).** The backend that actually ships is `api/` — Vercel serverless
+> functions talking to Nhost Postgres and Nhost Auth — with the SPA in `src/` and the schema
+> history in `migrations/`. The Nhost Functions deployment described below was never
+> shipped; `functions/` and the retired custom server have been removed from the repo. This
+> file is kept as a record of how the Nhost project (database, auth, env vars) was set up.
+
 # Migration: BCO → Nhost free tier (Functions + Postgres) + Vercel (frontend)
 
 ## Final decision (user-confirmed)
@@ -41,7 +47,7 @@ Notes:
 
 | Phase | Status |
 |---|---|
-| 0. Nhost project + creds | ✅ `ybgaidcwksqeuojraxoe` / `ap-southeast-1`; creds in `server/.env.nhost` (gitignored) |
+| 0. Nhost project + creds | ✅ `ybgaidcwksqeuojraxoe` / `ap-southeast-1`; creds in `.env.nhost` (gitignored, repo root) |
 | 1. Database on Nhost | ✅ schema (migrations 001–029 + seed) applied; missing indexes fixed (pg_trgm, audit_log, title trgm) |
 | 2. API → Functions | ✅ 9 functions written + `scripts/smoke-functions.mjs` — **17/17 pass against live Nhost DB** |
 | 3. Frontend → client.js | ✅ rewritten to query-param scheme; direct-to-Cloudinary uploads; feature-flag AI/Grant UI off |

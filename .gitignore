@@ -1,6 +1,8 @@
 #env
 .env
 .env.*
+# …but keep the committed template of required variables
+!.env.example
 # Nhost personal access token
 server/.pat
 
