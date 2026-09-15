@@ -5,6 +5,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/auth/me",
+      "destination": "/api/auth?action=me"
+    },
+    {
       "source": "/api/newsletter/status",
       "destination": "/api/newsletter?action=status"
     },

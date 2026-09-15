@@ -1,6 +1,5 @@
-import jwt from 'jsonwebtoken';
-import { createPublicKey } from 'crypto';
 import { getPool, setCORS } from './_db.js';
+import { requireAdmin, AuthError } from './_auth.js';
 import {
   getSmtpConfig,
   sendEmail,
@@ -12,18 +11,6 @@ import {
 } from './_email.js';
 
 const pool = getPool();
-
-function publicKeyFromJwk(key) {
-  if (key?.x5c?.[0]) return `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----`;
-  if (key?.n && key?.e) return createPublicKey({ key: { kty: 'RSA', n: key.n, e: key.e }, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
-  return null;
-}
-
-let jwksCache = { keys: null, expires: 0 };
-
-async function requireAdmin(req) {
-  return { id: 'admin-1', email: 'admin@bridgecollectiveopport.org', full_name: 'Admin', role: 'admin', created_date: new Date().toISOString() };
-}
 
 function buildNewsletterHtml(opportunities) {
   const itemsHtml = opportunities.map(o => `
@@ -180,6 +167,10 @@ export default async function handler(req, res) {
     res.status(404).json({ error: `Unknown newsletter action: ${action}` });
   } catch (error) {
     console.error('Newsletter API error:', error);
+    if (error instanceof AuthError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
     res.status(500).json({ error: error.message });
   }
 }

@@ -1,12 +1,12 @@
 import { createHash } from 'crypto';
-import { Pool } from 'pg';
+import { getPool } from './_db.js';
+import { requireAdmin, AuthError } from './_auth.js';
 
 const NHOST_BASE = 'https://ybgaidcwksqeuojraxoe.functions.ap-southeast-1.nhost.run/v1';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+// Shared pool, so this file gets the same connection-string fallbacks and SSL
+// settings as the other API routes.
+const pool = getPool();
 
 function createUploadSignature({ folder, timestamp = Math.floor(Date.now() / 1000) } = {}) {
   const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
@@ -139,23 +139,30 @@ export default async function handler(req, res) {
 
     try {
       if (resource === 'settings') {
+        await requireAdmin(req);
         const data = await handleGetSettings();
         return res.status(200).json(data);
       }
       if (resource === 'setting' && key) {
+        await requireAdmin(req);
         const data = await handleGetSetting(key);
         return res.status(200).json(data);
       }
       if (resource === 'subscribers') {
+        await requireAdmin(req);
         const data = await handleGetSubscribers();
         return res.status(200).json(data);
       }
       if (resource === 'messages') {
+        await requireAdmin(req);
         const data = await handleGetMessages();
         return res.status(200).json(data);
       }
     } catch (error) {
       console.error('GET error:', error);
+      if (error instanceof AuthError) {
+        return res.status(error.status).json({ error: error.message });
+      }
       return res.status(500).json({ error: error.message });
     }
   }
@@ -169,8 +176,9 @@ export default async function handler(req, res) {
     try { parsed = JSON.parse(body); } catch { parsed = {}; }
 
     try {
-      // Handle upload signature locally
+      // Handle upload signature locally — admin only
       if (parsed.resource === 'upload' && parsed.action === 'signature') {
+        await requireAdmin(req);
         const sig = createUploadSignature({ folder: parsed.folder || 'bridge-jobs' });
         return res.status(200).json(sig);
       }
@@ -178,22 +186,26 @@ export default async function handler(req, res) {
       // Handle subscriber actions locally
       if (parsed.resource === 'subscriber') {
         if (parsed.action === 'subscribe') {
+          // Public — anyone can subscribe
           const data = await handleSubscribe(parsed);
           return res.status(200).json(data);
         }
         if (parsed.action === 'delete') {
+          await requireAdmin(req);
           const data = await handleDeleteSubscriber(parsed.id);
           return res.status(200).json(data);
         }
         if (parsed.action === 'bulk-delete') {
+          await requireAdmin(req);
           const data = await handleBulkDeleteSubscribers(parsed.ids);
           return res.status(200).json(data);
         }
       }
 
-      // Handle setting actions locally
+      // Handle setting actions locally — admin only
       if (parsed.resource === 'setting') {
         if (parsed.action === 'update') {
+          await requireAdmin(req);
           const data = await handleUpdateSetting(parsed.key, parsed.value);
           return res.status(200).json(data);
         }
@@ -202,24 +214,29 @@ export default async function handler(req, res) {
       // Handle message actions locally
       if (parsed.resource === 'message') {
         if (parsed.action === 'send') {
+          // Public — contact form
           const data = await handleSendMessage(parsed);
           return res.status(201).json(data);
         }
         if (parsed.action === 'mark-read') {
+          await requireAdmin(req);
           const data = await handleMarkRead(parsed.id);
           return res.status(200).json(data);
         }
         if (parsed.action === 'delete') {
+          await requireAdmin(req);
           const data = await handleDeleteMessage(parsed.id);
           return res.status(200).json(data);
         }
         if (parsed.action === 'bulk-delete') {
+          await requireAdmin(req);
           const data = await handleBulkDeleteMessages(parsed.ids);
           return res.status(200).json(data);
         }
       }
 
       // Fallback: proxy to Nhost for other actions
+      await requireAdmin(req);
       const fetchOptions = {
         method: 'POST',
         headers: {
@@ -233,6 +250,9 @@ export default async function handler(req, res) {
       return res.status(response.status).json(data);
     } catch (error) {
       console.error('POST error:', error);
+      if (error instanceof AuthError) {
+        return res.status(error.status).json({ error: error.message });
+      }
       return res.status(500).json({ error: error.message });
     }
   }

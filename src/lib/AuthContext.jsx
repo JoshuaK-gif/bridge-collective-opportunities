@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setAuthChecked(true);
       setAuthError(null);
+      return currentUser;
     } catch (err) {
       setAuthError(err.message || 'Login failed');
       throw err;

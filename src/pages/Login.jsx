@@ -21,7 +21,11 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      const user = await login(email, password);
+      if (user?.role !== 'admin') {
+        setError('This account does not have admin access. Sign in with an admin account to open the control panel.');
+        return;
+      }
       navigate('/admin-bridgejobs');
     } catch (err) {
       setError(err?.data?.error || err?.message || 'Login failed');

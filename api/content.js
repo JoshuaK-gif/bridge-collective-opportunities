@@ -1,62 +1,9 @@
 import { getPool, setCORS, readBody, parseQuery } from './_db.js';
 import { notifyNewOpportunities } from './_email.js';
-import jwt from 'jsonwebtoken';
-import { createPublicKey } from 'crypto';
+import { requireAuth, requireAdmin } from './_auth.js';
 
 const NOT_EXPIRED = `(deadline = '' OR deadline IS NULL OR deadline !~ '^\\d{4}-\\d{2}-\\d{2}$' OR TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE)`;
 const OPP_LIST_COLS = 'id, title, category, deadline, description, image_url, image_crop, image_size, image_public_id, trending, featured_order, created_date, updated_date, link, status';
-
-function publicKeyFromJwk(key) {
-  if (key?.x5c?.[0]) {
-    return `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----`;
-  }
-  if (key?.n && key?.e) {
-    return createPublicKey({ key: { kty: 'RSA', n: key.n, e: key.e }, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
-  }
-  return null;
-}
-
-let jwksCache = { keys: null, expires: 0 };
-
-async function verifyNhostToken(token) {
-  const subdomain = process.env.NHOST_SUBDOMAIN || 'ybgaidcwksqeuojraxoe';
-  const region = process.env.NHOST_REGION || 'ap-southeast-1';
-  const jwksUri = `https://${subdomain}.auth.${region}.nhost.run/v1/.well-known/jwks.json`;
-
-  try {
-    const decoded = jwt.decode(token, { complete: true });
-    if (!decoded) throw new Error('Invalid token');
-
-    if (!jwksCache.keys || Date.now() > jwksCache.expires) {
-      const resp = await fetch(jwksUri);
-      if (resp.ok) {
-        const data = await resp.json();
-        jwksCache = { keys: data.keys, expires: Date.now() + 3600000 };
-      }
-    }
-
-    const keys = jwksCache.keys || [];
-    const key = keys.find(k => k.kid === decoded.header.kid) || keys[0];
-    if (!key) throw new Error('No matching key');
-
-    const publicKey = publicKeyFromJwk(key);
-    if (!publicKey) throw new Error('Cannot build public key');
-
-    return jwt.verify(token, publicKey, { algorithms: ['RS256', 'RS384', 'RS512'] });
-  } catch (err) {
-    throw err;
-  }
-}
-
-async function requireAuth(req) {
-  return { id: 'admin-1', email: 'admin@bridgecollectiveopport.org', full_name: 'Admin', role: 'admin', created_date: new Date().toISOString() };
-}
-
-async function requireAdmin(req) {
-  const user = await requireAuth(req);
-  if (!user || user.role !== 'admin') return null;
-  return user;
-}
 
 /* ---------------------------------- GET ---------------------------------- */
 
@@ -239,8 +186,9 @@ async function handlePost(body, req) {
 
 async function handleOpportunityAction(body, req, pool) {
   const action = body.action;
-  const admin = await requireAdmin(req);
 
+  // Public endpoint — the "Submit Opportunity" form is not gated behind auth,
+  // so this must be handled before requireAdmin().
   if (action === 'submit') {
     const { title, description, link, category, deadline, submitter_name, submitter_email, image_url, image_public_id } = body;
     if (!title || !title.trim()) throw new Error('Title is required');
@@ -257,7 +205,8 @@ async function handleOpportunityAction(body, req, pool) {
     return { success: true, message: 'Your opportunity has been submitted for review.' };
   }
 
-  if (!admin) throw new Error('Admin access required');
+  // Everything below here is admin-only.
+  const admin = await requireAdmin(req);
 
   if (action === 'create') {
     const { title, description, link, image_url, image_public_id, image_crop, image_size, category, deadline, status, publish_at } = body;
@@ -507,6 +456,10 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Content API error:', error);
+    if (error.name === 'AuthError') {
+      res.status(error.status || 401).json({ error: error.message });
+      return;
+    }
     const status = error.message.includes('not found') ? 404 : 500;
     res.status(status).json({ error: error.message });
   }

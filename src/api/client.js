@@ -124,10 +124,12 @@ export const api = {
   request: (path, options) => request(path, options),
   home: () => request(`/content${qs({ resource: 'home' })}`),
   auth: {
+    // `/auth?action=me` is a real route (api/auth.js). The `/auth/me` form only
+    // works through a vercel.json rewrite, so use the explicit query route.
     me: async () => {
       const token = getToken();
       if (!token) throw new Error('Not authenticated');
-      return request('/auth/me');
+      return request('/auth?action=me');
     },
     /** Sign in with Nhost Auth — returns the session. */
     login: async (email, password) => {

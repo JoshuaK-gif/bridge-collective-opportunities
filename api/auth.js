@@ -1,31 +1,5 @@
-import { getPool, setCORS, parseQuery } from './_db.js';
-import jwt from 'jsonwebtoken';
-import { createPublicKey } from 'crypto';
-
-function publicKeyFromJwk(key) {
-  if (key?.x5c?.[0]) return `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----`;
-  if (key?.n && key?.e) return createPublicKey({ key: { kty: 'RSA', n: key.n, e: key.e }, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
-  return null;
-}
-
-let jwksCache = { keys: null, expires: 0 };
-
-async function verifyNhostToken(token) {
-  const subdomain = process.env.NHOST_SUBDOMAIN || 'ybgaidcwksqeuojraxoe';
-  const region = process.env.NHOST_REGION || 'ap-southeast-1';
-  const decoded = jwt.decode(token, { complete: true });
-  if (!decoded) throw new Error('Invalid token');
-  if (!jwksCache.keys || Date.now() > jwksCache.expires) {
-    const resp = await fetch(`https://${subdomain}.auth.${region}.nhost.run/v1/.well-known/jwks.json`);
-    if (resp.ok) { const d = await resp.json(); jwksCache = { keys: d.keys, expires: Date.now() + 3600000 }; }
-  }
-  const keys = jwksCache.keys || [];
-  const key = keys.find(k => k.kid === decoded.header.kid) || keys[0];
-  if (!key) throw new Error('No matching key');
-  const publicKey = publicKeyFromJwk(key);
-  if (!publicKey) throw new Error('Cannot build public key');
-  return jwt.verify(token, publicKey, { algorithms: ['RS256', 'RS384', 'RS512'] });
-}
+import { setCORS, parseQuery } from './_db.js';
+import { requireAuth, AuthError } from './_auth.js';
 
 export default async function handler(req, res) {
   setCORS(res);
@@ -33,8 +7,26 @@ export default async function handler(req, res) {
 
   const params = parseQuery(req);
 
-  if (req.method === 'GET' && params.action === 'me') {
-    res.status(200).json({ id: 'admin-1', email: 'admin@bridgecollectiveopport.org', full_name: 'Admin', role: 'admin', created_date: new Date().toISOString() });
+  // `/api/auth/me` is served through a rewrite to `/api/auth?action=me`. Vercel
+  // does not always forward the rewritten query into `req.url`, so fall back to
+  // the last path segment (`me`, `logout`, ...) when no action param is present.
+  const pathSegment = String(req.url || '').split('?')[0].replace(/\/+$/, '').split('/').pop();
+  const action = params.action || (pathSegment && pathSegment !== 'auth' ? pathSegment : '');
+
+  if (req.method === 'GET' && action === 'me') {
+    try {
+      const user = await requireAuth(req);
+      res.status(200).json(user);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        res.status(err.status).json({ error: err.message });
+        return;
+      }
+      // Anything else (DB down, bad DATABASE_URL, ...) is a server problem, not
+      // a bad session — log it so it shows up in the Vercel runtime logs.
+      console.error('Auth /me error:', err.message);
+      res.status(500).json({ error: err.message });
+    }
     return;
   }
 
