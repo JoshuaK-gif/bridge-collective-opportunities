@@ -50,14 +50,49 @@ async function refreshSession() {
   }
 }
 
+function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // Refresh 60s before expiry
+    return Date.now() >= (payload.exp - 60) * 1000;
+  } catch {
+    return true;
+  }
+}
+
+async function ensureFreshToken() {
+  const token = getToken();
+  if (!token) return;
+  if (isTokenExpired(token)) {
+    await refreshSession();
+  }
+}
+
 async function request(path, options = {}, _retried = false) {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch (networkErr) {
+    // Network error or timeout — retry once after a short delay (cold start).
+    if (!_retried) {
+      await new Promise(r => setTimeout(r, 1500));
+      return request(path, options, true);
+    }
+    throw networkErr;
+  }
 
   // Nhost access tokens expire (~15 min). On a 401, refresh once and retry.
   if (res.status === 401 && !_retried && (await refreshSession())) {
+    return request(path, options, true);
+  }
+
+  // Server error (5xx) — retry once (Vercel cold-start / transient).
+  if (res.status >= 500 && !_retried) {
+    await new Promise(r => setTimeout(r, 1500));
     return request(path, options, true);
   }
 
@@ -122,6 +157,7 @@ async function uploadToCloudinary(file, folder = 'bridge-jobs') {
 
 export const api = {
   request: (path, options) => request(path, options),
+  ensureFreshToken,
   home: () => request(`/content${qs({ resource: 'home' })}`),
   auth: {
     // `/auth?action=me` is a real route (api/auth.js). The `/auth/me` form only

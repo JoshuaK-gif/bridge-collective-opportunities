@@ -24,6 +24,8 @@ export const AuthProvider = ({ children }) => {
     }
     try {
       setIsLoadingAuth(true);
+      // Proactively refresh expired tokens before hitting the API.
+      await api.ensureFreshToken();
       const currentUser = await api.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
