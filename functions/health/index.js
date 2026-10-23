@@ -13,9 +13,11 @@ export default handle(async (req, res) => {
   try {
     await query('SELECT 1');
     checks.db = 'connected';
-  } catch {
+  } catch (err) {
     checks.db = 'disconnected';
     checks.status = 'degraded';
+    checks.error = err.message;
+    checks.code = err.code || null;
   }
   res.status(checks.status === 'ok' ? 200 : 503).json(checks);
 });

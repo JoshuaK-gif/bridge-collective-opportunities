@@ -32,6 +32,7 @@ export default function Home() {
   const [searchParams] = useSearchParams();
   const [homeData, setHomeData] = useState(null);
   const [homeLoading, setHomeLoading] = useState(true);
+  const [homeError, setHomeError] = useState(null);
   const [showExpiring, setShowExpiring] = useState(false);
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const activeCategory = searchParams.get('category') || '';
@@ -48,12 +49,25 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
-    setHomeLoading(true);
-    api.home()
-      .then(d => { if (active) setHomeData(d); })
-      .catch(() => {})
-      .finally(() => { if (active) setHomeLoading(false); });
-    return () => { active = false; };
+    let retryTimer;
+    const load = (attempt = 0) => {
+      setHomeLoading(true);
+      setHomeError(null);
+      api.home()
+        .then(d => { if (active) setHomeData(d); })
+        .catch(err => {
+          if (!active) return;
+          // Retry up to 2 times — DB may be waking from sleep
+          if (attempt < 2) {
+            retryTimer = setTimeout(() => load(attempt + 1), 2000 * (attempt + 1));
+          } else {
+            setHomeError(err?.message || 'Failed to load opportunities');
+          }
+        })
+        .finally(() => { if (active) setHomeLoading(false); });
+    };
+    load();
+    return () => { active = false; clearTimeout(retryTimer); };
   }, []);
 
   // Preload the LCP hero image as soon as featured data arrives
@@ -88,6 +102,14 @@ export default function Home() {
       />
       <AnimatedPage>
       <div className="bg-[#eef0fa] min-h-screen">
+        {homeError && !homeLoading && (
+          <div className="max-w-7xl mx-auto px-4 pt-6">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+              <p className="text-amber-800 text-sm">Unable to load opportunities. The database may be waking up.</p>
+              <button onClick={() => { setHomeError(null); setHomeLoading(true); api.home().then(setHomeData).catch(e => setHomeError(e?.message || 'Retry failed')).finally(() => setHomeLoading(false)); }} className="ml-4 px-3 py-1.5 bg-amber-600 text-white text-sm rounded-md hover:bg-amber-700 whitespace-nowrap">Retry</button>
+            </div>
+          </div>
+        )}
         {!isFiltered && (
           <>
             {featuredLoading ? <HeroSkeleton /> : featured.length > 0 && <HeroCarousel items={featured} />}

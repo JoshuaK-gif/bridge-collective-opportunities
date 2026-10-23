@@ -57,6 +57,7 @@ cats AS (
 ),
 expiring AS (
   SELECT ${OPP_LIST_COLS} FROM opportunities WHERE status = 'active' AND deadline != '' AND deadline IS NOT NULL
+    AND deadline ~ '^\d{4}-\d{2}-\d{2}$'
     AND TO_DATE(deadline, 'YYYY-MM-DD') >= CURRENT_DATE AND TO_DATE(deadline, 'YYYY-MM-DD') <= CURRENT_DATE + interval '7 days'
   ORDER BY TO_DATE(deadline, 'YYYY-MM-DD') ASC
 ),
