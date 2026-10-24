@@ -42,13 +42,13 @@ Notes:
 | Phase | Status |
 |---|---|
 | 0. Nhost project + creds | ✅ `ybgaidcwksqeuojraxoe` / `ap-southeast-1`; creds in `server/.env.nhost` (gitignored) |
-| 1. Database on Nhost | ✅ schema (migrations 001–029 + seed) applied; missing indexes fixed (pg_trgm, audit_log, title trgm) |
+| 1. Database on Nhost | ✅ schema (migrations 001–031 + seed) applied; DB password reset; missing indexes fixed (pg_trgm, audit_log, title trgm) |
 | 2. API → Functions | ✅ 9 functions written + `scripts/smoke-functions.mjs` — **17/17 pass against live Nhost DB** |
 | 3. Frontend → client.js | ✅ rewritten to query-param scheme; direct-to-Cloudinary uploads; feature-flag AI/Grant UI off |
-| 4. Auth → Nhost Auth | ✅ frontend signs in at Nhost Auth; functions verify Nhost JWTs (NHOST_JWT_SECRET auto-injected) and map by email |
-| 5. Deploy functions | ⬜ `nhost init --remote`, connect GitHub repo (functions deploy on push), set env vars |
-| 6. Vercel deploy | ⬜ pushed to GitHub ✓; deploy via Vercel (project `bridge-collective-nhost`) |
-| 7. Cron | ⬜ add `NHOST_FUNCTIONS_URL` + `CRON_SECRET` to GitHub Actions secrets |
+| 4. Auth → Nhost Auth | ✅ frontend signs in at Nhost Auth; functions verify Nhost JWTs (RS256/JWKS) and map via `users.nhost_id`; admin user created + linked |
+| 5. Deploy functions | ✅ GitHub connected; functions deploy on push; env vars set (`DATABASE_URL`, `CRON_SECRET`, `SITE_URL`, Cloudinary) |
+| 6. Vercel deploy | ✅ project `bridge-collective-opportunities` → https://www.bridgecollectiveopport.org (API rewrites → Nhost Functions) |
+| 7. Cron | ✅ `NHOST_FUNCTIONS_URL` + `CRON_SECRET` set as GitHub Actions secrets; cron endpoints verified (scheduled-publish, expired-cleanup, reminders → 200) |
 
 ## Env vars to set on Nhost (dashboard)
 

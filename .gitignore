@@ -53,3 +53,4 @@ serve-dist.mjs
 server.log
 server-error.log
 .vercel
+.env*
