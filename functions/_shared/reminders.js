@@ -6,12 +6,27 @@ function escapeHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/** Pending reminders kept per email address. */
+const MAX_PER_EMAIL = 10;
+
 /** Store a reminder in site_settings (max 100). */
 export async function createReminder({ email, opportunityId, opportunityTitle, deadline }) {
   const existing = await query("SELECT value FROM site_settings WHERE key = 'reminders'");
   let reminders = [];
   if (existing.rows.length) {
-    reminders = existing.rows[0].value;
+    reminders = Array.isArray(existing.rows[0].value) ? existing.rows[0].value : [];
+  }
+
+  // Re-setting a reminder for the same opportunity refreshes it instead of
+  // stacking duplicates.
+  reminders = reminders.filter(r => !(r.email === email && r.opportunityId === opportunityId));
+
+  // Cap pending reminders per address so one caller cannot flood the queue
+  // (the global cap below would otherwise evict other people's reminders).
+  const mine = reminders.filter(r => r.email === email);
+  if (mine.length >= MAX_PER_EMAIL) {
+    const evict = new Set(mine.slice(0, mine.length - MAX_PER_EMAIL + 1).map(r => r.id));
+    reminders = reminders.filter(r => !evict.has(r.id));
   }
 
   reminders.push({

@@ -119,6 +119,34 @@ export async function requireAuth(req, res) {
   }
 }
 
+/**
+ * Resolve the caller without ever responding — null when there is no token, the
+ * token is invalid, or it maps to no app user. For endpoints that serve extra
+ * fields to admins but still answer anonymous callers.
+ */
+export async function optionalAuth(req) {
+  const header = req.headers?.authorization;
+  if (!header || !header.startsWith('Bearer ')) return null;
+  try {
+    const decoded = await verifyToken(header.split(' ')[1]);
+    const nhostId = nhostUserIdFromToken(decoded);
+    if (nhostId) {
+      const result = await query(
+        'SELECT id, email, full_name, role, created_date FROM users WHERE nhost_id = $1',
+        [nhostId]
+      );
+      return result.rows[0] || { id: decoded.sub, email: decoded.email || '', full_name: '', role: 'user', created_date: null };
+    }
+    const result = await query(
+      'SELECT id, email, full_name, role, created_date FROM users WHERE id = $1',
+      [decoded.id || decoded.sub]
+    );
+    return result.rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Returns the user row if admin, otherwise null after sending 401/403. */
 export async function requireAdmin(req, res) {
   const user = await requireAuth(req, res);
@@ -130,4 +158,4 @@ export async function requireAdmin(req, res) {
   return user;
 }
 
-export default { requireAuth, requireAdmin, signToken, verifyToken };
+export default { requireAuth, requireAdmin, optionalAuth, signToken, verifyToken };

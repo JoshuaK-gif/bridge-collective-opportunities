@@ -17,13 +17,42 @@
  */
 import { query } from '../_shared/db.js';
 import logger from '../_shared/logger.js';
-import { requireAdmin, requireAuth } from '../_shared/auth.js';
+import { requireAdmin, optionalAuth } from '../_shared/auth.js';
 import { AppError, handle } from '../_shared/errors.js';
+import { enforceRateLimit, clientIp } from '../_shared/rate-limit.js';
 import { parseWith, subscriberSchema, messageSchema } from '../_shared/validate.js';
 import { sendEmail } from '../_shared/email.js';
 import { createUploadSignature } from '../_shared/cloudinary.js';
 
-const PUBLIC_SETTINGS = new Set(['site_name', 'site_description', 'site_logo', 'contact_email', 'cv_tips', 'ga_measurement_id']);
+const PUBLIC_SETTINGS = new Set([
+  'site_name', 'site_description', 'site_logo', 'contact_email', 'cv_tips', 'ga_measurement_id',
+  // Editable copy rendered on the public About / Services pages.
+  'about_page', 'services_page', 'packages',
+]);
+
+/**
+ * Upload purposes. The folder is fixed here, never taken from the request, so a
+ * signature can only ever write into that one folder. `admin: true` purposes
+ * back admin content; the rest back public features (CV builder photo, public
+ * opportunity submission) and are rate limited per IP.
+ */
+const UPLOAD_PURPOSES = {
+  content: { folder: 'bridge-jobs', admin: true },
+  submission: { folder: 'bridge-submissions', max: 10, windowMs: 60 * 60 * 1000 },
+  'cv-photo': { folder: 'cv-photos', max: 20, windowMs: 60 * 60 * 1000 },
+};
+
+/**
+ * Resolve a request to a known purpose. Older bundles still send `folder`;
+ * both of those map to the public purposes they were used for, so a stale tab
+ * during a deploy degrades to a public upload instead of a hard 401.
+ */
+function resolveUploadPurpose(body) {
+  if (body.purpose && UPLOAD_PURPOSES[body.purpose]) return { name: body.purpose, ...UPLOAD_PURPOSES[body.purpose] };
+  if (body.folder === 'cv-photos') return { name: 'cv-photo', ...UPLOAD_PURPOSES['cv-photo'] };
+  if (body.folder === 'bridge-jobs') return { name: 'submission', ...UPLOAD_PURPOSES.submission };
+  return null;
+}
 
 function sanitizeEmailHeader(value) {
   return (value || '').replace(/[\r\n]/g, ' ').trim();
@@ -54,17 +83,22 @@ async function handleGet(req, res) {
   const resource = q.resource;
 
   if (resource === 'settings') {
-    const admin = await requireAdmin(req, res);
-    if (!admin) return;
+    // Admins see everything; everyone else only the public keys. About/Services
+    // read their copy from here, and must never receive smtp_config or the
+    // scraper/social credentials.
+    const user = await optionalAuth(req);
+    const isAdmin = user?.role === 'admin';
     const result = await query('SELECT key, value FROM site_settings');
     const settings = {};
-    result.rows.forEach(r => { settings[r.key] = r.value; });
+    result.rows.forEach(r => {
+      if (isAdmin || PUBLIC_SETTINGS.has(r.key)) settings[r.key] = r.value;
+    });
     return res.json(settings);
   }
 
   if (resource === 'setting') {
     if (!PUBLIC_SETTINGS.has(q.key)) {
-      const admin = await requireAuth(req, res);
+      const admin = await requireAdmin(req, res);
       if (!admin) return;
     }
     const result = await query('SELECT value FROM site_settings WHERE key = $1', [q.key]);
@@ -228,8 +262,21 @@ async function handleUploadAction(body, req, res) {
   const action = body.action;
 
   if (action === 'signature') {
+    const purpose = resolveUploadPurpose(body);
+    if (!purpose) throw new AppError(400, 'Unknown upload purpose');
+
+    if (purpose.admin) {
+      const admin = await requireAdmin(req, res);
+      if (!admin) return;
+    } else if (!enforceRateLimit(req, res, `upload:${purpose.name}:${clientIp(req)}`, {
+      max: purpose.max,
+      windowMs: purpose.windowMs,
+    })) {
+      return;
+    }
+
     try {
-      const sig = createUploadSignature({ folder: body.folder || 'bridge-jobs' });
+      const sig = createUploadSignature({ folder: purpose.folder });
       return res.json(sig);
     } catch (err) {
       logger.error({ err: err.message }, 'Upload signature failed');

@@ -89,11 +89,14 @@ function qs(params) {
  * Direct-to-Cloudinary upload. Nhost Functions can't receive multipart, so we
  * fetch a signed upload (signature + timestamp) from the backend, then POST the
  * file straight to Cloudinary from the browser.
+ *
+ * The folder is chosen server-side from `purpose` (content | submission |
+ * cv-photo) — the client never picks a destination.
  */
-async function uploadToCloudinary(file, folder = 'bridge-jobs') {
+async function uploadToCloudinary(file, purpose) {
   const sig = await request('/admin', {
     method: 'POST',
-    body: JSON.stringify({ resource: 'upload', action: 'signature', folder }),
+    body: JSON.stringify({ resource: 'upload', action: 'signature', purpose }),
   });
   if (!sig.cloud_name || !sig.signature) {
     throw new Error('Upload is not configured. Ask the admin to add Cloudinary keys.');
@@ -171,9 +174,9 @@ export const api = {
     },
   },
   upload: {
-    image: (file) => uploadToCloudinary(file, 'bridge-jobs'),
-    opportunityImage: (file) => uploadToCloudinary(file, 'bridge-jobs'),
-    cvPhoto: (file) => uploadToCloudinary(file, 'cv-photos'),
+    image: (file) => uploadToCloudinary(file, 'content'),
+    opportunityImage: (file) => uploadToCloudinary(file, 'submission'),
+    cvPhoto: (file) => uploadToCloudinary(file, 'cv-photo'),
   },
   categories: {
     list: () => request(`/content${qs({ resource: 'categories' })}`),

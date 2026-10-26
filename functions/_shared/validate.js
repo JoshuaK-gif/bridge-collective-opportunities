@@ -4,11 +4,12 @@ import { z } from 'zod';
 export function parseWith(schema, body) {
   const result = schema.safeParse(body);
   if (!result.success) {
-    const first = result.error.errors[0];
+    const issues = result.error.issues || []; // zod v4 (v3 called these `errors`)
+    const first = issues[0];
     return {
       ok: false,
       error: first ? `${first.path.join('.')}: ${first.message}` : 'Validation failed',
-      details: result.error.errors,
+      details: issues,
     };
   }
   return { ok: true, data: result.data };

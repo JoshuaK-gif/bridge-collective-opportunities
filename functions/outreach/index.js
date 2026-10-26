@@ -15,12 +15,13 @@ import { AppError, handle } from '../_shared/errors.js';
 import { sendEmail, sendTestEmail } from '../_shared/email.js';
 import { sendNewsletter } from '../_shared/newsletter.js';
 import { createReminder, processReminders } from '../_shared/reminders.js';
+import { enforceRateLimit, clientIp } from '../_shared/rate-limit.js';
 
+// Only the address and the opportunity: the email copy is built from the
+// database, never from the request.
 const reminderSchema = z.object({
-  email: z.string().email('Invalid email'),
-  opportunityId: z.string().min(1, 'Opportunity ID is required'),
-  opportunityTitle: z.string().min(1, 'Title is required').max(500),
-  deadline: z.string().min(1, 'Deadline is required').max(50),
+  email: z.string().email('Invalid email').max(254),
+  opportunityId: z.string().uuid('Invalid opportunity ID'),
 });
 
 export default handle(async (req, res) => {
@@ -40,11 +41,32 @@ export default handle(async (req, res) => {
   }
 
   if (resource === 'reminder' && action === 'create') {
+    if (!enforceRateLimit(req, res, `reminder:${clientIp(req)}`, { max: 10, windowMs: 60 * 60 * 1000 })) {
+      return;
+    }
     const parsed = reminderSchema.safeParse(body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0].message });
+      return res.status(400).json({ error: parsed.error.issues?.[0]?.message || 'Invalid request' });
     }
-    await createReminder(parsed.data);
+
+    // The reminder is emailed from our own domain, so the title and deadline
+    // must come from the database. Trusting them from the request would let
+    // anyone send arbitrary branded copy to any address (phishing relay).
+    const opp = await query(
+      "SELECT id, title, deadline FROM opportunities WHERE id = $1 AND status = 'active'",
+      [parsed.data.opportunityId]
+    );
+    if (!opp.rows.length) throw new AppError(404, 'Opportunity not found');
+
+    const { id, title, deadline } = opp.rows[0];
+    if (!deadline) throw new AppError(400, 'This opportunity has no deadline to remind about');
+
+    await createReminder({
+      email: parsed.data.email,
+      opportunityId: id,
+      opportunityTitle: title,
+      deadline,
+    });
     return res.json({ success: true });
   }
 

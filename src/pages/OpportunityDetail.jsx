@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { api } from '@/api/client';
 import { oppImageSrc, CATEGORY_STYLES } from '@/lib/images';
 import { Badge } from '@/components/ui/badge';
@@ -15,43 +16,23 @@ import BookmarkButton from '@/components/BookmarkButton';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useApplicationTracker } from '@/hooks/useApplicationTracker';
 
-// Utility: strip HTML tags from a string (client-side only)
-function stripHtml(html) {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || div.innerText || '';
-}
+// Descriptions are stored as rich HTML and can originate from scraped (i.e.
+// untrusted) pages, so they go through DOMPurify. Never assign raw markup to
+// innerHTML first: an <img onerror> fires on insertion, before a hand-rolled
+// pass could strip it.
+const ALLOWED_TAGS = ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'img', 'hr', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'sub', 'sup', 'u', 's', 'mark'];
+const ALLOWED_ATTR = ['href', 'src', 'alt', 'title', 'class', 'style', 'target', 'rel'];
 
 function sanitizeHtml(html) {
+  return DOMPurify.sanitize(html || '', { ALLOWED_TAGS, ALLOWED_ATTR, ADD_ATTR: ['target'] });
+}
+
+// Utility: plain text for meta description / JSON-LD.
+function stripHtml(html) {
+  const clean = DOMPurify.sanitize(html || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
   const div = document.createElement('div');
-  div.innerHTML = html;
-  const allowed = ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'img', 'hr', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'sub', 'sup', 'u', 's', 'mark'];
-  const attrs = ['href', 'src', 'alt', 'title', 'class', 'style', 'target', 'rel'];
-  function clean(node) {
-    if (node.nodeType === 1) {
-      if (!allowed.includes(node.tagName.toLowerCase())) {
-        const fragment = document.createDocumentFragment();
-        while (node.firstChild) fragment.appendChild(node.firstChild);
-        node.parentNode.replaceChild(fragment, node);
-        return;
-      }
-      const attrsToRemove = [];
-      for (let i = 0; i < node.attributes.length; i++) {
-        const attr = node.attributes[i];
-        if (!attrs.includes(attr.name)) { attrsToRemove.push(attr.name); continue; }
-        if (attr.name === 'href' || attr.name === 'src') {
-          const val = attr.value.toLowerCase();
-          if (val.startsWith('javascript:') || val.startsWith('data:') || val.startsWith('vbscript:')) {
-            attrsToRemove.push(attr.name);
-          }
-        }
-      }
-      attrsToRemove.forEach(a => node.removeAttribute(a));
-      Array.from(node.childNodes).forEach(clean);
-    }
-  }
-  Array.from(div.childNodes).forEach(clean);
-  return div.innerHTML;
+  div.innerHTML = clean;
+  return div.textContent || div.innerText || '';
 }
 
 export default function OpportunityDetail() {
