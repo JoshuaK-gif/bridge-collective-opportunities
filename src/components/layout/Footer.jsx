@@ -67,6 +67,8 @@ export default function Footer() {
           <Link to="/submit-opportunity" className="hover:text-foreground transition-colors">Submit an Opportunity</Link>
           <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
           <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+          <Link to="/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+          <Link to="/terms-of-service" className="hover:text-foreground transition-colors">Terms of Service</Link>
         </div>
 
         <p className="text-xs text-muted-foreground/60">
