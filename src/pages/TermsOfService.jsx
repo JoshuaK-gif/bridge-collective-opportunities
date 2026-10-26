@@ -51,7 +51,7 @@ export default function TermsOfService() {
 
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-gray-800">7. Contact</h2>
-            <p className="text-gray-600 leading-relaxed">Questions? Email: <a href="mailto:support@bridgecollectiveopport.org" className="text-primary hover:underline">support@bridgecollectiveopport.org</a></p>
+            <p className="text-gray-600 leading-relaxed">Questions? Email: <a href="mailto:bridgecollectiveopportunities@gmail.com" className="text-primary hover:underline">bridgecollectiveopportunities@gmail.com</a></p>
           </section>
         </div>
       </div>
