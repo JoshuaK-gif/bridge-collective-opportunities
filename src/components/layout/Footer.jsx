@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const socials = [
   {
@@ -67,8 +68,15 @@ export default function Footer() {
           <Link to="/submit-opportunity" className="hover:text-foreground transition-colors">Submit an Opportunity</Link>
           <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
           <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
-          <Link to="/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-          <Link to="/terms-of-service" className="hover:text-foreground transition-colors">Terms of Service</Link>
+        </div>
+
+        <div className="flex justify-center gap-3 mb-6 flex-wrap">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/privacy-policy">Privacy Policy</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/terms-of-service">Terms of Service</Link>
+          </Button>
         </div>
 
         <p className="text-xs text-muted-foreground/60">
