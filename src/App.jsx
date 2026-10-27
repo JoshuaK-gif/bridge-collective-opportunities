@@ -26,6 +26,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const SavedOpportunities = lazy(() => import('@/pages/SavedOpportunities'));
 const MyApplications = lazy(() => import('@/pages/MyApplications'));
 const CVBuilder = lazy(() => import('@/pages/CVBuilder'));
+const ResumeBuilder = lazy(() => import('@/pages/ResumeBuilder'));
 const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
 const GrantCheckAssistant = lazy(() => import('@/pages/GrantCheckAssistant'));
 const ServerError = lazy(() => import('@/pages/ServerError'));
@@ -82,6 +83,7 @@ function AppContent() {
                 <Route path="/saved" element={<SavedOpportunities />} />
                 <Route path="/my-applications" element={<MyApplications />} />
                 <Route path="/cv-builder" element={<CVBuilder />} />
+                <Route path="/resume-builder" element={<ResumeBuilder />} />
                 {features?.grantAssistant !== false && (
                   <>
                     <Route path="/ai-assistant" element={<AIAssistant />} />

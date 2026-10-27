@@ -263,14 +263,12 @@ export default function Navbar() {
                   />
                   {/* Resume / CV - mobile */}
                   <SheetClose asChild>
-                    <a
-                      href="https://bco-resume-builder-ieiy.vercel.app/"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      to="/resume-builder"
                       className="flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-accent hover:bg-accent/10"
                     >
                       <FileText className="w-5 h-5" /> Resume / CV
-                    </a>
+                    </Link>
                   </SheetClose>
 
                   {/* Courses - mobile */}
@@ -559,14 +557,16 @@ export default function Navbar() {
             onOpen={() => setActiveDropdown('Opportunities')}
             onClose={() => setActiveDropdown(prev => prev === 'Opportunities' ? null : prev)}
           />
-          <a
-            href="https://bco-resume-builder-ieiy.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10"
+          <Link
+            to="/resume-builder"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 ${
+              isActive('/resume-builder')
+                ? 'text-primary bg-primary/5'
+                : 'text-gray-600 dark:text-gray-300 hover:text-accent hover:bg-accent/10'
+            }`}
           >
             <FileText className="w-3.5 h-3.5" /> Resume / CV
-          </a>
+          </Link>
 
           <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 
