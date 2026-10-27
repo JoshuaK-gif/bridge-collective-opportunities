@@ -235,7 +235,7 @@ export default function GrantCheckAssistant() {
                 <AlertTriangle className="w-4 h-4" /> GrantKit engine not installed yet
               </h3>
               <p className="text-sm text-amber-700">
-                The AI writing tools still work, but funder checking needs the GrantKit Python engine on the server.
+                Funder checking needs the GrantKit Python engine on the server.
                 Ask your admin to run <code className="bg-amber-100 px-1.5 py-0.5 rounded text-xs">pip install grantkit[all]</code>.
               </p>
             </div>

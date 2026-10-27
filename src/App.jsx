@@ -26,10 +26,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const SavedOpportunities = lazy(() => import('@/pages/SavedOpportunities'));
 const MyApplications = lazy(() => import('@/pages/MyApplications'));
 const CVBuilder = lazy(() => import('@/pages/CVBuilder'));
-const CVReview = lazy(() => import('@/pages/CVReview'));
 const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
-const GenerateAssistant = lazy(() => import('@/pages/GenerateAssistant'));
-const PolishAssistant = lazy(() => import('@/pages/PolishAssistant'));
 const GrantCheckAssistant = lazy(() => import('@/pages/GrantCheckAssistant'));
 const ServerError = lazy(() => import('@/pages/ServerError'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
@@ -47,7 +44,6 @@ const AdminLists = lazy(() => import('@/pages/admin/AdminLists'));
 const AdminNews = lazy(() => import('@/pages/admin/AdminNews'));
 const OpportunityForm = lazy(() => import('@/pages/admin/OpportunityForm'));
 const AdminTemplates = lazy(() => import('@/pages/admin/AdminTemplates'));
-const AIExtractFromUrl = lazy(() => import('@/pages/admin/AIExtractFromUrl'));
 
 // Loading spinner for lazy-loaded routes
 function PageLoader() {
@@ -86,16 +82,11 @@ function AppContent() {
                 <Route path="/saved" element={<SavedOpportunities />} />
                 <Route path="/my-applications" element={<MyApplications />} />
                 <Route path="/cv-builder" element={<CVBuilder />} />
-                <Route path="/cv-review" element={<CVReview />} />
-                {features?.ai !== false && (
+                {features?.grantAssistant !== false && (
                   <>
                     <Route path="/ai-assistant" element={<AIAssistant />} />
-                    <Route path="/ai-assistant/generate" element={<GenerateAssistant />} />
-                    <Route path="/ai-assistant/polish" element={<PolishAssistant />} />
+                    <Route path="/ai-assistant/check" element={<GrantCheckAssistant />} />
                   </>
-                )}
-                {features?.grantAssistant !== false && (
-                  <Route path="/ai-assistant/check" element={<GrantCheckAssistant />} />
                 )}
               </Route>
               <Route path="/login" element={<Login />} />
@@ -113,7 +104,6 @@ function AppContent() {
                   <Route path="lists" element={<AdminLists />} />
                   <Route path="news" element={<AdminNews />} />
                   <Route path="templates" element={<AdminTemplates />} />
-                  <Route path="ai-extract" element={<AIExtractFromUrl />} />
                 </Route>
               </Route>            <Route path="*" element={<PageNotFound />} />
           </Routes>

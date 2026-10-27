@@ -7,23 +7,12 @@ import { validateEnv } from './lib/env.js';
 import pool from './lib/db.js';
 import { runMigrations } from './lib/migrate.js';
 import { seed } from './data.js';
-import { autoPublish } from './scripts/auto-publish.js';
 import { sendNewsletter } from './scripts/send-newsletter.js';
 
 async function startServer() {
   const { createApp } = await import('./server.js');
   const { httpServer } = createApp();
   const PORT = process.env.PORT || 3000;
-
-  cron.schedule('*/2 * * * *', async () => {
-    logger.info('Cron: running auto-publish check');
-    try {
-      await autoPublish();
-    } catch (err) {
-      logger.error({ err }, 'Cron auto-publish failed');
-    }
-  });
-  logger.info('Auto-publish cron scheduled (every 2 min)');
 
   // Auto-delete past-deadline opportunities — runs daily at midnight
   cron.schedule('0 0 * * *', async () => {
@@ -156,54 +145,6 @@ try {
   }
 } catch (e) {
   logger.warn({ err: e.message }, 'Could not verify users table');
-}
-// Fix AI config if it references a model that no longer exists on the provider
-try {
-  const cfgResult = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
-  if (cfgResult.rows.length) {
-    const val = cfgResult.rows[0].value;
-    const cfg = typeof val === 'string' ? JSON.parse(val) : val;
-    const safeModels = { openrouter: 'openai/gpt-4o-mini', openai: 'gpt-4o-mini', opencodezen: 'deepseek-v4-flash-free', gemini: 'gemini-2.0-flash' };
-    if (cfg?.provider && safeModels[cfg.provider] && cfg.model !== safeModels[cfg.provider]) {
-      cfg.model = safeModels[cfg.provider];
-      await pool.query(
-        "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
-        [JSON.stringify(cfg)]
-      );
-      logger.info({ provider: cfg.provider, model: cfg.model }, 'AI config model auto-corrected');
-    }
-  }
-} catch (e) {
-  logger.warn({ err: e.message }, 'Could not auto-correct AI config');
-}
-// Ensure scraper_ai_config defaults to OpenCode Zen free if not set
-try {
-  const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'scraper_ai_config'");
-  if (!existing.rows.length) {
-    const defaultZen = { provider: 'opencodezen', model: 'deepseek-v4-flash-free', api_key: '', enabled: true };
-    await pool.query(
-      "INSERT INTO site_settings (key, value, updated_at) VALUES ('scraper_ai_config', $1, now()) ON CONFLICT (key) DO NOTHING",
-      [JSON.stringify(defaultZen)]
-    );
-    logger.info('Scraper AI config seeded with OpenCode Zen free');
-  }
-} catch (e) {
-  logger.warn({ err: e.message }, 'Could not seed scraper AI config');
-}
-
-// Ensure AI config defaults to OpenCode Zen free (deepseek-v4-flash-free)
-try {
-  const existingCfg = await pool.query("SELECT value FROM site_settings WHERE key = 'openai_config'");
-  if (!existingCfg.rows.length) {
-    const zenCfg = { api_key: '', provider: 'opencodezen', model: 'deepseek-v4-flash-free', enabled: true };
-    await pool.query(
-      "INSERT INTO site_settings (key, value, updated_at) VALUES ('openai_config', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
-      [JSON.stringify(zenCfg)]
-    );
-    logger.info('AI config seeded with OpenCode Zen free');
-  }
-} catch (e) {
-  logger.warn({ err: e.message }, 'Could not seed AI config');
 }
 logger.info('Database ready');
 await startServer();

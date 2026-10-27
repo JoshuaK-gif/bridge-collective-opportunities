@@ -61,16 +61,4 @@ export default function () {
     errorRate.add(res.status !== 200 && res.status !== 201);
   });
 
-  sleep(1);
-
-  group('AI Summary', () => {
-    const payload = JSON.stringify({ text: 'Software engineering internship in Kampala for youth' });
-    const res = http.post(`${BASE}/api/ai/generate-summary`, payload, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: '30s',
-    });
-    check(res, { 'ai summary 200': (r) => r.status === 200 });
-    errorRate.add(res.status !== 200);
-    if (res.status === 200) apiLatency.add(res.timings.duration);
-  });
 }

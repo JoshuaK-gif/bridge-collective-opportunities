@@ -5,7 +5,7 @@ ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS deadline_date DATE;
 ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS review_reason TEXT DEFAULT '';
 ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS dedup_hash TEXT DEFAULT '';
 ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS feed_url TEXT DEFAULT '';
-ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS classification_method TEXT DEFAULT '';  -- 'keyword' or 'llm'
+ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS classification_method TEXT DEFAULT '';  -- 'keyword' or 'feed'
 ALTER TABLE scraped_posts ADD COLUMN IF NOT EXISTS classification_confidence REAL DEFAULT 0;
 
 -- opportunities: add date-type deadline, manually_edited flag, new statuses

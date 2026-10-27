@@ -3,7 +3,45 @@ import { XMLParser } from 'fast-xml-parser';
 import * as chrono from 'chrono-node';
 import pool from './db.js';
 import logger from './logger.js';
-import { cleanPromotionalContent } from './rewriter.js';
+
+/** Strip promotional filler phrases from scraped text (pure regex, no AI). */
+function cleanPromotionalContent(text) {
+  const patterns = [
+    /start\s+your\s+journey/i,
+    /click\s+here\s+(to\s+)?(apply|register|join|start)/i,
+    /apply\s+now/i,
+    /register\s+now/i,
+    /join\s+(us\s+)?(today|now)/i,
+    /don'?t\s+miss\s+(out\s+)?(on\s+)?(this\s+)?opportunity/i,
+    /hurry\s+up/i,
+    /limited\s+(slots|seats|spots|positions)/i,
+    /apply\s+(before|early|today)/i,
+    /sign\s+up\s+(now|today|free)/i,
+    /get\s+started\s+(now|today)/i,
+    /book\s+(your\s+)?(spot|seat|place|slot)\s+(now|today)/i,
+    /enroll\s+(now|today)/i,
+    /submit\s+(your\s+)?application\s+(now|today)/i,
+    /learn\s+more\s+(now|today)/i,
+    /take\s+(the\s+)?(next\s+)?step/i,
+    /boost\s+your\s+(career|skills|future|chances)/i,
+    /unlock\s+your\s+(potential|future|dream)/i,
+    /transform\s+your\s+(life|career|future)/i,
+    /this\s+is\s+your\s+chance/i,
+    /what\s+are\s+you\s+waiting\s+for/i,
+    /spaces?\s+(are\s+)?limited/i,
+    /early\s+application\s+(is\s+)?encouraged/i,
+    /first\s+come\s+first\s+served/i,
+    /act\s+(fast|now|quickly)/i,
+    /don'?t\s+delay/i,
+    /seize\s+this\s+opportunity/i,
+    /grab\s+this\s+opportunity/i,
+  ];
+  let cleaned = text;
+  for (const p of patterns) {
+    cleaned = cleaned.replace(p, '');
+  }
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
 
 const CATEGORY_DEFAULTS = {
   Scholarships: 'Scholarship',
@@ -119,7 +157,7 @@ function validateDeadline(isoDate) {
 
 /**
  * Classify opportunity into one of: scholarship, job, internship, grant, fellowship.
- * Uses keyword matching first pass, LLM fallback only when ambiguous.
+ * Uses keyword matching against the feed's own categories.
  */
 async function classifyCategory(title, description, feedCategories, userMap = {}) {
   const text = `${title}\n${description}`.toLowerCase();
@@ -157,30 +195,6 @@ async function classifyCategory(title, description, feedCategories, userMap = {}
     if (confidence >= CATEGORY_CONFIDENCE_THRESHOLD) {
       return { category: bestMatch.name, method: 'keyword', confidence };
     }
-  }
-
-  // Third pass: LLM fallback for ambiguous cases
-  try {
-    const { callEnrichAI, getAiConfig } = await import('./enrich.js');
-    const config = await getAiConfig();
-    const prompt = `Classify this opportunity into EXACTLY ONE category: scholarship, job, internship, grant, fellowship.
-Return ONLY valid JSON: {"category": "...", "reason": "..."}
-
-Title: "${title}"
-Description: "${description.slice(0, 500)}"
-Feed categories: "${feedCategories.join(', ')}"`;
-
-    const content = await callEnrichAI(prompt, config);
-    let result;
-    try {
-      result = JSON.parse(content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim());
-    } catch { result = {}; }
-    const llmCat = (result.category || '').toLowerCase();
-    if (VALID_CATEGORIES.includes(llmCat)) {
-      return { category: llmCat, method: 'llm', confidence: 0.8 };
-    }
-  } catch (err) {
-    logger.warn({ err }, 'Category LLM classification failed, falling back');
   }
 
   // Last resort: default and flag for review
@@ -354,7 +368,7 @@ export async function getNewPosts(feedUrl, feedHealth) {
     let reviewReason = '';
     if (deadlineValidation) {
       reviewReason = deadlineValidation;
-    } else if (classification.confidence < CATEGORY_CONFIDENCE_THRESHOLD && classification.method !== 'llm') {
+    } else if (classification.confidence < CATEGORY_CONFIDENCE_THRESHOLD) {
       reviewReason = 'category_unclear';
     }
     if (reviewReason) {

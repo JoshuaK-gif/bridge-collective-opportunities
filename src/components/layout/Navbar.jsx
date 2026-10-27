@@ -33,13 +33,8 @@ import {
   CheckCircle2,
   Heart,
   FileText,
-  Lightbulb,
   ChevronDown,
   ChevronRight,
-  Sparkles,
-  Wand2,
-  Edit3,
-  ShieldCheck,
   Send,
   Sun,
   Moon,
@@ -47,7 +42,6 @@ import {
 import { toast } from 'sonner';
 import { api } from '@/api/client';
 import { useTheme } from 'next-themes';
-import { getFeatures } from '@/lib/features';
 
 const navCategories = [
   { label: 'Scholarships', icon: BookOpen, path: '/category/scholarships' },
@@ -63,12 +57,6 @@ const pageLinks = [
   { label: 'About Us', icon: Info, path: '/about' },
   { label: 'Services', icon: Settings, path: '/services' },
   { label: 'Contact', icon: Mail, path: '/contact' },
-];
-
-const aiLinks = [
-  { label: 'Generate', icon: Wand2, path: '/ai-assistant/generate' },
-  { label: 'Funder Check', icon: ShieldCheck, path: '/ai-assistant/check' },
-  { label: 'Polish', icon: Edit3, path: '/ai-assistant/polish' },
 ];
 
 const userLinks = [
@@ -179,11 +167,6 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [subEmail, setSubEmail] = useState('');
   const [subscribing, setSubscribing] = useState(false);
-  const [features, setFeatures] = useState(null);
-
-  useEffect(() => {
-    getFeatures().then(setFeatures);
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);

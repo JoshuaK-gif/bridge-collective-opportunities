@@ -18,7 +18,6 @@ export default function AdminLayout() {
     { label: 'Site Settings', path: '/admin-bridgejobs/settings', icon: Settings },
     { label: 'News', path: '/admin-bridgejobs/news', icon: Newspaper },
     { label: 'Templates', path: '/admin-bridgejobs/templates', icon: Copy },
-    // { label: 'AI Extractor', path: '/admin-bridgejobs/ai-extract', icon: Sparkles },
     { label: 'Submissions', path: '/admin-bridgejobs/opportunities?status=pending', icon: Mail },
     { label: 'Subscribers', path: '/admin-bridgejobs/subscribers', icon: Users },
   ];

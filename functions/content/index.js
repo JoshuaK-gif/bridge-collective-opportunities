@@ -3,8 +3,7 @@
  *
  * Nhost Functions use static routes, so resources are addressed with query
  * params (GET) or { resource, action } bodies (POST). All SQL is ported
- * verbatim from the Express routes; AI-dependent endpoints (enrich,
- * clone-from-url AI extraction) are disabled with a clear 501.
+ * verbatim from the Express routes.
  *
  * GET  /v1/content?resource=opportunities&category&search&trending&featured&all&expiring_soon&expiring_within
  * GET  /v1/content?resource=home          (single call: featured + opportunities + categories + expiringSoon + curatedLists)
@@ -17,7 +16,7 @@
  * GET  /v1/content?resource=related&id=
  * GET  /v1/content?resource=unsubscribe&email&id
  *
- * POST /v1/content  { resource: 'opportunity', action: 'create'|'update'|'delete'|'duplicate'|'bulk-delete'|'bulk-update'|'bulk-publish'|'submit'|'clone-from-url', ... }
+ * POST /v1/content  { resource: 'opportunity', action: 'create'|'update'|'delete'|'duplicate'|'bulk-delete'|'bulk-update'|'bulk-publish'|'submit', ... }
  * POST /v1/content  { resource: 'category', action: 'create'|'update'|'delete', ... }
  * POST /v1/content  { resource: 'news', action: 'create'|'update'|'delete', ... }
  */
@@ -30,7 +29,6 @@ import { parseWith, opportunitySchema, categorySchema } from '../_shared/validat
 import { logAudit } from '../_shared/audit.js';
 import { notifyNewOpportunity } from '../_shared/email.js';
 import { publishToSocial } from '../_shared/social.js';
-import { validateUrl } from '../_shared/url-validator.js';
 import cache from '../_shared/cache.js';
 
 const OPP_LIST_COLS = 'id, title, category, deadline, description, image_url, image_crop, image_size, image_public_id, trending, featured_order, created_date, updated_date';
@@ -423,41 +421,6 @@ async function handleOpportunityAction(body, user, req, res) {
     }
     await logAudit({ userId: admin.id, action: 'bulk_publish', entityType: 'scraped_posts', metadata: { count: published }, ipAddress: req.headers?.['x-forwarded-for'] || '' });
     return res.json({ success: true, published });
-  }
-
-  if (action === 'clone-from-url') {
-    const { url } = body;
-    if (!url) throw new AppError(400, 'URL is required');
-    const validation = validateUrl(url);
-    if (!validation.valid) throw new AppError(400, validation.error);
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'BridgeJobs/1.0 (Opportunity Aggregator)' },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new AppError(400, `Failed to fetch URL: ${response.status}`);
-    const html = await response.text();
-
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const descMatch = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i);
-    const extractedTitle = (titleMatch?.[1] || '').trim();
-    const extractedDesc = (descMatch?.[1] || '').trim();
-
-    // AI extraction is disabled on this backend — return the basic metadata
-    return res.json({
-      title: extractedTitle,
-      description: extractedDesc,
-      category: 'Scholarship',
-      deadline: '',
-      link: url,
-      organization: '',
-      location: '',
-      funding: '',
-    });
-  }
-
-  if (action === 'enrich') {
-    return res.status(501).json({ error: 'AI enrichment is disabled on the Nhost free-tier backend. See MIGRATION.md.' });
   }
 
   throw new AppError(404, `Unknown opportunity action: ${action}`);

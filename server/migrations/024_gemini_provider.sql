@@ -1,1 +1,0 @@
-UPDATE site_settings SET value = jsonb_set(value, '{provider}', '"openai"', true) WHERE key = 'scraper_ai_config' AND (value->>'provider') IS NULL;

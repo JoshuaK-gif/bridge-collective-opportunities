@@ -1,7 +1,7 @@
 /**
- * Scraper helpers — port of server/lib/scraper.js with the AI (LLM) fallback
- * removed. Feed ingest, deadline/category classification (keyword-based),
- * drafts, publishing and logging all remain functional without AI.
+ * Scraper helpers — port of server/lib/scraper.js. Feed ingest,
+ * deadline/category classification (keyword-based), drafts, publishing and
+ * logging.
  */
 import crypto from 'crypto';
 import { XMLParser } from 'fast-xml-parser';
@@ -36,7 +36,7 @@ const CATEGORY_CONFIDENCE_THRESHOLD = 0.5;
 
 const VALID_CATEGORIES = ['scholarship', 'job', 'internship', 'grant', 'fellowship'];
 
-/** Strip promotional filler phrases (ported from lib/rewriter.js — pure regex, no AI). */
+/** Strip promotional filler phrases. */
 function cleanPromotionalContent(text) {
   const patterns = [
     /start\s+your\s+journey/i,
@@ -139,7 +139,7 @@ function validateDeadline(isoDate) {
   return null;
 }
 
-/** Classify opportunity using feed categories + keyword rules (no LLM). */
+/** Classify opportunity using feed categories + keyword rules. */
 async function classifyCategory(title, description, feedCategories, userMap = {}) {
   const text = `${title}\n${description}`.toLowerCase();
   const mergedMap = { ...CATEGORY_DEFAULTS, ...userMap };
@@ -327,7 +327,7 @@ export async function getNewPosts(feedUrl, feedHealth) {
     let reviewReason = '';
     if (deadlineValidation) {
       reviewReason = deadlineValidation;
-    } else if (classification.confidence < CATEGORY_CONFIDENCE_THRESHOLD && classification.method !== 'llm') {
+    } else if (classification.confidence < CATEGORY_CONFIDENCE_THRESHOLD) {
       reviewReason = 'category_unclear';
     }
     if (reviewReason) {

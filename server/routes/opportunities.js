@@ -8,7 +8,6 @@ import { AppError } from '../lib/errors.js';
 import { publishToSocial } from '../lib/social.js';
 import { validate, opportunitySchema } from '../lib/validate.js';
 import { logAudit } from '../lib/audit.js';
-import { enrichOpportunity } from '../lib/enrich.js';
 import { notifyNewOpportunity } from '../lib/email.js';
 import { validateUrl } from '../lib/url-validator.js';
 import cache from '../lib/cache.js';
@@ -310,33 +309,6 @@ router.post('/bulk/update', authenticate, async (req, res, next) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// AI Enrichment — Generate full structured description for an opportunity
-// Uses shared enrichment utility from lib/enrich.js
-// ---------------------------------------------------------------------------
-router.post('/:id/enrich', authenticate, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-
-    const result = await enrichOpportunity(req.params.id);
-    if (!result) throw new AppError(502, 'AI enrichment failed — the AI returned an unparseable response. Try again.');
-
-    logAudit({ userId: req.user.id, action: 'enrich', entityType: 'opportunity', entityId: req.params.id, ipAddress: req.ip });
-    logger.info({ opportunityId: req.params.id }, 'Opportunity enriched with AI description');
-
-    res.json({
-      success: true,
-      opportunityId: req.params.id,
-      title: result.title,
-      description: result.description,
-      structured_data: result.structured_data,
-      keywords: result.keywords,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
@@ -410,67 +382,6 @@ router.post('/bulk/publish', authenticate, async (req, res, next) => {
     }
     logAudit({ userId: req.user.id, action: 'bulk_publish', entityType: 'scraped_posts', metadata: { count: published }, ipAddress: req.ip });
     res.json({ success: true, published });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Clone from URL — fetch a URL, AI-extract opportunity data, return as pre-fill
-// ---------------------------------------------------------------------------
-router.post('/clone-from-url', authenticate, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') throw new AppError(403, 'Forbidden');
-    const { url } = req.body;
-    if (!url) throw new AppError(400, 'URL is required');
-
-    const validation = validateUrl(url);
-    if (!validation.valid) throw new AppError(400, validation.error);
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'BridgeJobs/1.0 (Opportunity Aggregator)' },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new AppError(400, `Failed to fetch URL: ${response.status}`);
-    const html = await response.text();
-
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const descMatch = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i);
-    const extractedTitle = (titleMatch?.[1] || '').trim();
-    const extractedDesc = (descMatch?.[1] || '').trim();
-
-    const cleanText = html
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 3000);
-
-    const prompt = `Extract opportunity details from this webpage content. Return ONLY valid JSON with these fields: title, description (2-3 sentence summary), category, deadline (in YYYY-MM-DD format if found), link (the apply URL if found), organization, location, funding. If a field is not found, use empty string. Do NOT fabricate.
-    
-Webpage content: "${cleanText.slice(0, 2000)}"`;
-
-    const aiConfig = await (await import('../lib/enrich.js')).getAiConfig();
-    let extracted = {};
-    try {
-      const aiContent = await (await import('../lib/enrich.js')).callEnrichAI(prompt, aiConfig);
-      extracted = (await import('../lib/enrich.js')).safeParseEnrich(aiContent);
-    } catch {
-      // fallback to basic extraction
-    }
-
-    res.json({
-      title: extracted.title || extractedTitle,
-      description: extracted.description || extractedDesc,
-      category: extracted.category || 'Scholarship',
-      deadline: extracted.deadline || '',
-      link: extracted.link || url,
-      organization: extracted.organization || '',
-      location: extracted.location || '',
-      funding: extracted.funding || '',
-    });
   } catch (err) {
     next(err);
   }

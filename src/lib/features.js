@@ -1,14 +1,14 @@
 /**
  * Backend feature flags — read once from /api/health.
  *
- * The Nhost free-tier backend runs WITHOUT AI, GrantKit (BCO Grant Assistant)
+ * The Nhost free-tier backend runs WITHOUT GrantKit (BCO Grant Assistant)
  * and server PDF features. The frontend reads `features` to hide those UI
  * sections and routes.
  */
 let cachedFeatures = null;
 let inflight = null;
 
-const DEFAULTS = { ai: true, grantAssistant: true, pdf: true };
+const DEFAULTS = { grantAssistant: true, pdf: true };
 
 export function getFeatures() {
   if (cachedFeatures) return Promise.resolve(cachedFeatures);

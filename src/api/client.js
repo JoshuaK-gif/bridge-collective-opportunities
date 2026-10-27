@@ -123,7 +123,7 @@ async function uploadToCloudinary(file, purpose) {
   };
 }
 
-/** AI / GrantKit / PDF features are not deployed on this backend. */
+/** GrantKit / PDF features are not deployed on this backend. */
 function disabled(feature) {
   return async () => {
     throw new Error(`${feature} is not available on this deployment.`);
@@ -215,8 +215,6 @@ export const api = {
   },
   scraper: {
     preview: () => request(`/scraper${qs({ resource: 'feed-preview' })}`),
-    process: (sourceId) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'process', sourceId }) }),
-    processAll: () => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'process-all' }) }),
     posts: () => request(`/scraper${qs({ resource: 'posts' })}`),
     logs: () => request(`/scraper${qs({ resource: 'logs' })}`),
     socialPost: (id) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'social', id }) }),
@@ -227,7 +225,6 @@ export const api = {
     publishDraft: (id) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'draft', action: 'publish', id }) }),
     republishDraft: (id) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'draft', action: 'republish', id }) }),
     deleteDraft: (id) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'draft', action: 'delete', id }) }),
-    enrichDraft: (id) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'draft', action: 'enrich', id }) }),
   },
   lists: {
     list: () => request(`/collections${qs({ resource: 'lists' })}`),
@@ -258,10 +255,8 @@ export const api = {
     delete: (id) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'delete', id }) }),
     deleteBulk: (ids) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'bulk-delete', ids }) }),
     bulkUpdate: (ids, data) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'bulk-update', ids, data }) }),
-    enrich: (id) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'enrich', id }) }),
     duplicate: (id) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'duplicate', id }) }),
     bulkPublish: (ids) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'bulk-publish', ids }) }),
-    cloneFromUrl: (url) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'clone-from-url', url }) }),
     checkDuplicates: (params) => request(`/content${qs({ resource: 'check-duplicates', ...params })}`),
     related: (id) => request(`/content${qs({ resource: 'related', id })}`),
     submit: (data) => request('/content', { method: 'POST', body: JSON.stringify({ resource: 'opportunity', action: 'submit', ...data }) }),
@@ -276,18 +271,6 @@ export const api = {
   },
   cv: {
     downloadPdf: disabled('PDF download'),
-  },
-  ai: {
-    atsScan: disabled('AI ATS scan'),
-    cvFeedback: disabled('AI CV feedback'),
-    generateSummary: disabled('AI summary generation'),
-    suggestSkills: disabled('AI skill suggestions'),
-    rewrite: disabled('AI rewrite'),
-    applicationAssist: disabled('AI application assist'),
-    grantWrite: disabled('AI grant writing'),
-    grantPolish: disabled('AI grant polishing'),
-    grantGenerate: disabled('AI grant generation'),
-    extractFromUrl: disabled('AI URL extraction'),
   },
   grantkit: {
     packs: disabled('GrantKit'),

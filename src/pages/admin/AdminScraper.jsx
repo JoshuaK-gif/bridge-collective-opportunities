@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Globe, Twitter, Linkedin, Facebook, Instagram, MessageCircle, CheckCircle2, XCircle, Settings, FileEdit, Plus, FileText, Send, Eye, Sparkles, Trash2, RotateCcw } from 'lucide-react';
+import { Globe, Twitter, Linkedin, Facebook, Instagram, MessageCircle, CheckCircle2, XCircle, Settings, FileEdit, Plus, FileText, Send, Eye, Trash2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PLATFORM_ICONS = { twitter: Twitter, linkedin: Linkedin, facebook: Facebook, instagram: Instagram, whatsapp: MessageCircle };
@@ -16,7 +16,6 @@ export default function AdminScraper() {
   const [feedPreview, setFeedPreview] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(null);
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [activeTab, setActiveTab] = useState('scrap');
@@ -25,8 +24,6 @@ export default function AdminScraper() {
   const [publishingDraft, setPublishingDraft] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [republishingId, setRepublishingId] = useState(null);
-  const [enrichingAll, setEnrichingAll] = useState(false);
-  const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0, status: '' });
 
   const loadData = async () => {
     setLoading(true);
@@ -57,32 +54,6 @@ export default function AdminScraper() {
     }
   };
 
-  const handleProcess = async (sourceId) => {
-    setProcessing(sourceId);
-    try {
-      await api.scraper.process(sourceId);
-      toast.success('Post processed and published');
-      loadData();
-    } catch {
-      toast.error('Failed to process post');
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleProcessAll = async () => {
-    setLoading(true);
-    try {
-      const data = await api.scraper.processAll();
-      toast.success(`Processed ${data.processed} posts`);
-      loadData();
-    } catch {
-      toast.error('Failed to process posts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleScrapeUrl = async () => {
     if (!scrapeUrl.trim()) return;
     setScraping(true);
@@ -96,28 +67,6 @@ export default function AdminScraper() {
     } finally {
       setScraping(false);
     }
-  };
-
-  const handleEnrichAll = async () => {
-    if (drafts.length === 0) return;
-    setEnrichingAll(true);
-    setEnrichProgress({ current: 0, total: drafts.length, status: 'Starting...' });
-    let success = 0;
-    let failed = 0;
-    for (let i = 0; i < drafts.length; i++) {
-      const d = drafts[i];
-      setEnrichProgress({ current: i + 1, total: drafts.length, status: d.source_title?.slice(0, 60) || 'Unknown' });
-      try {
-        await api.scraper.enrichDraft(d.id);
-        success++;
-      } catch {
-        failed++;
-      }
-    }
-    setEnrichProgress({ current: drafts.length, total: drafts.length, status: `Done — ${success} enriched, ${failed} failed` });
-    setEnrichingAll(false);
-    toast.success(`Enriched ${success} drafts${failed ? `, ${failed} failed` : ''}`);
-    loadData();
   };
 
   return (
@@ -135,9 +84,6 @@ export default function AdminScraper() {
           </Button>
           <Button variant="outline" onClick={handlePreview} disabled={loading}>
             <Globe className="w-4 h-4 mr-1" /> Preview Feed
-          </Button>
-          <Button onClick={handleProcessAll} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Process All New
           </Button>
         </div>
       </div>
@@ -228,9 +174,6 @@ export default function AdminScraper() {
                           )}
                         </div>
                       </div>
-                      <Button size="sm" onClick={() => handleProcess(post.sourceId)} disabled={processing === post.sourceId}>
-                        {processing === post.sourceId ? 'Processing...' : 'Process & Publish'}
-                      </Button>
                     </div>
                   ))}
               </CardContent>
@@ -244,25 +187,11 @@ export default function AdminScraper() {
             <Card>
               <CardContent className="text-center py-12">
                 <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">No scrapped items yet. Scrape a URL or process feed items.</p>
+                <p className="text-sm text-muted-foreground">No scrapped items yet. Scrape a URL or preview the feed.</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-2">
-              {allPosts.some(p => !p.is_published) && (
-                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">{allPosts.filter(p => !p.is_published).length} unprocessed</span>
-                  <Button size="sm" variant="secondary" onClick={handleEnrichAll} disabled={enrichingAll}>
-                    <Sparkles className="w-3.5 h-3.5 mr-1" /> {enrichingAll ? 'Generating...' : 'Generate for All'}
-                  </Button>
-                  {enrichingAll && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="w-3 h-3 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-                      {enrichProgress.current}/{enrichProgress.total} — {enrichProgress.status}
-                    </div>
-                  )}
-                </div>
-              )}
               {selectedDrafts.size > 0 && (
                 <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
                   <span className="text-sm text-muted-foreground">{selectedDrafts.size} selected</span>

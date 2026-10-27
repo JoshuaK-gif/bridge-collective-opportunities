@@ -1,9 +1,8 @@
 /**
  * /v1/scraper — feed ingestion + draft management (no AI).
  *
- * The AI pipeline steps (rewrite, image generation, enrichment) are disabled
- * on the Nhost free-tier backend: actions 'process', 'process-all' and
- * 'draft-enrich' return 501. Everything else is ported from the Express route.
+ * Feed ingest, URL scraping, drafts, publishing and social posting are all
+ * ported from the Express routes.
  *
  * GET  /v1/scraper?resource=feed-preview
  * GET  /v1/scraper?resource=posts
@@ -15,7 +14,6 @@
  * POST /v1/scraper  { resource: 'scrape-url', url }
  * POST /v1/scraper  { resource: 'social', id }
  * POST /v1/scraper  { resource: 'webhook' }                (x-webhook-secret)
- * POST /v1/scraper  { resource: 'process' | 'process-all' | 'draft-enrich' } → 501 (AI disabled)
  */
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../_shared/db.js';
@@ -109,12 +107,6 @@ async function handlePost(req, res) {
   const body = req.body || {};
   const resource = body.resource;
   const action = body.action;
-
-  if (resource === 'process' || resource === 'process-all' || (resource === 'draft' && action === 'enrich')) {
-    return res.status(501).json({
-      error: 'This scraper action requires AI (rewrite + image generation + enrichment) and is disabled on the Nhost free-tier backend. Use the drafts workflow instead (edit + publish).',
-    });
-  }
 
   if (resource === 'webhook') {
     const secret = req.headers?.['x-webhook-secret'];

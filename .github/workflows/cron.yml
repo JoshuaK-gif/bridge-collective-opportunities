@@ -1,8 +1,8 @@
 # Triggers Nhost Function cron jobs (functions/cron/index.js).
 #
-# GitHub Actions scheduled events have a 5-minute floor, so the old 1–2 minute
-# cadences (scheduled-publish / auto-publish) become 5-minute runs. For the
-# original cadence, use Nhost cron triggers instead — see MIGRATION.md Phase 5.
+# GitHub Actions scheduled events have a 5-minute floor, so the old 1-minute
+# cadence (scheduled-publish) becomes a 5-minute run. For the original cadence,
+# use Nhost cron triggers instead — see MIGRATION.md Phase 5.
 #
 # Secrets required:
 #   NHOST_FUNCTIONS_URL  e.g. https://<sub>.functions.<region>.nhost.run/v1
@@ -11,7 +11,7 @@ name: BCO cron jobs
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # auto-publish + scheduled-publish
+    - cron: '*/5 * * * *'   # scheduled-publish
     - cron: '0 * * * *'     # reminders
     - cron: '0 0 * * *'     # expired-cleanup
     - cron: '0 20 * * *'    # newsletter
@@ -24,17 +24,11 @@ jobs:
       NHOST_FUNCTIONS_URL: ${{ secrets.NHOST_FUNCTIONS_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
-      - name: auto-publish + scheduled-publish (every 5 min)
+      - name: scheduled-publish (every 5 min)
         if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
         run: |
           echo "DIAG: NHOST_FUNCTIONS_URL set=$([ -n \"$NHOST_FUNCTIONS_URL\" ] && echo yes || echo no) len=${#NHOST_FUNCTIONS_URL}"
           echo "DIAG: CRON_SECRET set=$([ -n \"$CRON_SECRET\" ] && echo yes || echo no) len=${#CRON_SECRET}"
-          echo "--- auto-publish ---"
-          curl -sS -X POST \
-            -H "Content-Type: application/json" \
-            -H "x-cron-secret: ${CRON_SECRET}" \
-            -w "\nHTTP %{http_code}\n" \
-            "${NHOST_FUNCTIONS_URL}/cron?job=auto-publish" || echo "curl exit $?"
           echo "--- scheduled-publish ---"
           curl -sS -X POST \
             -H "Content-Type: application/json" \

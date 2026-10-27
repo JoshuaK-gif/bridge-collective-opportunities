@@ -31,7 +31,6 @@ import newsRoutes from './routes/news.js';
 import reminderRoutes from './routes/reminders.js';
 import resumeRoutes from './routes/resume.js';
 import resumesRoutes from './routes/resumes.js';
-import aiRoutes from './routes/ai.js';
 import grantkitRoutes from './routes/grantkit.js';
 import cvPdfRoutes from './routes/cv-pdf.js';
 import templateRoutes from './routes/templates.js';
@@ -132,7 +131,6 @@ export function createApp() {
   app.use('/api/reminders', reminderRoutes);
   app.use('/api/resume', resumeRoutes);
   app.use('/api/resumes', resumesRoutes);
-  app.use('/api/ai', aiRoutes);
   app.use('/api/ai/grantkit', grantkitRoutes);
   app.use('/api', cvPdfRoutes);
   app.use('/api/templates', templateRoutes);
@@ -244,12 +242,9 @@ Sitemap: https://bridgecollectiveopport.org/api/sitemap.xml
       } else if (pathname === '/cv-tips') {
         pageTitle = 'CV Writing Tips | Bridge Collective Opportunities';
         pageDesc = 'Learn how to write a standout CV that gets you noticed by employers and opportunity providers. Expert tips and examples.';
-      } else if (pathname === '/cv-review') {
-        pageTitle = 'AI CV Review | Bridge Collective Opportunities';
-        pageDesc = 'Upload your CV and get instant AI-powered feedback. Improve your resume with our free CV review tool.';
       } else if (pathname === '/ai-assistant') {
-        pageTitle = 'AI Grant Assistant | Bridge Collective Opportunities';
-        pageDesc = 'Get AI-powered application tips, write grants, and polish your applications with our AI assistant.';
+        pageTitle = 'BCO Grant Assistant | Bridge Collective Opportunities';
+        pageDesc = 'Check your grant application against real funder rules and build a submission-ready document with the BCO Grant Assistant.';
       } else if (pathname === '/privacy-policy') {
         pageTitle = 'Privacy Policy | Bridge Collective Opportunities';
         pageDesc = 'Read the Bridge Collective Opportunities privacy policy. Learn how we protect your personal data.';

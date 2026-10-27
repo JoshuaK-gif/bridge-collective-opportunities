@@ -159,16 +159,6 @@ async function main() {
   await scraper(mockReq({ query: { resource: 'posts' } }), res);
   check('scraper: posts without token → 401', res, 401, () => {});
 
-  // scraper: process → 501 (AI disabled)
-  res = mockRes();
-  await scraper(mockReq({ method: 'POST', body: { resource: 'process', sourceId: 'x' } }), res);
-  check('scraper: process → 501 (AI disabled)', res, 501, () => {});
-
-  // content: enrich requires auth first → 401 (the 501 is behind admin auth)
-  res = mockRes();
-  await content(mockReq({ method: 'POST', body: { resource: 'opportunity', action: 'enrich', id: opps[0].id } }), res);
-  check('content: enrich requires auth → 401', res, 401, () => {});
-
   console.log(`\n${pass} passed, ${fail} failed`);
   if (failures.length) {
     console.log('\nFailures:');
