@@ -12,6 +12,7 @@ name: BCO cron jobs
 on:
   schedule:
     - cron: '*/5 * * * *'   # scheduled-publish
+    - cron: '20 * * * *'    # scrape-feeds
     - cron: '0 * * * *'     # reminders
     - cron: '0 0 * * *'     # expired-cleanup
     - cron: '0 20 * * *'    # newsletter
@@ -35,6 +36,16 @@ jobs:
             -H "x-cron-secret: ${CRON_SECRET}" \
             -w "\nHTTP %{http_code}\n" \
             "${NHOST_FUNCTIONS_URL}/cron?job=scheduled-publish" || echo "curl exit $?"
+
+      - name: scrape-feeds (hourly)
+        if: github.event.schedule == '20 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "--- scrape-feeds ---"
+          curl -sS -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -w "\nHTTP %{http_code}\n" \
+            "${NHOST_FUNCTIONS_URL}/cron?job=scrape-feeds" || echo "curl exit $?"
 
       - name: reminders (hourly)
         if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'

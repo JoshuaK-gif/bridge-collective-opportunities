@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
-import { Globe, Twitter, Linkedin, Facebook, Instagram, MessageCircle, CheckCircle2, XCircle, Settings, FileEdit, Plus, FileText, Send, Eye, Trash2, RotateCcw } from 'lucide-react';
+import { Globe, Twitter, Linkedin, Facebook, Instagram, MessageCircle, CheckCircle2, XCircle, Settings, FileEdit, Plus, FileText, Send, Eye, Trash2, RotateCcw, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PLATFORM_ICONS = { twitter: Twitter, linkedin: Linkedin, facebook: Facebook, instagram: Instagram, whatsapp: MessageCircle };
@@ -24,6 +24,7 @@ export default function AdminScraper() {
   const [publishingDraft, setPublishingDraft] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [republishingId, setRepublishingId] = useState(null);
+  const [ingesting, setIngesting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -66,6 +67,26 @@ export default function AdminScraper() {
       toast.error('Failed to scrape URL');
     } finally {
       setScraping(false);
+    }
+  };
+
+  const handleIngest = async () => {
+    setIngesting(true);
+    try {
+      const res = await api.scraper.ingest();
+      const saved = res.saved ?? 0;
+      if (saved > 0) {
+        toast.success(`${saved} post${saved === 1 ? '' : 's'} saved to drafts`);
+      } else {
+        toast.info('No new posts to save');
+      }
+      setFeedPreview([]);
+      setActiveTab('scrap');
+      loadData();
+    } catch {
+      toast.error('Failed to save feed posts');
+    } finally {
+      setIngesting(false);
     }
   };
 
@@ -157,7 +178,12 @@ export default function AdminScraper() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">New Posts from Feed ({feedPreview.length})</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">New Posts from Feed ({feedPreview.length})</CardTitle>
+                  <Button size="sm" onClick={handleIngest} disabled={ingesting}>
+                    <Download className="w-4 h-4 mr-1" /> {ingesting ? 'Saving...' : 'Save all to drafts'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                   {feedPreview.map(post => (

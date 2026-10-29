@@ -12,15 +12,15 @@
  *
  * POST /v1/scraper  { resource: 'draft', action: 'update'|'publish'|'republish'|'delete', id, ... }
  * POST /v1/scraper  { resource: 'scrape-url', url }
+ * POST /v1/scraper  { resource: 'ingest' }                  (admin: fetch all feeds → drafts)
  * POST /v1/scraper  { resource: 'social', id }
  * POST /v1/scraper  { resource: 'webhook' }                (x-webhook-secret)
  */
-import { v4 as uuidv4 } from 'uuid';
 import { query } from '../_shared/db.js';
 import logger from '../_shared/logger.js';
 import { requireAdmin } from '../_shared/auth.js';
 import { AppError, handle } from '../_shared/errors.js';
-import { getNewPosts, saveDraftFromUrl, updateDraft, publishDraft, getUnprocessedPosts, getDraftById, getPublishedPosts, logAction } from '../_shared/scraper.js';
+import { getNewPosts, saveDraftFromUrl, updateDraft, publishDraft, republishDraft, ingestFeeds, getUnprocessedPosts, getDraftById, getPublishedPosts, logAction } from '../_shared/scraper.js';
 import { publishToSocial } from '../_shared/social.js';
 import { validateUrl } from '../_shared/url-validator.js';
 
@@ -117,26 +117,20 @@ async function handlePost(req, res) {
     const config = await getScraperConfig();
     if (!config.enabled) return res.status(400).json({ error: 'Scraper is disabled' });
 
-    const feedUrls = getFeedUrls(config);
-    let saved = 0;
-    for (const feedUrl of feedUrls) {
-      try {
-        const posts = await getNewPosts(feedUrl);
-        for (const post of posts) {
-          const { saveScrapedPost } = await import('../_shared/scraper.js');
-          await saveScrapedPost(post);
-          saved++;
-        }
-      } catch (err) {
-        logger.warn({ feedUrl, err: err.message }, 'Webhook feed failed for source');
-      }
-    }
+    const { saved } = await ingestFeeds(getFeedUrls(config));
     await logAction('webhook', { count: saved, source: 'webhook' }, true);
     return res.json({ success: true, saved });
   }
 
   const admin = await requireAdminOr(res, req);
   if (!admin) return;
+
+  if (resource === 'ingest') {
+    const config = await getScraperConfig();
+    const { saved, errors } = await ingestFeeds(getFeedUrls(config));
+    await logAction('ingest', { count: saved, source: 'admin', errors: errors.length }, errors.length === 0);
+    return res.json({ success: true, saved, errors });
+  }
 
   if (resource === 'scrape-url') {
     const { url } = body;
@@ -179,29 +173,9 @@ async function handlePost(req, res) {
   }
 
   if (resource === 'draft' && action === 'republish') {
-    const draft = await getDraftById(body.id);
-    if (!draft) throw new AppError(404, 'Draft not found');
-
-    const title = draft.edited_title || draft.source_title || 'Untitled';
-    const description = draft.edited_description || draft.summary || '';
-    const category = draft.edited_category || draft.source_category || '';
-    const applyUrl = draft.edited_apply_url || draft.apply_url || '';
-    const structuredData = draft.structured_data || {};
-    const imageUrl = draft.image_url || '';
-
-    const oppId = uuidv4();
-    await query(
-      `INSERT INTO opportunities (id, title, description, link, image_url, category, status, created_by, created_date, updated_date, structured_data)
-       VALUES ($1,$2,$3,$4,$5,COALESCE($6,''),'active',$7,now(),now(),$8)`,
-      [oppId, title, description, applyUrl, imageUrl, category, admin.id, JSON.stringify(structuredData)]
-    );
-    await query(
-      `UPDATE scraped_posts SET opportunity_id = $1, posted_to_website = true, posted_date = now(), status = 'published'
-       WHERE id = $2`,
-      [oppId, body.id]
-    );
-    await logAction('draft-republished', { id: body.id, opportunityId: oppId, title }, true);
-    return res.json({ success: true, opportunityId: oppId });
+    const { opportunityId, updated } = await republishDraft(body.id, admin.id);
+    await logAction('draft-republished', { id: body.id, opportunityId, updated }, true);
+    return res.json({ success: true, opportunityId, updated });
   }
 
   if (resource === 'draft' && action === 'delete') {

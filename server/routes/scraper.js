@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import pool from '../lib/db.js';
 import logger from '../lib/logger.js';
 import { authenticate } from '../auth.js';
 import { AppError } from '../lib/errors.js';
-import { getNewPosts, saveScrapedPost, getUnprocessedPosts, getPublishedPosts, getDraftById, saveDraftFromUrl, updateDraft, publishDraft, logAction } from '../lib/scraper.js';
+import { getNewPosts, getUnprocessedPosts, getPublishedPosts, getDraftById, saveDraftFromUrl, updateDraft, publishDraft, republishDraft, ingestFeeds, logAction } from '../lib/scraper.js';
 import { publishToSocial } from '../lib/social.js';
 import { validateUrl } from '../lib/url-validator.js';
 
@@ -96,21 +95,23 @@ router.post('/webhook', async (req, res, next) => {
     }
 
     const feedUrls = config.source_feeds || [config.source_url || 'https://opportunitiesforyouth.org/feed/'];
-    let saved = 0;
-    for (const feedUrl of feedUrls) {
-      try {
-        const posts = await getNewPosts(feedUrl);
-        for (const post of posts) {
-          await saveScrapedPost(post);
-          saved++;
-        }
-      } catch (err) {
-        logger.warn({ feedUrl, err: err.message }, 'Webhook feed failed for source');
-      }
-    }
+    const { saved } = await ingestFeeds(feedUrls);
 
     await logAction('webhook', { count: saved, source: 'webhook' }, true);
     res.json({ success: true, saved });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/ingest', authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const configResult = await pool.query("SELECT value FROM site_settings WHERE key = 'scraper_config'");
+    const config = configResult.rows[0]?.value || {};
+    const feedUrls = config.source_feeds || [config.source_url || 'https://opportunitiesforyouth.org/feed/'];
+    const { saved, errors } = await ingestFeeds(feedUrls);
+    await logAction('ingest', { count: saved, source: 'admin', errors: errors.length }, errors.length === 0);
+    res.json({ success: true, saved, errors });
   } catch (err) {
     next(err);
   }
@@ -192,31 +193,9 @@ router.delete('/drafts/:id', authenticate, requireAdmin, async (req, res, next) 
 
 router.post('/drafts/:id/republish', authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const draft = await getDraftById(req.params.id);
-    if (!draft) throw new AppError(404, 'Draft not found');
-
-    const title = draft.edited_title || draft.source_title || 'Untitled';
-    const description = draft.edited_description || draft.summary || '';
-    const category = draft.edited_category || draft.source_category || '';
-    const applyUrl = draft.edited_apply_url || draft.apply_url || '';
-    const structuredData = draft.structured_data || {};
-    const imageUrl = draft.image_url || '';
-
-    const oppId = uuidv4();
-    await pool.query(
-      `INSERT INTO opportunities (id, title, description, link, image_url, category, status, created_by, created_date, updated_date, structured_data)
-       VALUES ($1,$2,$3,$4,$5,COALESCE($6,''),'active',$7,now(),now(),$8)`,
-      [oppId, title, description, applyUrl, imageUrl, category, req.user.id, JSON.stringify(structuredData)]
-    );
-
-    await pool.query(
-      `UPDATE scraped_posts SET opportunity_id = $1, posted_to_website = true, posted_date = now(), status = 'published'
-       WHERE id = $2`,
-      [oppId, req.params.id]
-    );
-
-    await logAction('draft-republished', { id: req.params.id, opportunityId: oppId, title }, true);
-    res.json({ success: true, opportunityId: oppId });
+    const { opportunityId, updated } = await republishDraft(req.params.id, req.user.id);
+    await logAction('draft-republished', { id: req.params.id, opportunityId, updated }, true);
+    res.json({ success: true, opportunityId, updated });
   } catch (err) {
     next(err);
   }

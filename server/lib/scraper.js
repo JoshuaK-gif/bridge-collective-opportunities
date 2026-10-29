@@ -3,6 +3,7 @@ import { XMLParser } from 'fast-xml-parser';
 import * as chrono from 'chrono-node';
 import pool from './db.js';
 import logger from './logger.js';
+import { safeFetch } from './url-validator.js';
 
 /** Strip promotional filler phrases from scraped text (pure regex, no AI). */
 function cleanPromotionalContent(text) {
@@ -264,12 +265,10 @@ function mapCategory(ofyCategories, userMap = {}) {
 }
 
 export async function fetchFeed(feedUrl) {
-  const response = await fetch(feedUrl, {
+  const { text: xml } = await safeFetch(feedUrl, {
     headers: { 'User-Agent': 'BridgeJobs/1.0 (Opportunity Aggregator)' },
-    signal: AbortSignal.timeout(15000),
+    timeoutMs: 15000,
   });
-  if (!response.ok) throw new Error(`Feed fetch failed: ${response.status}`);
-  const xml = await response.text();
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
@@ -456,13 +455,10 @@ export async function saveScrapedPost(post) {
 }
 
 export async function saveDraftFromUrl(url) {
-  const response = await fetch(url, {
+  const { text: html } = await safeFetch(url, {
     headers: { 'User-Agent': 'BridgeJobs/1.0 (Opportunity Aggregator)' },
-    signal: AbortSignal.timeout(15000),
+    timeoutMs: 15000,
   });
-  if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-
-  const html = await response.text();
   const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() || 'Untitled';
   const desc = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i)?.[1] || '';
   const image = extractImageUrl(html);
@@ -570,4 +566,75 @@ export async function logAction(action, details, success = true) {
     'INSERT INTO auto_publish_log (action, details, success) VALUES ($1, $2, $3)',
     [action, JSON.stringify(details), success]
   );
+}
+
+/**
+ * Fetch + save new posts from a list of feed URLs.
+ * Used by the webhook, the cron scrape-feeds job, and the admin ingest endpoint.
+ */
+export async function ingestFeeds(feedUrls, { feedHealth = true } = {}) {
+  let saved = 0;
+  const errors = [];
+  for (const feedUrl of feedUrls) {
+    try {
+      const posts = await getNewPosts(feedUrl, feedHealth);
+      for (const post of posts) {
+        await saveScrapedPost(post);
+        saved++;
+      }
+    } catch (err) {
+      logger.warn({ feedUrl, err: err.message }, 'Feed ingest failed for source');
+      errors.push({ feedUrl, error: err.message });
+    }
+  }
+  return { saved, errors };
+}
+
+/**
+ * Re-publish a scraped draft. Updates the linked opportunity in place when one
+ * exists (avoids creating duplicate live listings); inserts only if the link is
+ * missing or orphaned.
+ */
+export async function republishDraft(id, userId) {
+  const draft = await getDraftById(id);
+  if (!draft) throw new Error('Draft not found');
+
+  const title = draft.edited_title || draft.source_title || 'Untitled';
+  const description = draft.edited_description || draft.summary || '';
+  const category = draft.edited_category || draft.source_category || '';
+  const applyUrl = draft.edited_apply_url || draft.apply_url || draft.source_url || '';
+  const structuredData = draft.structured_data || {};
+  const imageUrl = draft.edited_image_url || draft.image_url || '';
+  const deadline = draft.edited_deadline || draft.deadline || null;
+  const deadlineDate = draft.edited_deadline || draft.deadline || draft.deadline_date || null;
+
+  let oppId = draft.opportunity_id;
+  let updated = false;
+  if (oppId) {
+    const existing = await pool.query('SELECT id FROM opportunities WHERE id = $1', [oppId]);
+    if (existing.rows.length) {
+      await pool.query(
+        `UPDATE opportunities SET title = $1, description = $2, link = $3, image_url = $4, category = $5, deadline = $6, deadline_date = $7::date, status = 'active', updated_date = now(), structured_data = $8         WHERE id = $9`,
+        [title, description, applyUrl, imageUrl, category, deadline, deadlineDate, JSON.stringify(structuredData), oppId]
+      );
+      updated = true;
+    }
+  }
+  if (!updated) {
+    const oppIdNew = (await import('uuid')).v4();
+    await pool.query(
+      `INSERT INTO opportunities (id, title, description, link, image_url, category, deadline, deadline_date, status, created_by, created_date, updated_date, structured_data)
+       VALUES ($1,$2,$3,$4,$5,COALESCE($6,''),$7,$8::date,'active',$9,now(),now(),$10)`,
+      [oppIdNew, title, description, applyUrl, imageUrl, category, deadline, deadlineDate, userId, JSON.stringify(structuredData)]
+    );
+    oppId = oppIdNew;
+  }
+
+  await pool.query(
+    `UPDATE scraped_posts SET rewritten_title = $1, rewritten_description = $2, opportunity_id = $3, posted_to_website = true, posted_date = now(), status = 'published'
+     WHERE id = $4`,
+    [title, description, oppId, id]
+  );
+
+  return { opportunityId: oppId, updated };
 }

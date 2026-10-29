@@ -3,6 +3,7 @@
  *
  * Jobs:
  *   scheduled-publish  — activate drafts whose publish_at <= now   (every minute in the old server)
+ *   scrape-feeds       — ingest new RSS posts into scraped_posts   (hourly; respects scraper_config.enabled)
  *   expired-cleanup    — delete active opportunities past deadline (daily)
  *   newsletter         — send daily newsletter (batched)           (daily 20:00)
  *   reminders          — deadline reminder emails                  (hourly)
@@ -14,6 +15,7 @@ import { handle } from '../_shared/errors.js';
 import logger from '../_shared/logger.js';
 import { sendNewsletter } from '../_shared/newsletter.js';
 import { processReminders } from '../_shared/reminders.js';
+import { ingestFeeds, logAction } from '../_shared/scraper.js';
 
 function authorized(req, res) {
   const secret = process.env.CRON_SECRET || process.env.NHOST_WEBHOOK_SECRET;
@@ -44,6 +46,18 @@ export default handle(async (req, res) => {
       );
       logger.info({ published: result.rowCount }, 'scheduled-publish done');
       return res.json({ job, published: result.rowCount });
+    }
+    case 'scrape-feeds': {
+      const configResult = await query("SELECT value FROM site_settings WHERE key = 'scraper_config'");
+      const config = configResult.rows[0]?.value || {};
+      if (!config.enabled) {
+        return res.json({ job, skipped: true, reason: 'scraper disabled' });
+      }
+      const feedUrls = config.source_feeds || [config.source_url || 'https://opportunitiesforyouth.org/feed/'];
+      const { saved, errors } = await ingestFeeds(feedUrls);
+      await logAction('cron-scrape', { count: saved, feeds: feedUrls.length, errors: errors.length }, errors.length === 0);
+      logger.info({ saved, feeds: feedUrls.length }, 'scrape-feeds done');
+      return res.json({ job, saved, errors });
     }
     case 'expired-cleanup': {
       const result = await query(

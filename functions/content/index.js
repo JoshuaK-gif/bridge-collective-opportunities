@@ -393,7 +393,7 @@ async function handleOpportunityAction(body, user, req, res) {
   if (action === 'bulk-publish') {
     const { ids } = body;
     if (!Array.isArray(ids) || !ids.length) throw new AppError(400, 'ids array is required');
-    const draftResult = await query("SELECT * FROM scraped_posts WHERE id = ANY($1::uuid[]) AND status = 'draft'", [ids]);
+    const draftResult = await query("SELECT * FROM scraped_posts WHERE id = ANY($1::uuid[]) AND status IN ('scraped', 'needs_review', 'draft')", [ids]);
     let published = 0;
     for (const d of draftResult.rows) {
       const title = d.edited_title || d.source_title || '';
@@ -401,13 +401,14 @@ async function handleOpportunityAction(body, user, req, res) {
       const category = d.edited_category || d.source_category || 'Scholarship';
       const imageUrl = d.edited_image_url || d.image_url || '';
       const deadline = d.edited_deadline || d.deadline || null;
+      const deadlineDate = d.edited_deadline || d.deadline || d.deadline_date || null;
       const applyUrl = d.edited_apply_url || d.apply_url || d.source_url;
       const oppId = uuidv4();
       const structuredData = d.structured_data || {};
       await query(
-        `INSERT INTO opportunities (id, title, description, link, image_url, category, deadline, status, created_by, created_date, updated_date, structured_data)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'active',$8,now(),now(),$9)`,
-        [oppId, title, description, applyUrl, imageUrl, category, deadline, admin.id, JSON.stringify(structuredData)]
+        `INSERT INTO opportunities (id, title, description, link, image_url, category, deadline, deadline_date, status, created_by, created_date, updated_date, structured_data)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8::date,'active',$9,now(),now(),$10)`,
+        [oppId, title, description, applyUrl, imageUrl, category, deadline, deadlineDate, admin.id, JSON.stringify(structuredData)]
       );
       await query(
         `UPDATE scraped_posts SET rewritten_title = $1, rewritten_description = $2, opportunity_id = $3, posted_to_website = true, posted_date = now(), status = 'published'

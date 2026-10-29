@@ -215,6 +215,7 @@ export const api = {
   },
   scraper: {
     preview: () => request(`/scraper${qs({ resource: 'feed-preview' })}`),
+    ingest: () => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'ingest' }) }),
     posts: () => request(`/scraper${qs({ resource: 'posts' })}`),
     logs: () => request(`/scraper${qs({ resource: 'logs' })}`),
     socialPost: (id) => request('/scraper', { method: 'POST', body: JSON.stringify({ resource: 'social', id }) }),
