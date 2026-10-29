@@ -29,3 +29,6 @@ jobs:
       - uses: nhost-actions/nhost-deploy@v1
         with:
           subdomain: ybgaidcwksqeuojraxoe
+          # Explicit single-line message: the action writes COMMIT_MESSAGE into
+          # $GITHUB_OUTPUT, which breaks on multi-line commit bodies.
+          message: "Deploy ${{ github.sha }}"
