@@ -86,7 +86,7 @@ export default function Home() {
     return () => link.remove();
   }, [homeData]);
   const getCatOpps = (name) => allOpportunities.filter(o => o.category === name).slice(0, 5);
-  const CATEGORY_SLUG = { Scholarship: 'scholarships', Grant: 'grants', Job: 'jobs', Internship: 'internships', Fellowship: 'fellowships', Training: 'training', Volunteer: 'volunteer' };
+  const CATEGORY_SLUG = { Scholarship: 'scholarships', Grant: 'grants', Job: 'jobs', Internship: 'internships', Fellowship: 'fellowships', Training: 'training', Volunteer: 'volunteer', Competition: 'competition', Hackathon: 'hackathon' };
   const getCategoryMeta = (catName) => {
     const found = categories.find(c => c.name === catName);
     return found ? { badge: found.color || 'bg-gray-100 text-gray-700', label: found.name } : { badge: 'bg-gray-100 text-gray-700', label: catName };

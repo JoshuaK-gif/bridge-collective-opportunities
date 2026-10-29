@@ -6,6 +6,8 @@ export const CATEGORY_SLUGS = {
   Fellowship: 'fellowships',
   Training: 'training',
   Volunteer: 'volunteer',
+  Competition: 'competition',
+  Hackathon: 'hackathon',
 };
 
 export function categoryHref(category) {

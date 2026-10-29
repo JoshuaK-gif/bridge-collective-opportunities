@@ -12,6 +12,10 @@ const CATEGORY_MAP = {
   fellowships: 'Fellowship',
   training: 'Training',
   volunteer: 'Volunteer',
+  competitions: 'Competition',
+  competition: 'Competition',
+  hackathons: 'Hackathon',
+  hackathon: 'Hackathon',
 };
 
 const CATEGORY_DESCRIPTIONS = {
@@ -22,6 +26,8 @@ const CATEGORY_DESCRIPTIONS = {
   Fellowship: 'Discover fellowship programs for young professionals and leaders in Uganda and East Africa.',
   Training: 'Find training programs, workshops, and skill development opportunities for youth in Uganda and Africa.',
   Volunteer: 'Explore volunteer opportunities in Uganda and East Africa. Give back to your community and gain experience.',
+  Competition: 'Browse competitions for youth in Uganda and Africa and worldwide. Contests in writing, design, innovation and more.',
+  Hackathon: 'Find hackathons and coding challenges open for young developers and innovators worldwide.',
 };
 
 export default function CategoryListingsPage() {
@@ -31,7 +37,8 @@ export default function CategoryListingsPage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const apiCategory = CATEGORY_MAP[category?.toLowerCase()] || category;
+  const mapped = CATEGORY_MAP[category?.toLowerCase()];
+  const apiCategory = mapped || (category ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase() : category);
   const displayName = apiCategory || category || 'Opportunities';
 
   useEffect(() => {
