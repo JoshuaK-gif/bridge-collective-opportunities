@@ -68,6 +68,8 @@ function buildPage(url, title, desc, image, extraSchema = '') {
   <meta property="og:title" content="${t}">
   <meta property="og:description" content="${d}">
   <meta property="og:image" content="${i}">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5036981246659810"
+     crossorigin="anonymous"></script>
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="Bridge Collective Opportunities">
